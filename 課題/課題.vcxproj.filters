@@ -12,35 +12,31 @@
     <ClCompile Include="Source\Scene\OptionScene.cpp">
       <Filter>Source\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scene\PlayerScene.cpp">
-      <Filter>Source\Scene</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Scene\SceneManager.cpp">
+    <ClCompile Include="Source\Scene\PlayScene.cpp">
       <Filter>Source\Scene</Filter>
     </ClCompile>
     <ClCompile Include="Source\main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Scene\TitleScene.cpp">
+    <ClCompile Include="Source\SceneManager.cpp">
       <Filter>Source\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Source\SceneManager.cpp" />
-    <ClCompile Include="Source\TitleScene.cpp" />
+    <ClCompile Include="Source\TitleScene.cpp">
+      <Filter>Source\Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Scene\OptionScene.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scene\PlayerScene.h">
+    <ClInclude Include="Source\Scene\PlayScene.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scene\SceneManager.h">
+    <ClInclude Include="Source\SceneManager.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Scene\TitleScene.h">
+    <ClInclude Include="Source\TitleScene.h">
       <Filter>Source\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\TitleScene.h" />
-    <ClInclude Include="Source\SceneManager.h" />
   </ItemGroup>
 </Project>

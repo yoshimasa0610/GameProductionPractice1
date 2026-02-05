@@ -1,30 +1,52 @@
+/// <summary>
+/// シーンマネージャー実装
+/// シーンの生成・削除・遷移ロジックを実装
+/// </summary>
+
 #include "SceneManager.h"
 #include "TitleScene.h"
-// 他のメンバーが実装する際に以下を追加してください
-// #include "PlayScene.h"
-// #include "OptionScene.h"
+#include "Scene/PlayScene.h"
+#include "Scene/OptionScene.h"
 
+/// <summary>
+/// コンストラクタ
+/// 全てのメンバ変数を初期状態に設定
+/// </summary>
 SceneManager::SceneManager()
     : currentSceneType(SceneType::None)
     , nextSceneType(SceneType::None)
     , isSceneChanging(false)
     , titleScene(nullptr)
-    // , playScene(nullptr)
-    // , optionScene(nullptr)
+    , playScene(nullptr)
+    , optionScene(nullptr)
 {
 }
 
+/// <summary>
+/// デストラクタ
+/// Finalize()を呼び出して確実にリソースを解放
+/// </summary>
 SceneManager::~SceneManager()
 {
     Finalize();
 }
 
+/// <summary>
+/// 初期化処理
+/// 指定されたシーンを最初のシーンとして生成・開始する
+/// </summary>
+/// <param name="firstScene">最初に起動するシーンの種類</param>
 void SceneManager::Initialize(SceneType firstScene)
 {
     nextSceneType = firstScene;
     ChangeScene();
 }
 
+/// <summary>
+/// 更新処理
+/// シーン遷移フラグをチェックし、必要に応じてシーン遷移を実行
+/// その後、現在のシーンの更新処理を呼び出す
+/// </summary>
 void SceneManager::Update()
 {
     // シーン遷移処理
@@ -44,26 +66,29 @@ void SceneManager::Update()
         }
         break;
 
-    // 他のメンバーが実装する際に以下のコメントを外してください
-    //case SceneType::Play:
-    //    if (playScene != nullptr)
-    //    {
-    //        playScene->Update();
-    //    }
-    //    break;
+    case SceneType::Play:
+        if (playScene != nullptr)
+        {
+            playScene->Update();
+        }
+        break;
 
-    //case SceneType::Option:
-    //    if (optionScene != nullptr)
-    //    {
-    //        optionScene->Update();
-    //    }
-    //    break;
+    case SceneType::Option:
+        if (optionScene != nullptr)
+        {
+            optionScene->Update();
+        }
+        break;
 
     default:
         break;
     }
 }
 
+/// <summary>
+/// 描画処理
+/// 現在アクティブなシーンの描画処理を呼び出す
+/// </summary>
 void SceneManager::Draw()
 {
     // 現在のシーンを描画
@@ -76,37 +101,49 @@ void SceneManager::Draw()
         }
         break;
 
-    // 他のメンバーが実装する際に以下のコメントを外してください
-    //case SceneType::Play:
-    //    if (playScene != nullptr)
-    //    {
-    //        playScene->Draw();
-    //    }
-    //    break;
+    case SceneType::Play:
+        if (playScene != nullptr)
+        {
+            playScene->Draw();
+        }
+        break;
 
-    //case SceneType::Option:
-    //    if (optionScene != nullptr)
-    //    {
-    //        optionScene->Draw();
-    //    }
-    //    break;
+    case SceneType::Option:
+        if (optionScene != nullptr)
+        {
+            optionScene->Draw();
+        }
+        break;
 
     default:
         break;
     }
 }
 
+/// <summary>
+/// 終了処理
+/// 全てのシーンを削除し、リソースを解放する
+/// </summary>
 void SceneManager::Finalize()
 {
     DeleteCurrentScene();
 }
 
+/// <summary>
+/// シーン遷移をリクエストする
+/// 各シーンから呼び出され、次のフレームでシーン遷移が実行される
+/// </summary>
+/// <param name="nextScene">遷移先のシーンの種類</param>
 void SceneManager::RequestSceneChange(SceneType nextScene)
 {
     nextSceneType = nextScene;
     isSceneChanging = true;
 }
 
+/// <summary>
+/// 現在のシーンを削除する
+/// 各シーンのFinalize()を呼び出してからメモリを解放
+/// </summary>
 void SceneManager::DeleteCurrentScene()
 {
     // 現在のシーンを削除
@@ -117,22 +154,25 @@ void SceneManager::DeleteCurrentScene()
         titleScene = nullptr;
     }
 
-    // 他のメンバーが実装する際に以下のコメントを外してください
-    //if (playScene != nullptr)
-    //{
-    //    playScene->Finalize();
-    //    delete playScene;
-    //    playScene = nullptr;
-    //}
+    if (playScene != nullptr)
+    {
+        playScene->Finalize();
+        delete playScene;
+        playScene = nullptr;
+    }
 
-    //if (optionScene != nullptr)
-    //{
-    //    optionScene->Finalize();
-    //    delete optionScene;
-    //    optionScene = nullptr;
-    //}
+    if (optionScene != nullptr)
+    {
+        optionScene->Finalize();
+        delete optionScene;
+        optionScene = nullptr;
+    }
 }
 
+/// <summary>
+/// 指定されたシーンを生成し、Initialize()を呼び出す
+/// </summary>
+/// <param name="sceneType">生成するシーンの種類</param>
 void SceneManager::CreateAndInitializeScene(SceneType sceneType)
 {
     switch (sceneType)
@@ -142,22 +182,25 @@ void SceneManager::CreateAndInitializeScene(SceneType sceneType)
         titleScene->Initialize();
         break;
 
-    // 他のメンバーが実装する際に以下のコメントを外してください
-    //case SceneType::Play:
-    //    playScene = new PlayScene(this);
-    //    playScene->Initialize();
-    //    break;
+    case SceneType::Play:
+        playScene = new PlayScene(this);
+        playScene->Initialize();
+        break;
 
-    //case SceneType::Option:
-    //    optionScene = new OptionScene(this);
-    //    optionScene->Initialize();
-    //    break;
+    case SceneType::Option:
+        optionScene = new OptionScene(this);
+        optionScene->Initialize();
+        break;
 
     default:
         break;
     }
 }
 
+/// <summary>
+/// シーンを変更する
+/// 現在のシーンを終了・削除し、新しいシーンを生成・初期化する
+/// </summary>
 void SceneManager::ChangeScene()
 {
     // 現在のシーンを終了・削除
