@@ -13,10 +13,123 @@
     <Filter Include="Source\GameSetting">
       <UniqueIdentifier>{eba4329b-0219-4125-b823-cf7ce145c7d5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Overlay">
+      <UniqueIdentifier>{3e45e988-cb28-4273-89a4-592cabd45892}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Overlay\Menu">
+      <UniqueIdentifier>{2fb3a693-f2e9-464b-bf16-9cb6adcd881a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Overlay\Option">
+      <UniqueIdentifier>{ddf90da1-32e7-4e4e-9746-d579aa129f84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Play">
+      <UniqueIdentifier>{662dd7b5-9fb6-4622-8a61-71d38fdc109e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Title">
+      <UniqueIdentifier>{92ad1301-ce05-4c5a-89fe-cef15c01e693}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Item">
+      <UniqueIdentifier>{f8f9c1c0-95db-4f8c-9424-cd0a8261a876}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Money">
+      <UniqueIdentifier>{8ee20e66-d13f-42d2-b375-e50e05c48f54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Sound">
+      <UniqueIdentifier>{c4a35e5c-06c2-4997-97c8-8f59e0cd9726}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Map">
+      <UniqueIdentifier>{a5ec6303-1456-4e3b-860b-2b839d6055f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Input">
+      <UniqueIdentifier>{917a4e45-ed34-49a7-955b-80b8746297a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\FPS">
+      <UniqueIdentifier>{a4a3ed2c-146e-44ce-9976-47f074824cd2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Fade">
+      <UniqueIdentifier>{3bb26b8d-a250-4eef-bd6f-853de10be9b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Camera">
+      <UniqueIdentifier>{54ecbf1b-6b59-481c-90ce-4b9aff24f8eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\UIImage">
+      <UniqueIdentifier>{1d116b78-a0f5-4b05-b651-c692d9876155}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\main.cpp">
+    <ClCompile Include="Source\Scene\SceneManager.cpp">
+      <Filter>Source\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Play\Play.cpp">
+      <Filter>Source\Scene\Play</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Title\Title.cpp">
+      <Filter>Source\Scene\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Overlay\Menu\Menu.cpp">
+      <Filter>Source\Overlay\Menu</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Overlay\Option\Option.cpp">
+      <Filter>Source\Overlay\Option</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Sound\Sound.cpp">
+      <Filter>Source\Sound</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Source\FPS\FPS.cpp">
+      <Filter>Source\FPS</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Camera\Camera.cpp">
+      <Filter>Source\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\UIImage\UIImage.cpp">
+      <Filter>Source\UIImage</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input\Input.cpp">
+      <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Fade\Fade.cpp">
+      <Filter>Source\Fade</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\GameSetting\GameSetting.h">
+      <Filter>Source\GameSetting</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\SceneManager.h">
+      <Filter>Source\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Play\Play.h">
+      <Filter>Source\Scene\Play</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Title\Title.h">
+      <Filter>Source\Scene\Title</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Overlay\Menu\Menu.h">
+      <Filter>Source\Overlay\Menu</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Overlay\Option\Option.h">
+      <Filter>Source\Overlay\Option</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Sound\Sound.h">
+      <Filter>Source\Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\FPS\FPS.h">
+      <Filter>Source\FPS</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Camera\Camera.h">
+      <Filter>Source\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\UIImage\UIImage.h">
+      <Filter>Source\UIImage</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input\Input.h">
+      <Filter>Source\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Fade\Fade.h">
+      <Filter>Source\Fade</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
