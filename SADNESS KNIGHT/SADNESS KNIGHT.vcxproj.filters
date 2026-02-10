@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{bc1f2547-457d-48a5-9e6b-5dca675759a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Player">
+      <UniqueIdentifier>{b5bcb237-8ae2-4c6a-9d8b-fa3843e40d4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene">
+      <UniqueIdentifier>{7132aaba-62a7-425c-aa07-cee78b5c4392}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\GameSetting">
+      <UniqueIdentifier>{eba4329b-0219-4125-b823-cf7ce145c7d5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\main.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
