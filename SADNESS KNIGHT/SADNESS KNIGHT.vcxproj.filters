@@ -55,6 +55,9 @@
     <Filter Include="Source\UIImage">
       <UniqueIdentifier>{1d116b78-a0f5-4b05-b651-c692d9876155}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Skill">
+      <UniqueIdentifier>{aa66acc2-ef7f-455b-8957-24127c703df8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -105,6 +108,24 @@
     <ClCompile Include="Source\Map\Block.cpp">
       <Filter>Source\Map</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Item\ItemManager.cpp">
+      <Filter>Source\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Item\ItemField.cpp">
+      <Filter>Source\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Item\ItemData.cpp">
+      <Filter>Source\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Item\Item.cpp">
+      <Filter>Source\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Skill\SkillData.cpp">
+      <Filter>Source\Skill</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Skill\SkillManager.cpp">
+      <Filter>Source\Skill</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -154,6 +175,24 @@
     </ClInclude>
     <ClInclude Include="Source\Map\Block.h">
       <Filter>Source\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Item\ItemManager.h">
+      <Filter>Source\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Item\ItemField.h">
+      <Filter>Source\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Item\ItemData.h">
+      <Filter>Source\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Item\Item.h">
+      <Filter>Source\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Skill\SkillData.h">
+      <Filter>Source\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Skill\SkillManager.h">
+      <Filter>Source\Skill</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
