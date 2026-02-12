@@ -144,6 +144,10 @@
     <ClCompile Include="Source\FPS\FPS.cpp" />
     <ClCompile Include="Source\Input\Input.cpp" />
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\Map\Block.cpp" />
+    <ClCompile Include="Source\Map\MapChip.cpp" />
+    <ClCompile Include="Source\Map\MapManager.cpp" />
+    <ClCompile Include="Source\Map\StageManager.cpp" />
     <ClCompile Include="Source\Overlay\Menu\Menu.cpp" />
     <ClCompile Include="Source\Overlay\Option\Option.cpp" />
     <ClCompile Include="Source\Scene\Play\Play.cpp" />
@@ -158,6 +162,10 @@
     <ClInclude Include="Source\FPS\FPS.h" />
     <ClInclude Include="Source\GameSetting\GameSetting.h" />
     <ClInclude Include="Source\Input\Input.h" />
+    <ClInclude Include="Source\Map\Block.h" />
+    <ClInclude Include="Source\Map\MapChip.h" />
+    <ClInclude Include="Source\Map\MapManager.h" />
+    <ClInclude Include="Source\Map\StageManager.h" />
     <ClInclude Include="Source\Overlay\Menu\Menu.h" />
     <ClInclude Include="Source\Overlay\Option\Option.h" />
     <ClInclude Include="Source\Scene\Play\Play.h" />
