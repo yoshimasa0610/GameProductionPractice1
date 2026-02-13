@@ -165,17 +165,6 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
         player->hp = player->maxHp;
 }
 */
-bool ItemManager::HasEquippedSpecial() const
-{
-    for (const auto& it : m_items)
-    {
-        if (it->isEquipped)
-        {
-            return true;
-        }
-    }
-    return false;
-}
 
 // 所持しているか
 bool ItemManager_IsItemOwned(int itemId)
@@ -253,7 +242,30 @@ void ItemManager_RemoveItem(int itemId)
 {
     auto& items = const_cast<std::vector<std::unique_ptr<Item>>&>(g_ItemManager.GetAllItems());
     for (auto& it : items)
+    {
         if (it->id == itemId)
+        {
             it->ownedCount = 0;
-            //it->isEquipped = false;
+            it->isEquipped = false;
+        }
+    }
 }
+
+/*
+以下メモ
+struct PlayerData
+{
+    int baseMaxHp = 150;
+    int maxHp = 300;
+    int hp = 150;
+    int baseMaxSlot = 5;
+    int maxSlot = 5;
+    int baseRecoverWait = 60;
+    int recoverWait = 60;
+    int healPowerBonus = 0;
+};
+こういう感じでPlayerDataをつくれば上記コードは使えるよ
+最小限上記の感じで作って
+
+
+*/
