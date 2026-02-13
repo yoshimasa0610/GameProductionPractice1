@@ -126,6 +126,9 @@
     <ClCompile Include="Source\Skill\SkillManager.cpp">
       <Filter>Source\Skill</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Player\Player.cpp">
+      <Filter>Source\Player</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -193,6 +196,12 @@
     </ClInclude>
     <ClInclude Include="Source\Skill\SkillManager.h">
       <Filter>Source\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Player\Player.h">
+      <Filter>Source\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Money\Money.h">
+      <Filter>Source\Money</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
