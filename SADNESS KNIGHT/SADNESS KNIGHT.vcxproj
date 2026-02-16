@@ -162,6 +162,7 @@
     <ClCompile Include="Source\Scene\Play\Play.cpp" />
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\Title\Title.cpp" />
+    <ClCompile Include="Source\Skill\Skill.cpp" />
     <ClCompile Include="Source\Skill\SkillData.cpp" />
     <ClCompile Include="Source\Skill\SkillManager.cpp" />
     <ClCompile Include="Source\Sound\Sound.cpp" />
@@ -191,6 +192,7 @@
     <ClInclude Include="Source\Scene\Play\Play.h" />
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\Scene\Title\Title.h" />
+    <ClInclude Include="Source\Skill\Skill.h" />
     <ClInclude Include="Source\Skill\SkillData.h" />
     <ClInclude Include="Source\Skill\SkillManager.h" />
     <ClInclude Include="Source\Sound\Sound.h" />

@@ -177,3 +177,14 @@ bool IsSkill3Pressed()
 {
     return GetSkill3State() == KeyState::Pressed;
 }
+
+KeyState GetChangeSetState()
+{
+    return GetKeyStateInternal(KEY_INPUT_R);
+}
+
+bool IsChangeSetPressed()
+{
+    return GetChangeSetState() == KeyState::Pressed;
+}
+

@@ -80,3 +80,7 @@ bool IsSkill2Pressed();
 /// スキル3(F)が押された瞬間か
 /// </summary>
 bool IsSkill3Pressed();
+
+// セット切替 (Rキー)
+KeyState GetChangeSetState();
+bool IsChangeSetPressed();
