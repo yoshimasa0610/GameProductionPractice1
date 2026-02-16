@@ -11,6 +11,10 @@ namespace
     const float MAX_FALL_SPEED = 20.0f;     // 最大落下速度
     const int MAX_JUMP_COUNT = 2;           // 最大ジャンプ回数（二段ジャンプ）
     const float GROUND_Y = 600.0f;          // 地面のY座標
+
+    // アニメーション設定
+    const int IDLE_FRAME_COUNT = 10;        // アイドルアニメーションのフレーム数
+    const int IDLE_ANIM_SPEED = 8;          // アニメーション速度（数値が大きいほど遅い）
 }
 
 // プレイヤーの状態を管理する変数
@@ -34,8 +38,10 @@ namespace
     // 状態
     PlayerState currentState = PlayerState::Idle;
 
-    // グラフィックハンドル（将来的に画像を使う場合）
-    int playerImage = -1;
+    // アニメーション関連
+    int idleImages[IDLE_FRAME_COUNT];   // アイドルアニメーション画像
+    int currentFrame = 0;               // 現在のフレーム
+    int animationCounter = 0;           // アニメーションカウンター
 }
 
 // 内部関数の宣言
@@ -65,6 +71,11 @@ namespace
     /// 状態更新
     /// </summary>
     void UpdateState();
+
+    /// <summary>
+    /// アニメーション更新
+    /// </summary>
+    void UpdateAnimation();
 
     /// <summary>
     /// ジャンプ実行
@@ -100,6 +111,8 @@ void InitPlayer(float startX, float startY)
     isGrounded = false;
     jumpCount = 0;
     currentState = PlayerState::Idle;
+    currentFrame = 0;
+    animationCounter = 0;
 }
 
 /// <summary>
@@ -107,10 +120,20 @@ void InitPlayer(float startX, float startY)
 /// </summary>
 void LoadPlayer()
 {
-    // 画像などのリソースを読み込む
-    // 例: playerImage = LoadGraph("Resources/Player.png");
-    
-    // 現在は何も読み込まない（デバッグ描画を使用）
+    // アイドルアニメーション画像を読み込む
+    // スプライトシートを分割して読み込み
+    LoadDivGraph(
+        "Data/Player/Idle.png",    // 画像ファイルパス
+        IDLE_FRAME_COUNT,               // 分割総数
+        IDLE_FRAME_COUNT,               // 横方向の分割数
+        1,                              // 縦方向の分割数
+        64,                             // 1つの画像の幅（ピクセル）
+        64,                             // 1つの画像の高さ（ピクセル）
+        idleImages                      // 格納先の配列
+    );
+
+    // ※画像が読み込めない場合はデバッグ描画を使用
+    // 他のアニメーション（Walk, Jump等）も同様に読み込む予定
 }
 
 /// <summary>
@@ -126,6 +149,9 @@ void UpdatePlayer()
 
     // 状態更新
     UpdateState();
+
+    // アニメーション更新
+    UpdateAnimation();
 }
 
 /// <summary>
@@ -133,38 +159,56 @@ void UpdatePlayer()
 /// </summary>
 void DrawPlayer()
 {
-    // デバッグ用の簡易描画（後で画像に差し替え）
-    unsigned int color = GetColor(255, 255, 255);
-
-    // プレイヤーを矩形で描画（32x64ピクセル）
     int drawX = static_cast<int>(posX);
     int drawY = static_cast<int>(posY);
-    DrawBox(drawX - 16, drawY - 32, drawX + 16, drawY + 32, color, TRUE);
 
-    // 向きを示す矢印
-    if (isFacingRight)
+    // アイドルアニメーションの画像が読み込まれている場合
+    if (currentState == PlayerState::Idle && idleImages[0] != -1)
     {
-        DrawTriangle(
-            drawX + 16, drawY,
-            drawX + 8, drawY - 8,
-            drawX + 8, drawY + 8,
-            GetColor(255, 0, 0), TRUE
-        );
+        // 画像を反転するかどうか
+        if (isFacingRight)
+        {
+            // 右向き（通常描画）
+            DrawRotaGraph(drawX, drawY, 1.0, 0.0, idleImages[currentFrame], TRUE);
+        }
+        else
+        {
+            // 左向き（左右反転）
+            DrawTurnGraph(drawX, drawY, idleImages[currentFrame], TRUE);
+        }
     }
     else
     {
-        DrawTriangle(
-            drawX - 16, drawY,
-            drawX - 8, drawY - 8,
-            drawX - 8, drawY + 8,
-            GetColor(255, 0, 0), TRUE
-        );
+        // デバッグ用の簡易描画（画像が読み込まれていない場合）
+        unsigned int color = GetColor(255, 255, 255);
+        DrawBox(drawX - 16, drawY - 32, drawX + 16, drawY + 32, color, TRUE);
+
+        // 向きを示す矢印
+        if (isFacingRight)
+        {
+            DrawTriangle(
+                drawX + 16, drawY,
+                drawX + 8, drawY - 8,
+                drawX + 8, drawY + 8,
+                GetColor(255, 0, 0), TRUE
+            );
+        }
+        else
+        {
+            DrawTriangle(
+                drawX - 16, drawY,
+                drawX - 8, drawY - 8,
+                drawX - 8, drawY + 8,
+                GetColor(255, 0, 0), TRUE
+            );
+        }
     }
 
     // デバッグ情報表示
     DrawFormatString(10, 10, GetColor(255, 255, 255), "Position: (%.1f, %.1f)", posX, posY);
     DrawFormatString(10, 30, GetColor(255, 255, 255), "Velocity: (%.1f, %.1f)", velocityX, velocityY);
     DrawFormatString(10, 50, GetColor(255, 255, 255), "Grounded: %s", isGrounded ? "YES" : "NO");
+    DrawFormatString(10, 90, GetColor(255, 255, 255), "Animation Frame: %d / %d", currentFrame + 1, IDLE_FRAME_COUNT);
     
     // 状態表示
     const char* stateStr = "UNKNOWN";
@@ -186,11 +230,14 @@ void DrawPlayer()
 /// </summary>
 void UnloadPlayer()
 {
-    // 画像などのリソースを解放
-    if (playerImage != -1)
+    // アイドルアニメーション画像を解放
+    for (int i = 0; i < IDLE_FRAME_COUNT; i++)
     {
-        DeleteGraph(playerImage);
-        playerImage = -1;
+        if (idleImages[i] != -1)
+        {
+            DeleteGraph(idleImages[i]);
+            idleImages[i] = -1;
+        }
     }
 }
 
@@ -390,6 +437,49 @@ namespace
     }
 
     /// <summary>
+    /// アニメーション更新
+    /// </summary>
+    void UpdateAnimation()
+    {
+        // 状態に応じてアニメーションを更新
+        switch (currentState)
+        {
+        case PlayerState::Idle:
+            // アニメーションカウンターを増やす
+            animationCounter++;
+
+            // 一定カウント毎にフレームを進める
+            if (animationCounter >= IDLE_ANIM_SPEED)
+            {
+                animationCounter = 0;
+                currentFrame++;
+
+                // 最後のフレームまで行ったら最初に戻る
+                if (currentFrame >= IDLE_FRAME_COUNT)
+                {
+                    currentFrame = 0;
+                }
+            }
+            break;
+
+        case PlayerState::Walk:
+            // ※歩行アニメーション（後で実装）
+            currentFrame = 0;
+            break;
+
+        case PlayerState::Jump:
+        case PlayerState::Fall:
+            // ※ジャンプ/落下アニメーション（後で実装）
+            currentFrame = 0;
+            break;
+
+        default:
+            currentFrame = 0;
+            break;
+        }
+    }
+
+    /// <summary>
     /// ジャンプ実行
     /// </summary>
     void ExecuteJump()
@@ -444,4 +534,4 @@ namespace
         
         // ※ここにスキル3の具体的な処理を追加
     }
-}
+}   
