@@ -1,6 +1,7 @@
 #include "Player.h"
 #include "../Input/Input.h"
 #include "DxLib.h"
+#include <string.h>
 
 // プレイヤーのパラメータ定数
 namespace
@@ -15,7 +16,6 @@ namespace
     // アニメーション設定
     const int IDLE_FRAME_COUNT = 10;        // アイドルアニメーションのフレーム数
     const int IDLE_ANIM_SPEED = 8;          // アニメーション速度（数値が大きいほど遅い）
-    const int MP_REGEN_RATE = 60;           // MP回復速度（60フレームに1回復）
 }
 
 // プレイヤーデータとアニメーション画像
@@ -34,16 +34,13 @@ namespace
     void UpdatePhysics();
     void UpdateState();
     void UpdateAnimation();
-    void UpdateMPRegen();
     void ExecuteJump();
     void UseSkill1();
     void UseSkill2();
     void UseSkill3();
 }
 
-/// <summary>
-/// プレイヤーの初期化
-/// </summary>
+// プレイヤーの初期化
 void InitPlayer(float startX, float startY)
 {
     // 位置情報
@@ -61,29 +58,28 @@ void InitPlayer(float startX, float startY)
     // ステータス
     playerData.maxHP = 100;
     playerData.currentHP = 100;
-    playerData.maxMP = 50;
-    playerData.currentMP = 50;
     playerData.attackPower = 10;
-    playerData.defense = 5;
     playerData.money = 0;
     
     // スキル
     playerData.hasSkill1 = true;
     playerData.hasSkill2 = false;
     playerData.hasSkill3 = false;
-    playerData.skill1MP = 10;
-    playerData.skill2MP = 20;
-    playerData.skill3MP = 30;
+    
+    // スキル使用回数の設定
+    playerData.skill1Count = -1;        // スキル1は無限使用可能
+    playerData.skill2Count = 5;         // スキル2は5回まで
+    playerData.skill3Count = 3;         // スキル3は3回まで
+    playerData.skill1MaxCount = -1;     // 無限
+    playerData.skill2MaxCount = 5;      // 最大5回
+    playerData.skill3MaxCount = 3;      // 最大3回
     
     // アニメーション
     playerData.currentFrame = 0;
     playerData.animationCounter = 0;
-    playerData.mpRegenCounter = 0;
 }
 
-/// <summary>
-/// プレイヤーのリソース読み込み
-/// </summary>
+// プレイヤーのリソース読み込み
 void LoadPlayer()
 {
     LoadDivGraph(
@@ -97,9 +93,7 @@ void LoadPlayer()
     );
 }
 
-/// <summary>
-/// プレイヤーの更新
-/// </summary>
+// プレイヤーの更新
 void UpdatePlayer()
 {
     // プレイヤーが生きている場合のみ更新
@@ -112,12 +106,9 @@ void UpdatePlayer()
     UpdatePhysics();
     UpdateState();
     UpdateAnimation();
-    UpdateMPRegen();
 }
 
-/// <summary>
-/// プレイヤーの描画
-/// </summary>
+// プレイヤーの描画
 void DrawPlayer()
 {
     int drawX = static_cast<int>(playerData.posX);
@@ -154,10 +145,21 @@ void DrawPlayer()
     // デバッグ情報表示
     DrawFormatString(10, 10, GetColor(255, 255, 255), "Position: (%.1f, %.1f)", playerData.posX, playerData.posY);
     DrawFormatString(10, 30, GetColor(255, 100, 100), "HP: %d / %d", playerData.currentHP, playerData.maxHP);
-    DrawFormatString(10, 50, GetColor(100, 100, 255), "MP: %d / %d", playerData.currentMP, playerData.maxMP);
-    DrawFormatString(10, 70, GetColor(200, 255, 200), "Money: %d", playerData.money);
-    DrawFormatString(10, 90, GetColor(255, 255, 255), "ATK: %d  DEF: %d", playerData.attackPower, playerData.defense);
-    DrawFormatString(10, 110, GetColor(255, 255, 255), "Grounded: %s", playerData.isGrounded ? "YES" : "NO");
+    DrawFormatString(10, 50, GetColor(200, 255, 200), "Money: %d", playerData.money);
+    DrawFormatString(10, 70, GetColor(255, 255, 255), "ATK: %d", playerData.attackPower);
+    DrawFormatString(10, 90, GetColor(255, 255, 255), "Grounded: %s", playerData.isGrounded ? "YES" : "NO");
+    
+    // スキル使用回数表示
+    if (playerData.skill1Count == -1)
+    {
+        DrawFormatString(10, 110, GetColor(150, 255, 255), "Skill1: Infinite");
+    }
+    else
+    {
+        DrawFormatString(10, 110, GetColor(150, 255, 255), "Skill1: %d", playerData.skill1Count);
+    }
+    DrawFormatString(10, 130, GetColor(150, 255, 255), "Skill2: %d / %d", playerData.skill2Count, playerData.skill2MaxCount);
+    DrawFormatString(10, 150, GetColor(150, 255, 255), "Skill3: %d / %d", playerData.skill3Count, playerData.skill3MaxCount);
     
     // 状態表示
     const char* stateStr = "UNKNOWN";
@@ -171,7 +173,7 @@ void DrawPlayer()
     case PlayerState::Skill2: stateStr = "SKILL2"; break;
     case PlayerState::Skill3: stateStr = "SKILL3"; break;
     }
-    DrawFormatString(10, 130, GetColor(255, 255, 0), "State: %s", stateStr);
+    DrawFormatString(10, 170, GetColor(255, 255, 0), "State: %s", stateStr);
 
     // プレイヤーが死んでいる場合
     if (playerData.currentHP <= 0)
@@ -180,9 +182,7 @@ void DrawPlayer()
     }
 }
 
-/// <summary>
-/// プレイヤーのリソース解放
-/// </summary>
+// プレイヤーのリソース解放
 void UnloadPlayer()
 {
     for (int i = 0; i < IDLE_FRAME_COUNT; i++)
@@ -195,17 +195,140 @@ void UnloadPlayer()
     }
 }
 
-/// <summary>
-/// プレイヤーデータを取得
-/// </summary>
+// ===== データ取得関数の実装 =====
+
+// プレイヤーデータ全体を取得
 PlayerData& GetPlayerData()
 {
     return playerData;
 }
 
-/// <summary>
-/// HPにダメージを与える
-/// </summary>
+// 位置情報取得
+// プレイヤーのX座標を取得
+float GetPlayerPosX()
+{
+    return playerData.posX;
+}
+
+// プレイヤーのY座標を取得
+float GetPlayerPosY()
+{
+    return playerData.posY;
+}
+
+// プレイヤーの座標を取得
+void GetPlayerPos(float& outX, float& outY)
+{
+    outX = playerData.posX;
+    outY = playerData.posY;
+}
+
+// プレイヤーの速度Xを取得
+float GetPlayerVelocityX()
+{
+    return playerData.velocityX;
+}
+
+// プレイヤーの速度Yを取得
+float GetPlayerVelocityY()
+{
+    return playerData.velocityY;
+}
+
+// 状態取得
+// プレイヤーの状態を取得
+PlayerState GetPlayerState()
+{
+    return playerData.state;
+}
+
+// プレイヤーが右を向いているか
+bool IsPlayerFacingRight()
+{
+    return playerData.isFacingRight;
+}
+
+// プレイヤーが地面にいるか
+bool IsPlayerGrounded()
+{
+    return playerData.isGrounded;
+}
+
+// プレイヤーが生きているか
+bool IsPlayerAlive()
+{
+    return playerData.currentHP > 0;
+}
+
+// ステータス取得
+// 現在のHPを取得
+int GetPlayerHP()
+{
+    return playerData.currentHP;
+}
+
+// 最大HPを取得
+int GetPlayerMaxHP()
+{
+    return playerData.maxHP;
+}
+
+// 攻撃力を取得
+int GetPlayerAttack()
+{
+    return playerData.attackPower;
+}
+
+// 所持金を取得
+int GetPlayerMoney()
+{
+    return playerData.money;
+}
+
+// スキル情報取得
+// スキルが使用可能か
+bool CanUseSkill(int skillNumber)
+{
+    switch (skillNumber)
+    {
+    case 1: 
+        return playerData.hasSkill1 && (playerData.skill1Count == -1 || playerData.skill1Count > 0);
+    case 2: 
+        return playerData.hasSkill2 && playerData.skill2Count > 0;
+    case 3: 
+        return playerData.hasSkill3 && playerData.skill3Count > 0;
+    default: 
+        return false;
+    }
+}
+
+// スキルの残り使用回数を取得
+int GetSkillCount(int skillNumber)
+{
+    switch (skillNumber)
+    {
+    case 1: return playerData.skill1Count;
+    case 2: return playerData.skill2Count;
+    case 3: return playerData.skill3Count;
+    default: return 0;
+    }
+}
+
+// スキルの最大使用回数を取得
+int GetSkillMaxCount(int skillNumber)
+{
+    switch (skillNumber)
+    {
+    case 1: return playerData.skill1MaxCount;
+    case 2: return playerData.skill2MaxCount;
+    case 3: return playerData.skill3MaxCount;
+    default: return 0;
+    }
+}
+
+// ===== データ操作関数の実装 =====
+
+// HPにダメージを与える
 void DamagePlayerHP(int damage)
 {
     playerData.currentHP -= damage;
@@ -213,9 +336,7 @@ void DamagePlayerHP(int damage)
     printfDx("Player damaged! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }
 
-/// <summary>
-/// HPを回復する
-/// </summary>
+// HPを回復する
 void HealPlayerHP(int healAmount)
 {
     playerData.currentHP += healAmount;
@@ -223,42 +344,14 @@ void HealPlayerHP(int healAmount)
     printfDx("Player healed! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }
 
-/// <summary>
-/// MPを消費する
-/// </summary>
-bool ConsumePlayerMP(int mpCost)
-{
-    if (playerData.currentMP < mpCost)
-    {
-        printfDx("Not enough MP! Current: %d, Required: %d\n", playerData.currentMP, mpCost);
-        return false;
-    }
-    playerData.currentMP -= mpCost;
-    printfDx("MP consumed! MP: %d / %d\n", playerData.currentMP, playerData.maxMP);
-    return true;
-}
-
-/// <summary>
-/// MPを回復する
-/// </summary>
-void RecoverPlayerMP(int recoverAmount)
-{
-    playerData.currentMP += recoverAmount;
-    if (playerData.currentMP > playerData.maxMP) playerData.currentMP = playerData.maxMP;
-}
-
-/// <summary>
-/// お金を追加
-/// </summary>
+// お金を追加
 void AddPlayerMoney(int amount)
 {
     playerData.money += amount;
     printfDx("Money gained: +%d (Total: %d)\n", amount, playerData.money);
 }
 
-/// <summary>
-/// お金を使用
-/// </summary>
+// お金を使用
 bool SpendPlayerMoney(int amount)
 {
     if (playerData.money < amount)
@@ -271,9 +364,7 @@ bool SpendPlayerMoney(int amount)
     return true;
 }
 
-/// <summary>
-/// スキルを習得する
-/// </summary>
+// スキルを習得する
 void UnlockSkill(int skillNumber)
 {
     switch (skillNumber)
@@ -284,15 +375,59 @@ void UnlockSkill(int skillNumber)
     }
 }
 
+// スキルの使用回数を回復する
+void RestoreSkillCount(int skillNumber, int amount)
+{
+    switch (skillNumber)
+    {
+    case 1:
+        // スキル1は無限なので何もしない
+        break;
+    case 2:
+        playerData.skill2Count += amount;
+        if (playerData.skill2Count > playerData.skill2MaxCount)
+            playerData.skill2Count = playerData.skill2MaxCount;
+        printfDx("Skill 2 count restored: %d / %d\n", playerData.skill2Count, playerData.skill2MaxCount);
+        break;
+    case 3:
+        playerData.skill3Count += amount;
+        if (playerData.skill3Count > playerData.skill3MaxCount)
+            playerData.skill3Count = playerData.skill3MaxCount;
+        printfDx("Skill 3 count restored: %d / %d\n", playerData.skill3Count, playerData.skill3MaxCount);
+        break;
+    }
+}
+
+// スキルの使用回数を最大まで回復する
+void RestoreSkillCountToMax(int skillNumber)
+{
+    switch (skillNumber)
+    {
+    case 1:
+        // スキル1は無限なので何もしない
+        break;
+    case 2:
+        playerData.skill2Count = playerData.skill2MaxCount;
+        printfDx("Skill 2 fully restored: %d / %d\n", playerData.skill2Count, playerData.skill2MaxCount);
+        break;
+    case 3:
+        playerData.skill3Count = playerData.skill3MaxCount;
+        printfDx("Skill 3 fully restored: %d / %d\n", playerData.skill3Count, playerData.skill3MaxCount);
+        break;
+    }
+}
+
 // 内部関数の実装
 namespace
 {
+    // 入力処理
     void ProcessInput()
     {
         ProcessMovement();
         ProcessSkills();
     }
 
+    // 移動処理
     void ProcessMovement()
     {
         float horizontal = GetMoveHorizontal();
@@ -304,13 +439,15 @@ namespace
         if (IsMoveUp()) ExecuteJump();
     }
 
+    // スキル処理
     void ProcessSkills()
     {
-        if (IsSkill1Pressed() && playerData.hasSkill1) UseSkill1();
-        if (IsSkill2Pressed() && playerData.hasSkill2) UseSkill2();
-        if (IsSkill3Pressed() && playerData.hasSkill3) UseSkill3();
+        if (IsSkill1Pressed() && CanUseSkill(1)) UseSkill1();
+        if (IsSkill2Pressed() && CanUseSkill(2)) UseSkill2();
+        if (IsSkill3Pressed() && CanUseSkill(3)) UseSkill3();
     }
 
+    // 物理演算更新
     void UpdatePhysics()
     {
         if (!playerData.isGrounded)
@@ -338,6 +475,7 @@ namespace
         if (playerData.posX > 1600.0f) playerData.posX = 1600.0f;
     }
 
+    // 状態更新
     void UpdateState()
     {
         if (playerData.state == PlayerState::Skill1 || 
@@ -357,6 +495,7 @@ namespace
         }
     }
 
+    // アニメーション更新
     void UpdateAnimation()
     {
         switch (playerData.state)
@@ -376,16 +515,7 @@ namespace
         }
     }
 
-    void UpdateMPRegen()
-    {
-        playerData.mpRegenCounter++;
-        if (playerData.mpRegenCounter >= MP_REGEN_RATE)
-        {
-            playerData.mpRegenCounter = 0;
-            RecoverPlayerMP(1);
-        }
-    }
-
+    // ジャンプ実行
     void ExecuteJump()
     {
         if (playerData.jumpCount < MAX_JUMP_COUNT)
@@ -396,24 +526,27 @@ namespace
         }
     }
 
+    // スキル1を使用
     void UseSkill1()
     {
-        if (!ConsumePlayerMP(playerData.skill1MP)) return;
         playerData.state = PlayerState::Skill1;
-        printfDx("Skill 1 Used!\n");
+        // スキル1は無限使用可能なので回数を減らさない
+        printfDx("Skill 1 Used! (Infinite)\n");
     }
 
+    // スキル2を使用
     void UseSkill2()
     {
-        if (!ConsumePlayerMP(playerData.skill2MP)) return;
         playerData.state = PlayerState::Skill2;
-        printfDx("Skill 2 Used!\n");
+        playerData.skill2Count--;  // 使用回数を減らす
+        printfDx("Skill 2 Used! Remaining: %d / %d\n", playerData.skill2Count, playerData.skill2MaxCount);
     }
 
+    // スキル3を使用
     void UseSkill3()
     {
-        if (!ConsumePlayerMP(playerData.skill3MP)) return;
         playerData.state = PlayerState::Skill3;
-        printfDx("Skill 3 Used!\n");
+        playerData.skill3Count--;  // 使用回数を減らす
+        printfDx("Skill 3 Used! Remaining: %d / %d\n", playerData.skill3Count, playerData.skill3MaxCount);
     }
 }

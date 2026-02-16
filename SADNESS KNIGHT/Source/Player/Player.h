@@ -12,9 +12,7 @@ enum class PlayerState
     Skill3      // スキル3使用中
 };
 
-/// <summary>
-/// プレイヤーのデータ構造体
-/// </summary>
+// プレイヤーのデータ構造体
 struct PlayerData
 {
     // 位置情報
@@ -22,106 +20,124 @@ struct PlayerData
     float posY;
     float velocityX;
     float velocityY;
-    
+
     // 状態
     PlayerState state;
     bool isFacingRight;
     bool isGrounded;
     int jumpCount;
-    
+
     // ステータス
     int maxHP;
     int currentHP;
-    int maxMP;
-    int currentMP;
     int attackPower;
-    int defense;
     int money;
-    
+
     // スキル
     bool hasSkill1;
     bool hasSkill2;
     bool hasSkill3;
-    int skill1MP;
-    int skill2MP;
-    int skill3MP;
-    
+    int skill1Count;        // スキル1の残り使用回数（-1で無限）
+    int skill2Count;        // スキル2の残り使用回数
+    int skill3Count;        // スキル3の残り使用回数
+    int skill1MaxCount;     // スキル1の最大使用回数
+    int skill2MaxCount;     // スキル2の最大使用回数
+    int skill3MaxCount;     // スキル3の最大使用回数
+
     // アニメーション
     int currentFrame;
     int animationCounter;
-    int mpRegenCounter;
 };
 
-/// <summary>
-/// プレイヤーの初期化
-/// </summary>
+// ===== 初期化・更新・描画 =====
+
+// プレイヤーの初期化
 void InitPlayer(float startX, float startY);
 
-/// <summary>
-/// プレイヤーのリソース読み込み
-/// </summary>
+// プレイヤーのリソース読み込み
 void LoadPlayer();
 
-/// <summary>
-/// プレイヤーの更新
-/// </summary>
+// プレイヤーの更新
 void UpdatePlayer();
 
-/// <summary>
-/// プレイヤーの描画
-/// </summary>
+// プレイヤーの描画
 void DrawPlayer();
 
-/// <summary>
-/// プレイヤーのリソース解放
-/// </summary>
+// プレイヤーのリソース解放
 void UnloadPlayer();
 
-/// <summary>
-/// プレイヤーデータを取得
-/// </summary>
+// ===== データ取得 =====
+
+// プレイヤーデータ全体を取得
 PlayerData& GetPlayerData();
 
-/// <summary>
-/// HPにダメージを与える
-/// </summary>
-/// <param name="damage">ダメージ量</param>
+// プレイヤーのX座標を取得
+float GetPlayerPosX();
+
+// プレイヤーのY座標を取得
+float GetPlayerPosY();
+
+// プレイヤーの座標を取得
+void GetPlayerPos(float& outX, float& outY);
+
+// プレイヤーの速度Xを取得
+float GetPlayerVelocityX();
+
+// プレイヤーの速度Yを取得
+float GetPlayerVelocityY();
+
+// プレイヤーの状態を取得
+PlayerState GetPlayerState();
+
+// プレイヤーが右を向いているか
+bool IsPlayerFacingRight();
+
+// プレイヤーが地面にいるか
+bool IsPlayerGrounded();
+
+// プレイヤーが生きているか
+bool IsPlayerAlive();
+
+// 現在のHPを取得
+int GetPlayerHP();
+
+// 最大HPを取得
+int GetPlayerMaxHP();
+
+// 攻撃力を取得
+int GetPlayerAttack();
+
+// 所持金を取得
+int GetPlayerMoney();
+
+// スキルが使用可能か
+bool CanUseSkill(int skillNumber);
+
+// スキルの残り使用回数を取得
+int GetSkillCount(int skillNumber);
+
+// スキルの最大使用回数を取得
+int GetSkillMaxCount(int skillNumber);
+
+// ===== データ操作 =====
+
+// HPにダメージを与える
 void DamagePlayerHP(int damage);
 
-/// <summary>
-/// HPを回復する
-/// </summary>
-/// <param name="healAmount">回復量</param>
+// HPを回復する
 void HealPlayerHP(int healAmount);
 
-/// <summary>
-/// MPを消費する
-/// </summary>
-/// <param name="mpCost">消費MP</param>
-/// <returns>MPが足りて消費できた場合true</returns>
-bool ConsumePlayerMP(int mpCost);
-
-/// <summary>
-/// MPを回復する
-/// </summary>
-/// <param name="recoverAmount">回復量</param>
-void RecoverPlayerMP(int recoverAmount);
-
-/// <summary>
-/// お金を追加
-/// </summary>
-/// <param name="amount">追加する金額</param>
+// お金を追加
 void AddPlayerMoney(int amount);
 
-/// <summary>
-/// お金を使用
-/// </summary>
-/// <param name="amount">使用する金額</param>
-/// <returns>お金が足りて使用できた場合true</returns>
+// お金を使用
 bool SpendPlayerMoney(int amount);
 
-/// <summary>
-/// スキルを習得する
-/// </summary>
-/// <param name="skillNumber">スキル番号(1-3)</param>
+// スキルを習得する
 void UnlockSkill(int skillNumber);
+
+// スキルの使用回数を回復する
+void RestoreSkillCount(int skillNumber, int amount);
+
+// スキルの使用回数を最大まで回復する
+void RestoreSkillCountToMax(int skillNumber);
