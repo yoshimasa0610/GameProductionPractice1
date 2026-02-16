@@ -32,6 +32,16 @@ void SkillManager::UseSkill(int slotIndex, PlayerData* player)
     {
         if (skill->GetID() == skillID)
         {
+            // UŒ‚Œ^‚Ì”r‘¼ˆ—
+            if (skill->GetType() == SkillType::Attack)
+            {
+                for (auto& s : m_ownedSkills)
+                {
+                    if (s->GetType() == SkillType::Attack && s->IsActive())
+                        return; // ‘¼‚ÌUŒ‚Œ^‚ª”­“®’†
+                }
+            }
+
             skill->Activate(player);
         }
     }

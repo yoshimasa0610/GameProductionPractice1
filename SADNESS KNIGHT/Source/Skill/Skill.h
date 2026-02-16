@@ -13,6 +13,9 @@ private:
     bool m_isActive;
     int m_activeTimer;
 
+    int m_comboIndex = 0;
+    int m_comboTimer = 0;
+
 public:
     Skill(const SkillData& data);
 
