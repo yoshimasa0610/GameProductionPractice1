@@ -13,10 +13,48 @@ enum class PlayerState
 };
 
 /// <summary>
+/// プレイヤーのデータ構造体
+/// </summary>
+struct PlayerData
+{
+    // 位置情報
+    float posX;
+    float posY;
+    float velocityX;
+    float velocityY;
+    
+    // 状態
+    PlayerState state;
+    bool isFacingRight;
+    bool isGrounded;
+    int jumpCount;
+    
+    // ステータス
+    int maxHP;
+    int currentHP;
+    int maxMP;
+    int currentMP;
+    int attackPower;
+    int defense;
+    int money;
+    
+    // スキル
+    bool hasSkill1;
+    bool hasSkill2;
+    bool hasSkill3;
+    int skill1MP;
+    int skill2MP;
+    int skill3MP;
+    
+    // アニメーション
+    int currentFrame;
+    int animationCounter;
+    int mpRegenCounter;
+};
+
+/// <summary>
 /// プレイヤーの初期化
 /// </summary>
-/// <param name="startX">開始X座標</param>
-/// <param name="startY">開始Y座標</param>
 void InitPlayer(float startX, float startY);
 
 /// <summary>
@@ -40,31 +78,50 @@ void DrawPlayer();
 void UnloadPlayer();
 
 /// <summary>
-/// プレイヤーのX座標を取得
+/// プレイヤーデータを取得
 /// </summary>
-float GetPlayerX();
+PlayerData& GetPlayerData();
 
 /// <summary>
-/// プレイヤーのY座標を取得
+/// HPにダメージを与える
 /// </summary>
-float GetPlayerY();
+/// <param name="damage">ダメージ量</param>
+void DamagePlayerHP(int damage);
 
 /// <summary>
-/// プレイヤーの座標を取得
+/// HPを回復する
 /// </summary>
-void GetPlayerPos(float& outX, float& outY);
+/// <param name="healAmount">回復量</param>
+void HealPlayerHP(int healAmount);
 
 /// <summary>
-/// プレイヤーの状態を取得
+/// MPを消費する
 /// </summary>
-PlayerState GetPlayerState();
+/// <param name="mpCost">消費MP</param>
+/// <returns>MPが足りて消費できた場合true</returns>
+bool ConsumePlayerMP(int mpCost);
 
 /// <summary>
-/// プレイヤーが右を向いているか
+/// MPを回復する
 /// </summary>
-bool IsPlayerFacingRight();
+/// <param name="recoverAmount">回復量</param>
+void RecoverPlayerMP(int recoverAmount);
 
 /// <summary>
-/// プレイヤーが地面にいるか
+/// お金を追加
 /// </summary>
-bool IsPlayerGrounded();
+/// <param name="amount">追加する金額</param>
+void AddPlayerMoney(int amount);
+
+/// <summary>
+/// お金を使用
+/// </summary>
+/// <param name="amount">使用する金額</param>
+/// <returns>お金が足りて使用できた場合true</returns>
+bool SpendPlayerMoney(int amount);
+
+/// <summary>
+/// スキルを習得する
+/// </summary>
+/// <param name="skillNumber">スキル番号(1-3)</param>
+void UnlockSkill(int skillNumber);
