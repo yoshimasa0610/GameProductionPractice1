@@ -41,9 +41,7 @@ namespace
     void UseSkill3();
 }
 
-/// <summary>
-/// プレイヤーの初期化
-/// </summary>
+// プレイヤーの初期化
 void InitPlayer(float startX, float startY)
 {
     // 位置情報
@@ -81,9 +79,7 @@ void InitPlayer(float startX, float startY)
     playerData.mpRegenCounter = 0;
 }
 
-/// <summary>
-/// プレイヤーのリソース読み込み
-/// </summary>
+// プレイヤーのリソース読み込み
 void LoadPlayer()
 {
     LoadDivGraph(
@@ -97,9 +93,7 @@ void LoadPlayer()
     );
 }
 
-/// <summary>
-/// プレイヤーの更新
-/// </summary>
+// プレイヤーの更新
 void UpdatePlayer()
 {
     // プレイヤーが生きている場合のみ更新
@@ -115,9 +109,7 @@ void UpdatePlayer()
     UpdateMPRegen();
 }
 
-/// <summary>
-/// プレイヤーの描画
-/// </summary>
+// プレイヤーの描画
 void DrawPlayer()
 {
     int drawX = static_cast<int>(playerData.posX);
@@ -180,9 +172,7 @@ void DrawPlayer()
     }
 }
 
-/// <summary>
-/// プレイヤーのリソース解放
-/// </summary>
+// プレイヤーのリソース解放
 void UnloadPlayer()
 {
     for (int i = 0; i < IDLE_FRAME_COUNT; i++)
@@ -195,17 +185,130 @@ void UnloadPlayer()
     }
 }
 
-/// <summary>
-/// プレイヤーデータを取得
-/// </summary>
+// ===== データ取得関数の実装 =====
+
+// プレイヤーデータ全体を取得
 PlayerData& GetPlayerData()
 {
     return playerData;
 }
 
-/// <summary>
-/// HPにダメージを与える
-/// </summary>
+// 位置情報取得
+// プレイヤーのX座標を取得
+float GetPlayerPosX()
+{
+    return playerData.posX;
+}
+
+// プレイヤーのY座標を取得
+float GetPlayerPosY()
+{
+    return playerData.posY;
+}
+
+// プレイヤーの座標を取得
+void GetPlayerPos(float& outX, float& outY)
+{
+    outX = playerData.posX;
+    outY = playerData.posY;
+}
+
+// プレイヤーの速度Xを取得
+float GetPlayerVelocityX()
+{
+    return playerData.velocityX;
+}
+
+// プレイヤーの速度Yを取得
+float GetPlayerVelocityY()
+{
+    return playerData.velocityY;
+}
+
+// 状態取得
+// プレイヤーの状態を取得
+PlayerState GetPlayerState()
+{
+    return playerData.state;
+}
+
+// プレイヤーが右を向いているか
+bool IsPlayerFacingRight()
+{
+    return playerData.isFacingRight;
+}
+
+// プレイヤーが地面にいるか
+bool IsPlayerGrounded()
+{
+    return playerData.isGrounded;
+}
+
+// プレイヤーが生きているか
+bool IsPlayerAlive()
+{
+    return playerData.currentHP > 0;
+}
+
+// ステータス取得
+// 現在のHPを取得
+int GetPlayerHP()
+{
+    return playerData.currentHP;
+}
+
+// 最大HPを取得
+int GetPlayerMaxHP()
+{
+    return playerData.maxHP;
+}
+
+// 現在のMPを取得
+int GetPlayerMP()
+{
+    return playerData.currentMP;
+}
+
+// 最大MPを取得
+int GetPlayerMaxMP()
+{
+    return playerData.maxMP;
+}
+
+// 攻撃力を取得
+int GetPlayerAttack()
+{
+    return playerData.attackPower;
+}
+
+// 防御力を取得
+int GetPlayerDefense()
+{
+    return playerData.defense;
+}
+
+// 所持金を取得
+int GetPlayerMoney()
+{
+    return playerData.money;
+}
+
+// スキル情報取得
+// スキルが使用可能か
+bool CanUseSkill(int skillNumber)
+{
+    switch (skillNumber)
+    {
+    case 1: return playerData.hasSkill1;
+    case 2: return playerData.hasSkill2;
+    case 3: return playerData.hasSkill3;
+    default: return false;
+    }
+}
+
+// ===== データ操作関数の実装 =====
+
+// HPにダメージを与える
 void DamagePlayerHP(int damage)
 {
     playerData.currentHP -= damage;
@@ -213,9 +316,7 @@ void DamagePlayerHP(int damage)
     printfDx("Player damaged! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }
 
-/// <summary>
-/// HPを回復する
-/// </summary>
+// HPを回復する
 void HealPlayerHP(int healAmount)
 {
     playerData.currentHP += healAmount;
@@ -223,9 +324,7 @@ void HealPlayerHP(int healAmount)
     printfDx("Player healed! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }
 
-/// <summary>
-/// MPを消費する
-/// </summary>
+// MPを消費する
 bool ConsumePlayerMP(int mpCost)
 {
     if (playerData.currentMP < mpCost)
@@ -238,27 +337,21 @@ bool ConsumePlayerMP(int mpCost)
     return true;
 }
 
-/// <summary>
-/// MPを回復する
-/// </summary>
+// MPを回復する
 void RecoverPlayerMP(int recoverAmount)
 {
     playerData.currentMP += recoverAmount;
     if (playerData.currentMP > playerData.maxMP) playerData.currentMP = playerData.maxMP;
 }
 
-/// <summary>
-/// お金を追加
-/// </summary>
+// お金を追加
 void AddPlayerMoney(int amount)
 {
     playerData.money += amount;
     printfDx("Money gained: +%d (Total: %d)\n", amount, playerData.money);
 }
 
-/// <summary>
-/// お金を使用
-/// </summary>
+// お金を使用
 bool SpendPlayerMoney(int amount)
 {
     if (playerData.money < amount)
@@ -271,9 +364,7 @@ bool SpendPlayerMoney(int amount)
     return true;
 }
 
-/// <summary>
-/// スキルを習得する
-/// </summary>
+// スキルを習得する
 void UnlockSkill(int skillNumber)
 {
     switch (skillNumber)
@@ -287,12 +378,14 @@ void UnlockSkill(int skillNumber)
 // 内部関数の実装
 namespace
 {
+    // 入力処理
     void ProcessInput()
     {
         ProcessMovement();
         ProcessSkills();
     }
 
+    // 移動処理
     void ProcessMovement()
     {
         float horizontal = GetMoveHorizontal();
@@ -304,6 +397,7 @@ namespace
         if (IsMoveUp()) ExecuteJump();
     }
 
+    // スキル処理
     void ProcessSkills()
     {
         if (IsSkill1Pressed() && playerData.hasSkill1) UseSkill1();
@@ -311,6 +405,7 @@ namespace
         if (IsSkill3Pressed() && playerData.hasSkill3) UseSkill3();
     }
 
+    // 物理演算更新
     void UpdatePhysics()
     {
         if (!playerData.isGrounded)
@@ -338,6 +433,7 @@ namespace
         if (playerData.posX > 1600.0f) playerData.posX = 1600.0f;
     }
 
+    // 状態更新
     void UpdateState()
     {
         if (playerData.state == PlayerState::Skill1 || 
@@ -357,6 +453,7 @@ namespace
         }
     }
 
+    // アニメーション更新
     void UpdateAnimation()
     {
         switch (playerData.state)
@@ -376,6 +473,7 @@ namespace
         }
     }
 
+    // MP自動回復更新
     void UpdateMPRegen()
     {
         playerData.mpRegenCounter++;
@@ -386,6 +484,7 @@ namespace
         }
     }
 
+    // ジャンプ実行
     void ExecuteJump()
     {
         if (playerData.jumpCount < MAX_JUMP_COUNT)
@@ -396,6 +495,7 @@ namespace
         }
     }
 
+    // スキル1を使用
     void UseSkill1()
     {
         if (!ConsumePlayerMP(playerData.skill1MP)) return;
@@ -403,6 +503,7 @@ namespace
         printfDx("Skill 1 Used!\n");
     }
 
+    // スキル2を使用
     void UseSkill2()
     {
         if (!ConsumePlayerMP(playerData.skill2MP)) return;
@@ -410,6 +511,7 @@ namespace
         printfDx("Skill 2 Used!\n");
     }
 
+    // スキル3を使用
     void UseSkill3()
     {
         if (!ConsumePlayerMP(playerData.skill3MP)) return;
