@@ -58,6 +58,9 @@
     <Filter Include="Source\Skill">
       <UniqueIdentifier>{aa66acc2-ef7f-455b-8957-24127c703df8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\SaveSystem">
+      <UniqueIdentifier>{504365f3-dadb-43b9-ad58-a8f4a80865cc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -128,6 +131,18 @@
     </ClCompile>
     <ClCompile Include="Source\Player\Player.cpp">
       <Filter>Source\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SaveSystem\SaveSystem.cpp">
+      <Filter>Source\SaveSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Money\MoneyPopup.cpp">
+      <Filter>Source\Money</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Money\MoneyDropSystem.cpp">
+      <Filter>Source\Money</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Money\MoneyManager.cpp">
+      <Filter>Source\Money</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -200,7 +215,16 @@
     <ClInclude Include="Source\Player\Player.h">
       <Filter>Source\Player</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Money\Money.h">
+    <ClInclude Include="Source\Money\MoneyManager.h">
+      <Filter>Source\Money</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\SaveSystem\SaveSystem.h">
+      <Filter>Source\SaveSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Money\MoneyPopup.h">
+      <Filter>Source\Money</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Money\MoneyDropSystem.h">
       <Filter>Source\Money</Filter>
     </ClInclude>
   </ItemGroup>

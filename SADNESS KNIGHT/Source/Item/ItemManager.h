@@ -33,10 +33,6 @@ public:
 
     // スロット上限（ベース + 装備ボーナス）を計算して返す
     int GetPlayerMaxSlots(const PlayerData* player) const;
-
-    // Special 装備がすでに装備されているか
-    bool HasEquippedSpecial() const;
-
 private:
     std::vector<std::unique_ptr<Item>> m_items;
 };

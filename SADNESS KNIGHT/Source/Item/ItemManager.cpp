@@ -105,12 +105,14 @@ int ItemManager::GetUsedSlots() const
     }
     return sum;
 }
-/*
+
+/*//Playerが進んでいないのでコメントアウト中
+
 int ItemManager::GetPlayerMaxSlots(const PlayerData* player) const
 {
     // player->baseSlot を参照して装備による addMaxSlot を加える
     int baseSlot = 5;
-    if (player) baseSlot = player->baseMaxSlot; // 後述で PlayerData に baseMaxSlot を追加しています
+    if (player) baseSlot = player->baseMaxSlot; // PlayerData に baseMaxSlot を追加しています
 
     int add = 0;
     for (auto& it : m_items) {
@@ -124,92 +126,52 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
     if (!player) return;
 
     // まずベース値に戻す（InitPlayer で base 値が設定されている前提）
-    /*player->maxHp = player->baseMaxHp;
+    player->maxHp = player->baseMaxHp;
     player->recoverWait = player->baseRecoverWait;
     player->maxSlot = player->baseMaxSlot;
     player->healPowerBonus = 0;
-    player->damageReductionPercent = 0.0f;
-    player->isShieldWhileRecover = false;
-    player->lifeGainOnHitBonus = 0;
-    player->hasLowHpDamageReduce = false;
-    player->healOnHit = false;
-    player->healOnHitValue = 0;
-    player->healOnHitRate = 0;
-    player->moveSpeedMul = 1.0f;
 
-
-    player->hasSpecialWeapon = false;
-    player->atkState.type = PlayerAttackType::None;
-    
     // 合算
     int addMaxHp = 0;
-    int addMaxLife = 0;
-    int addLifeGainOnHit = 0;
-    int reduceRecoverWait = 0;
-    int minRecoverOverride = 0;
     int addMaxSlot = 0;
-    float damageReduce = 0.0f;
-    int addInvincibleOnHit = 0;
+    int addHealPower = 0;
 
     for (auto& it : m_items)
     {
-        if (!it->isEquipped)
+        if (it->ownedCount <= 0)
             continue;
-        
-        addMaxHp += it->buff.addMaxHp;
-        addMaxLife += it->buff.addMaxLife;
-        addLifeGainOnHit += it->buff.addLifeGainOnHit;
-        reduceRecoverWait += it->buff.reduceRecoverWait;
-        if (it->buff.minRecoverWaitOverride > 0) {
-            // 最小値は小さい方（より短縮される方）を適用
-            if (minRecoverOverride == 0) minRecoverOverride = it->buff.minRecoverWaitOverride;
-            else minRecoverOverride = std::min(minRecoverOverride, it->buff.minRecoverWaitOverride);
-        }
-        addMaxSlot += it->buff.addMaxSlot;
-        damageReduce += it->buff.damageReductionPercent;
-        addInvincibleOnHit += it->buff.addInvincibleOnHit;
-        //if (it->buff.shieldWhileRecover) ShieldWhileRecover = true;
-        if (it->buff.reduceDamageWhenLowHp)
-            player->hasLowHpDamageReduce = true;
 
-        const BuffEffect& buff = it->buff;
-        
-    }
-
-    // 適用（上限や下限を考慮）
-    /*player->maxHp = std::max(1, player->baseMaxHp + addMaxHp);
-    player->hp = std::min(player->hp, player->maxHp);
-    player->lifeGainOnHitBonus = addLifeGainOnHit;
-    // recoverWait を減らす（ただし minRecoverWaitOverride がある場合はそれを尊重）
-    int newRecover = player->baseRecoverWait - reduceRecoverWait;
-    if (minRecoverOverride > 0) newRecover = std::max(newRecover, minRecoverOverride);
-    // 既存の最小値 PLAYER_RECOVER_MIN を下回らせない
-    if (newRecover < PLAYER_RECOVER_MIN) newRecover = PLAYER_RECOVER_MIN;
-    player->recoverWait = newRecover;
-    //player->isShieldWhileRecover = shieldWhileRecover;
-    player->damageReductionPercent = damageReduce; // 合算（注意: 複数装備時の処理はデザイン次第）
-    player->invincibleOnHitBonus = addInvincibleOnHit;
-    player->maxSlot = player->baseMaxSlot + addMaxSlot;
-}
-
-bool ItemManager::HasEquippedSpecial() const
-{
-    for (const auto& it : m_items)
-    {
-        if (it->isEquipped &&
+        // Passive → 所持数分適用
+        if (it->type == ItemType::Passive)
         {
-            return true;
+            addMaxHp += it->buff.addMaxHp * it->ownedCount;
+            addMaxSlot += it->buff.addMaxSlot * it->ownedCount;
+            addHealPower += it->buff.healPowerBonus * it->ownedCount;
+        }
+
+        // Equip → 装備中のみ
+        if (it->type == ItemType::Equip && it->isEquipped)
+        {
+            addMaxHp += it->buff.addMaxHp;
+            addMaxSlot += it->buff.addMaxSlot;
         }
     }
-    return false;
+
+    player->maxHp += addMaxHp;
+    player->maxSlot += addMaxSlot;
+    player->healPowerBonus += addHealPower;
+
+    if (player->hp > player->maxHp)
+        player->hp = player->maxHp;
 }
+*/
 
 // 所持しているか
 bool ItemManager_IsItemOwned(int itemId)
 {
     const auto& items = g_ItemManager.GetAllItems();
     for (const auto& it : items)
-        if (it->id == itemId && it->isOwned)
+        if (it->id == itemId && it->ownedCount > 0)
             return true;
     return false;
 }
@@ -264,7 +226,7 @@ void ItemManager_ClearAllItems(void)
 
     for (auto& it : items)
     {
-        it->isOwned = false;
+        it->ownedCount = 0;
         it->isEquipped = false;
     }
 }
@@ -280,6 +242,30 @@ void ItemManager_RemoveItem(int itemId)
 {
     auto& items = const_cast<std::vector<std::unique_ptr<Item>>&>(g_ItemManager.GetAllItems());
     for (auto& it : items)
+    {
         if (it->id == itemId)
-            it->isOwned = false;
-}*/
+        {
+            it->ownedCount = 0;
+            it->isEquipped = false;
+        }
+    }
+}
+
+/*
+以下メモ
+struct PlayerData
+{
+    int baseMaxHp = 150;
+    int maxHp = 300;
+    int hp = 150;
+    int baseMaxSlot = 5;
+    int maxSlot = 5;
+    int baseRecoverWait = 60;
+    int recoverWait = 60;
+    int healPowerBonus = 0;
+};
+こういう感じでPlayerDataをつくれば上記コードは使えるよ
+最小限上記の感じで作って
+
+
+*/
