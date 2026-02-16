@@ -144,6 +144,9 @@
     <ClCompile Include="Source\Money\MoneyManager.cpp">
       <Filter>Source\Money</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Skill\Skill.cpp">
+      <Filter>Source\Skill</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -226,6 +229,9 @@
     </ClInclude>
     <ClInclude Include="Source\Money\MoneyDropSystem.h">
       <Filter>Source\Money</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Skill\Skill.h">
+      <Filter>Source\Skill</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

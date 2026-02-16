@@ -7,9 +7,7 @@ enum class PlayerState
     Walk,       // 歩き
     Jump,       // ジャンプ
     Fall,       // 落下
-    Skill1,     // スキル1使用中
-    Skill2,     // スキル2使用中
-    Skill3      // スキル3使用中
+    UsingSkill,    // ← スキルは一つに統一します
 };
 
 // プレイヤーのデータ構造体
@@ -32,17 +30,6 @@ struct PlayerData
     int currentHP;
     int attackPower;
     int money;
-
-    // スキル
-    bool hasSkill1;
-    bool hasSkill2;
-    bool hasSkill3;
-    int skill1Count;        // スキル1の残り使用回数（-1で無限）
-    int skill2Count;        // スキル2の残り使用回数
-    int skill3Count;        // スキル3の残り使用回数
-    int skill1MaxCount;     // スキル1の最大使用回数
-    int skill2MaxCount;     // スキル2の最大使用回数
-    int skill3MaxCount;     // スキル3の最大使用回数
 
     // アニメーション
     int currentFrame;

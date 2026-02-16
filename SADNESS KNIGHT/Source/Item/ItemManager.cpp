@@ -1,3 +1,4 @@
+/*
 #include "ItemManager.h"
 #include "Item.h"
 #ifdef max
@@ -106,7 +107,7 @@ int ItemManager::GetUsedSlots() const
     return sum;
 }
 
-/*//Playerが進んでいないのでコメントアウト中
+//Playerが進んでいないのでコメントアウト中
 
 int ItemManager::GetPlayerMaxSlots(const PlayerData* player) const
 {
@@ -164,7 +165,7 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
     if (player->hp > player->maxHp)
         player->hp = player->maxHp;
 }
-*/
+
 
 // 所持しているか
 bool ItemManager_IsItemOwned(int itemId)
