@@ -106,9 +106,7 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
     // Player を参照して回復／セーブをする
     // Player モジュール内のグローバル g_PlayerData を直接使う
     extern PlayerData g_PlayerData; // Player.cpp で定義されているグローバル
-    g_PlayerData.hp = g_PlayerData.maxHp;
-    g_PlayerData.healGauge = g_PlayerData.maxHealGauge;
-    g_PlayerData.rangedGauge = g_PlayerData.maxRangedGauge;
+    g_PlayerData.currentHP = g_PlayerData.maxHP;
 
     // セーブ通知
     ReachCheckpoint(
@@ -116,7 +114,8 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
         cp.y,
         GetCurrentStageName()
     );
-    /*// 位置・ステージ更新
+    /*
+    // 位置・ステージ更新
     save->checkpointX = chairX;
     save->checkpointY = chairY;
     save->stageNumber = stageNumber;

@@ -113,11 +113,6 @@ int DecideNormalBlockVisual(int x, int y)
         isSame(x + 1, y + 1))
         v |= NB_DR;
 
-    //if (isSame(x - 1, y - 1)) v |= NB_UL;
-    //if (isSame(x + 1, y - 1)) v |= NB_UR;
-    //if (isSame(x - 1, y + 1)) v |= NB_DL;
-    //if (isSame(x + 1, y + 1)) v |= NB_DR;
-
     return v;
 }
 
