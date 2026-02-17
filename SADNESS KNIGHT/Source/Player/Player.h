@@ -1,5 +1,9 @@
 #pragma once
 
+// プレイヤー描画/当たり判定の既定サイズ（ピクセル）
+constexpr int PLAYER_WIDTH = 46;
+constexpr int PLAYER_HEIGHT = 55;
+
 // プレイヤーの状態
 enum class PlayerState
 {

@@ -4,6 +4,7 @@
 #include "../Skill/SkillManager.h"
 #include "DxLib.h"
 #include <string.h>
+#include "../Collision/Collision.h" // 追加
 
 // プレイヤーのパラメータ定数
 namespace
@@ -28,6 +29,9 @@ namespace
     AnimationData fallAnim;
 
     SkillManager skillManager;
+
+    // プレイヤー用コライダーID
+    int g_playerColliderId = -1;
 }
 
 // 内部関数の宣言
@@ -62,6 +66,11 @@ void InitPlayer(float startX, float startY)
     playerData.currentHP = 150;
     playerData.attackPower = 10;
     playerData.money = 0;
+
+    // プレイヤーのコライダーを作成（左上座標で渡す）
+    float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
+    float top = playerData.posY - PLAYER_HEIGHT;
+    g_playerColliderId = CreateCollider(ColliderTag::Player, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
 
     // ===== テスト用スキル登録 =====
     SkillData slash;
@@ -155,17 +164,22 @@ void DrawPlayer()
     {
         // デバッグ用の簡易描画（画像が読み込まれていない場合）
         unsigned int color = GetColor(255, 255, 255);
-        DrawBox(drawX - 32, drawY - 64, drawX + 32, drawY, color, TRUE);
+        int halfW = PLAYER_WIDTH / 2;
+        int h = PLAYER_HEIGHT;
+        DrawBox(drawX - halfW, drawY - h, drawX + halfW, drawY, color, TRUE);
 
         if (playerData.isFacingRight)
         {
-            DrawTriangle(drawX + 32, drawY - 32, drawX + 16, drawY - 40, drawX + 16, drawY - 24, GetColor(255, 0, 0), TRUE);
+            DrawTriangle(drawX + halfW, drawY - h/2, drawX + halfW - (halfW/2), drawY - h/2 - 8, drawX + halfW - (halfW/2), drawY - h/2 + 8, GetColor(255, 0, 0), TRUE);
         }
         else
         {
-            DrawTriangle(drawX - 32, drawY - 32, drawX - 16, drawY - 40, drawX - 16, drawY - 24, GetColor(255, 0, 0), TRUE);
+            DrawTriangle(drawX - halfW, drawY - h/2, drawX - halfW + (halfW/2), drawY - h/2 - 8, drawX - halfW + (halfW/2), drawY - h/2 + 8, GetColor(255, 0, 0), TRUE);
         }
     }
+
+    // デバッグ表示（サイズ表示を追加)
+    DrawFormatString(10, 130, GetColor(255, 255, 255), "Size: %d x %d", PLAYER_WIDTH, PLAYER_HEIGHT);
 
     // デバッグ情報表示
     DrawFormatString(10, 10, GetColor(255, 255, 255), "Position: (%.1f, %.1f)", playerData.posX, playerData.posY);
@@ -202,6 +216,13 @@ void UnloadPlayer()
     UnloadAnimation(walkAnim);
     UnloadAnimation(jumpAnim);
     UnloadAnimation(fallAnim);
+
+    // コライダー破棄
+    if (g_playerColliderId != -1)
+    {
+        DestroyCollider(g_playerColliderId);
+        g_playerColliderId = -1;
+    }
 }
 
 // ===== データ取得関数の実装 =====
@@ -374,6 +395,17 @@ namespace
 
         playerData.posX += playerData.velocityX;
         playerData.posY += playerData.velocityY;
+
+        // コライダー位置更新（左上で渡す）
+        if (g_playerColliderId != -1)
+        {
+            float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
+            float top = playerData.posY - PLAYER_HEIGHT;
+            UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+        }
+
+        // 衝突解決（ブロックなどと干渉していればここで押し出し等が行われる）
+        ResolveCollisions();
 
         if (playerData.posY >= GROUND_Y)
         {

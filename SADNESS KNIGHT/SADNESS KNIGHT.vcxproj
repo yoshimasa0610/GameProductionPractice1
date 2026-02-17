@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Animation\Animation.cpp" />
     <ClCompile Include="Source\Camera\Camera.cpp" />
+    <ClCompile Include="Source\Collision\Collision.cpp" />
     <ClCompile Include="Source\Fade\Fade.cpp" />
     <ClCompile Include="Source\FPS\FPS.cpp" />
     <ClCompile Include="Source\GameSetting\GameSetting.cpp" />
@@ -177,6 +178,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Animation\Animation.h" />
     <ClInclude Include="Source\Camera\Camera.h" />
+    <ClInclude Include="Source\Collision\Collision.h" />
     <ClInclude Include="Source\Fade\Fade.h" />
     <ClInclude Include="Source\FPS\FPS.h" />
     <ClInclude Include="Source\GameSetting\GameSetting.h" />

@@ -10,7 +10,7 @@
 #include "../GameSetting/GameSetting.h"
 #include "../Sound/Sound.h"
 #include "../Money/MoneyDropSystem.h"
-
+#include "../Collision/Collision.h" 
 // ===================================================
 // ì‡ïîÉfÅ[É^
 // ===================================================
