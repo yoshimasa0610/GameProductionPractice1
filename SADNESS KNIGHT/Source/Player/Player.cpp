@@ -1,5 +1,6 @@
 #include "Player.h"
 #include "../Input/Input.h"
+#include "../Animation/Animation.h"
 #include "../Skill/SkillManager.h"
 #include "DxLib.h"
 #include <string.h>
@@ -12,18 +13,19 @@ namespace
     const float GRAVITY = 0.8f;             // 重力
     const float MAX_FALL_SPEED = 20.0f;     // 最大落下速度
     const int MAX_JUMP_COUNT = 2;           // 最大ジャンプ回数（二段ジャンプ）
-    const float GROUND_Y = 600.0f;          // 地面のY座標
-
-    // アニメーション設定
-    const int IDLE_FRAME_COUNT = 10;        // アイドルアニメーションのフレーム数
-    const int IDLE_ANIM_SPEED = 8;          // アニメーション速度（数値が大きいほど遅い）
+    const float GROUND_Y = 700.0f;          // 地面のY座標（画面下に近い位置）
 }
 
-// プレイヤーデータとアニメーション画像
+// プレイヤーデータとアニメーション
 namespace
 {
     PlayerData playerData;
-    int idleImages[IDLE_FRAME_COUNT];   // アイドルアニメーション画像
+    
+    // アニメーションデータ
+    AnimationData idleAnim;
+    AnimationData walkAnim;
+    AnimationData jumpAnim;
+    AnimationData fallAnim;
 
     SkillManager skillManager;
 }
@@ -36,7 +38,7 @@ namespace
     void ProcessSkills();
     void UpdatePhysics();
     void UpdateState();
-    void UpdateAnimation();
+    void UpdatePlayerAnimation();
     void ExecuteJump();
 }
 
@@ -60,10 +62,6 @@ void InitPlayer(float startX, float startY)
     playerData.currentHP = 150;
     playerData.attackPower = 10;
     playerData.money = 0;
-    
-    // アニメーション
-    playerData.currentFrame = 0;
-    playerData.animationCounter = 0;
 
     // ===== テスト用スキル登録 =====
     SkillData slash;
@@ -82,15 +80,17 @@ void InitPlayer(float startX, float startY)
 // プレイヤーのリソース読み込み
 void LoadPlayer()
 {
-    LoadDivGraph(
-        "Data/Player/Idle.png",
-        IDLE_FRAME_COUNT,
-        IDLE_FRAME_COUNT,
-        1,
-        64,
-        64,
-        idleImages
-    );
+    printfDx("=== Loading Player Animations ===\n");
+    
+    // Idle: 460x55 → 10フレーム横並び、1フレームは46x55
+    bool idleLoaded = LoadAnimationFromSheet(idleAnim, "Data/Player/Idle.png", 10, 46, 55, 8, AnimationMode::Loop);
+    printfDx("Idle Animation: %s (frames: %d)\n", idleLoaded ? "SUCCESS" : "FAILED", idleAnim.frameCount);
+    
+    // Walk と Jump は後で追加
+    printfDx("Walk Animation: SKIPPED\n");
+    printfDx("Jump/Fall Animation: SKIPPED\n");
+    
+    printfDx("=================================\n");
 }
 
 // プレイヤーの更新
@@ -108,7 +108,7 @@ void UpdatePlayer()
     skillManager.Update(&playerData);
 
     UpdateState();
-    UpdateAnimation();
+    UpdatePlayerAnimation();
 }
 
 // プレイヤーの描画
@@ -117,31 +117,53 @@ void DrawPlayer()
     int drawX = static_cast<int>(playerData.posX);
     int drawY = static_cast<int>(playerData.posY);
 
-    // アイドルアニメーションの画像が読み込まれている場合
-    if (playerData.state == PlayerState::Idle && idleImages[0] != -1)
+    // アニメーションが読み込まれているか確認
+    bool hasAnimation = (idleAnim.frames != nullptr && idleAnim.frameCount > 0);
+
+    if (hasAnimation)
     {
-        if (playerData.isFacingRight)
+        // 状態に応じたアニメーションを描画
+        switch (playerData.state)
         {
-            DrawRotaGraph(drawX, drawY, 1.0, 0.0, idleImages[playerData.currentFrame], TRUE);
-        }
-        else
-        {
-            DrawTurnGraph(drawX, drawY, idleImages[playerData.currentFrame], TRUE);
+        case PlayerState::Idle:
+            DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            break;
+        case PlayerState::Walk:
+            if (walkAnim.frames != nullptr)
+                DrawAnimation(walkAnim, drawX, drawY, !playerData.isFacingRight);
+            else
+                DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            break;
+        case PlayerState::Jump:
+            if (jumpAnim.frames != nullptr)
+                DrawAnimation(jumpAnim, drawX, drawY, !playerData.isFacingRight);
+            else
+                DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            break;
+        case PlayerState::Fall:
+            if (fallAnim.frames != nullptr)
+                DrawAnimation(fallAnim, drawX, drawY, !playerData.isFacingRight);
+            else
+                DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            break;
+        case PlayerState::UsingSkill:
+            DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            break;
         }
     }
     else
     {
-        // デバッグ用の簡易描画
+        // デバッグ用の簡易描画（画像が読み込まれていない場合）
         unsigned int color = GetColor(255, 255, 255);
-        DrawBox(drawX - 16, drawY - 32, drawX + 16, drawY + 32, color, TRUE);
+        DrawBox(drawX - 32, drawY - 64, drawX + 32, drawY, color, TRUE);
 
         if (playerData.isFacingRight)
         {
-            DrawTriangle(drawX + 16, drawY, drawX + 8, drawY - 8, drawX + 8, drawY + 8, GetColor(255, 0, 0), TRUE);
+            DrawTriangle(drawX + 32, drawY - 32, drawX + 16, drawY - 40, drawX + 16, drawY - 24, GetColor(255, 0, 0), TRUE);
         }
         else
         {
-            DrawTriangle(drawX - 16, drawY, drawX - 8, drawY - 8, drawX - 8, drawY + 8, GetColor(255, 0, 0), TRUE);
+            DrawTriangle(drawX - 32, drawY - 32, drawX - 16, drawY - 40, drawX - 16, drawY - 24, GetColor(255, 0, 0), TRUE);
         }
     }
 
@@ -151,17 +173,19 @@ void DrawPlayer()
     DrawFormatString(10, 50, GetColor(200, 255, 200), "Money: %d", playerData.money);
     DrawFormatString(10, 70, GetColor(255, 255, 255), "ATK: %d", playerData.attackPower);
     DrawFormatString(10, 90, GetColor(255, 255, 255), "Grounded: %s", playerData.isGrounded ? "YES" : "NO");
+    DrawFormatString(10, 110, GetColor(255, 200, 0), "Has Anim: %s", hasAnimation ? "YES" : "NO");
     
     // 状態表示
     const char* stateStr = "UNKNOWN";
     switch (playerData.state)
     {
-    case PlayerState::Idle:   stateStr = "IDLE";   break;
-    case PlayerState::Walk:   stateStr = "WALK";   break;
-    case PlayerState::Jump:   stateStr = "JUMP";   break;
-    case PlayerState::Fall:   stateStr = "FALL";   break;
+    case PlayerState::Idle:       stateStr = "IDLE";        break;
+    case PlayerState::Walk:       stateStr = "WALK";        break;
+    case PlayerState::Jump:       stateStr = "JUMP";        break;
+    case PlayerState::Fall:       stateStr = "FALL";        break;
+    case PlayerState::UsingSkill: stateStr = "USING SKILL"; break;
     }
-    DrawFormatString(10, 170, GetColor(255, 255, 0), "State: %s", stateStr);
+    DrawFormatString(10, 130, GetColor(255, 255, 0), "State: %s", stateStr);
 
     // プレイヤーが死んでいる場合
     if (playerData.currentHP <= 0)
@@ -173,14 +197,11 @@ void DrawPlayer()
 // プレイヤーのリソース解放
 void UnloadPlayer()
 {
-    for (int i = 0; i < IDLE_FRAME_COUNT; i++)
-    {
-        if (idleImages[i] != -1)
-        {
-            DeleteGraph(idleImages[i]);
-            idleImages[i] = -1;
-        }
-    }
+    // アニメーションを解放
+    UnloadAnimation(idleAnim);
+    UnloadAnimation(walkAnim);
+    UnloadAnimation(jumpAnim);
+    UnloadAnimation(fallAnim);
 }
 
 // ===== データ取得関数の実装 =====
@@ -265,12 +286,6 @@ int GetPlayerMaxHP()
 int GetPlayerAttack()
 {
     return playerData.attackPower;
-}
-
-// 所持金を取得
-int GetPlayerMoney()
-{
-    return playerData.money;
 }
 
 // ===== データ操作関数の実装 =====
@@ -387,26 +402,32 @@ namespace
     }
 
     // アニメーション更新
-    void UpdateAnimation()
+    void UpdatePlayerAnimation()
     {
+        // 状態に応じてアニメーションを更新
         switch (playerData.state)
         {
         case PlayerState::Idle:
-            playerData.animationCounter++;
-            if (playerData.animationCounter >= IDLE_ANIM_SPEED)
-            {
-                playerData.animationCounter = 0;
-                playerData.currentFrame++;
-                if (playerData.currentFrame >= IDLE_FRAME_COUNT) playerData.currentFrame = 0;
-            }
+            UpdateAnimation(idleAnim);
+            break;
+        case PlayerState::Walk:
+            UpdateAnimation(walkAnim);
+            break;
+        case PlayerState::Jump:
+            UpdateAnimation(jumpAnim);
+            break;
+        case PlayerState::Fall:
+            UpdateAnimation(fallAnim);
+            break;
+        case PlayerState::UsingSkill:
+            UpdateAnimation(idleAnim);
             break;
         default:
-            playerData.currentFrame = 0;
             break;
         }
     }
 
-    // ジャンプ実行
+    // ジャンプに関する処理
     void ExecuteJump()
     {
         if (playerData.jumpCount < MAX_JUMP_COUNT)
@@ -414,6 +435,9 @@ namespace
             playerData.velocityY = -JUMP_POWER;
             playerData.isGrounded = false;
             playerData.jumpCount++;
+            
+            // ジャンプアニメーションをリセット
+            ResetAnimation(jumpAnim);
         }
     }
 }

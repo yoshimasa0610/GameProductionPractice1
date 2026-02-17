@@ -61,6 +61,9 @@
     <Filter Include="Source\SaveSystem">
       <UniqueIdentifier>{504365f3-dadb-43b9-ad58-a8f4a80865cc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Animation">
+      <UniqueIdentifier>{55ee7b7d-c8d9-4192-bcc5-e60767af9176}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -147,6 +150,9 @@
     <ClCompile Include="Source\Skill\Skill.cpp">
       <Filter>Source\Skill</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Animation\Animation.cpp">
+      <Filter>Source\Animation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -232,6 +238,9 @@
     </ClInclude>
     <ClInclude Include="Source\Skill\Skill.h">
       <Filter>Source\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\Animation.h">
+      <Filter>Source\Animation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

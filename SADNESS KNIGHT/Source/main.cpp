@@ -1,54 +1,113 @@
 #include "DxLib.h"
 #include "GameSetting/GameSetting.h"
-#include "FPS/FPS.h"
+#include "Player/Player.h"
+#include "Input/Input.h"
 
-int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nShowCmd)
+INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
-    // ウィンドウモード有効化
+    // ウィンドウモード設定
     ChangeWindowMode(TRUE);
 
-    // 画面解像度とカラービット数を設定
+    // 画面サイズ設定
     SetGraphMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_COLOR_DEPTH);
 
-    // DxLib初期化
+    // ウィンドウタイトル
+    SetMainWindowText("SADNESS KNIGHT - Player Test");
+
+    // DXライブラリ初期化
     if (DxLib_Init() == -1)
     {
-        return -1; // 初期化失敗なら即終了
+        return -1;
     }
 
-    // ウィンドウサイズ設定
-    SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    // 透過色設定
-    SetTransColor(TRANS_COLOR_R, TRANS_COLOR_G, TRANS_COLOR_B);
-
-    // 裏画面を描画先に設定
+    // 描画先を裏画面に設定
     SetDrawScreen(DX_SCREEN_BACK);
 
-    // =====================
-    // メインループ
-    // =====================
-    while (ProcessMessage() >= 0)
+    // 画像ファイルの存在を確認
+    printfDx("=== Checking Image Files ===\n");
+    if (FileRead_open("Data/Player/Idle.png") != 0)
     {
-        Sleep(1);            // CPU負荷軽減
-        ClearDrawScreen();   // 画面クリア
+        printfDx("Idle.png: FOUND\n");
+        FileRead_close(FileRead_open("Data/Player/Idle.png"));
+    }
+    else
+    {
+        printfDx("Idle.png: NOT FOUND\n");
+    }
+    
+    if (FileRead_open("Data/Player/Walk.png") != 0)
+    {
+        printfDx("Walk.png: FOUND\n");
+        FileRead_close(FileRead_open("Data/Player/Walk.png"));
+    }
+    else
+    {
+        printfDx("Walk.png: NOT FOUND\n");
+    }
+    
+    if (FileRead_open("Data/Player/Jump.png") != 0)
+    {
+        printfDx("Jump.png: FOUND\n");
+        FileRead_close(FileRead_open("Data/Player/Jump.png"));
+    }
+    else
+    {
+        printfDx("Jump.png: NOT FOUND\n");
+    }
+    printfDx("============================\n");
 
-        //UpdateInput();       // 入力更新
-        //SceneManagerUpdate();// シーン管理更新
-        UpdateFPS();         // FPS更新
-        FPSWait();           // フレーム調整
+    // 入力システム初期化
+    InitInput();
 
-        ScreenFlip();        // 表画面と裏画面を入れ替え
+    // プレイヤー初期化（画面中央、地面より少し上）
+    InitPlayer(400.0f, 500.0f);
+    LoadPlayer();
+
+    // メインループ
+    while (ProcessMessage() == 0)
+    {
+        // 画面クリア（背景を黒に）
+        ClearDrawScreen();
+
+        // 背景色確認用
+        DrawBox(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GetColor(20, 20, 40), TRUE);
+
+        // 入力更新
+        UpdateInput();
+
+        // プレイヤー更新
+        UpdatePlayer();
+
+        // プレイヤー描画
+        DrawPlayer();
+
+        // 地面のライン表示
+        DrawLine(0, 700, SCREEN_WIDTH, 700, GetColor(100, 255, 100), 2);
+
+        // FPS表示
+        DrawFormatString(SCREEN_WIDTH - 100, 10, GetColor(255, 255, 255), "FPS: %.1f", GetFPS());
+
+        // 操作説明
+        DrawFormatString(10, 200, GetColor(200, 200, 200), "=== Controls ===");
+        DrawFormatString(10, 220, GetColor(255, 255, 255), "[A][D] Move");
+        DrawFormatString(10, 240, GetColor(255, 255, 255), "[W] Jump");
+        DrawFormatString(10, 260, GetColor(255, 255, 255), "[Q][E][F] Skills");
+        DrawFormatString(10, 280, GetColor(255, 255, 255), "[ESC] Exit");
+
+        // 裏画面を表画面に反映
+        ScreenFlip();
+
+        // ESCキーで終了
+        if (CheckHitKey(KEY_INPUT_ESCAPE))
+        {
+            break;
+        }
     }
 
-    // =====================
-    // 終了処理
-    // =====================
-    /*FinUIImage();
-    FinUIText();
-    FinBGM();
-    FinSE();
-    FinScene();*/
+    // リソース解放
+    UnloadPlayer();
+
+    // DXライブラリ終了
     DxLib_End();
 
     return 0;
