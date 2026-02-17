@@ -61,6 +61,12 @@
     <Filter Include="Source\SaveSystem">
       <UniqueIdentifier>{504365f3-dadb-43b9-ad58-a8f4a80865cc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Overlay\Equip">
+      <UniqueIdentifier>{34ff60ef-b0ac-4f4a-808e-90a1bac04a05}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Map\Checkpoint">
+      <UniqueIdentifier>{dc33fbe1-103b-417e-8f70-6c0d76daf7f5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -147,6 +153,15 @@
     <ClCompile Include="Source\Skill\Skill.cpp">
       <Filter>Source\Skill</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Overlay\Equip\EquipMenu.cpp">
+      <Filter>Source\Overlay\Equip</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Map\Checkpoint\CheckpointManager.cpp">
+      <Filter>Source\Map\Checkpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Map\Checkpoint\Checkpoint.cpp">
+      <Filter>Source\Map\Checkpoint</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -232,6 +247,18 @@
     </ClInclude>
     <ClInclude Include="Source\Skill\Skill.h">
       <Filter>Source\Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\MapParameter.h">
+      <Filter>Source\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Overlay\Equip\EquipMenu.h">
+      <Filter>Source\Overlay\Equip</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\Checkpoint\CheckpointManager.h">
+      <Filter>Source\Map\Checkpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\Checkpoint\Checkpoint.h">
+      <Filter>Source\Map\Checkpoint</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
