@@ -888,4 +888,3 @@ void DrawOption()
 void FinOptionScene()
 {
 }
-*/
