@@ -139,9 +139,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Animation\Animation.cpp" />
     <ClCompile Include="Source\Camera\Camera.cpp" />
     <ClCompile Include="Source\Fade\Fade.cpp" />
     <ClCompile Include="Source\FPS\FPS.cpp" />
+    <ClCompile Include="Source\GameSetting\GameSetting.cpp" />
+    <ClCompile Include="Source\Input\ControlConfig.cpp" />
     <ClCompile Include="Source\Input\Input.cpp" />
     <ClCompile Include="Source\Item\Item.cpp" />
     <ClCompile Include="Source\Item\ItemData.cpp" />
@@ -172,10 +175,12 @@
     <ClCompile Include="Source\UIImage\UIImage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Animation\Animation.h" />
     <ClInclude Include="Source\Camera\Camera.h" />
     <ClInclude Include="Source\Fade\Fade.h" />
     <ClInclude Include="Source\FPS\FPS.h" />
     <ClInclude Include="Source\GameSetting\GameSetting.h" />
+    <ClInclude Include="Source\Input\ControlConfig.h" />
     <ClInclude Include="Source\Input\Input.h" />
     <ClInclude Include="Source\Item\Item.h" />
     <ClInclude Include="Source\Item\ItemData.h" />

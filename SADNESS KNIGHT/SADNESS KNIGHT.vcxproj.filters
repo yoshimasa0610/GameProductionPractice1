@@ -61,11 +61,14 @@
     <Filter Include="Source\SaveSystem">
       <UniqueIdentifier>{504365f3-dadb-43b9-ad58-a8f4a80865cc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Overlay\Equip">
-      <UniqueIdentifier>{34ff60ef-b0ac-4f4a-808e-90a1bac04a05}</UniqueIdentifier>
+    <Filter Include="Source\Animation">
+      <UniqueIdentifier>{55ee7b7d-c8d9-4192-bcc5-e60767af9176}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Map\Checkpoint">
-      <UniqueIdentifier>{dc33fbe1-103b-417e-8f70-6c0d76daf7f5}</UniqueIdentifier>
+      <UniqueIdentifier>{48e81dc7-1fca-4380-b9bc-fe2994c896d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Overlay\Equip">
+      <UniqueIdentifier>{d50999dd-d778-4314-900e-3e6d385542f3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -153,14 +156,23 @@
     <ClCompile Include="Source\Skill\Skill.cpp">
       <Filter>Source\Skill</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Overlay\Equip\EquipMenu.cpp">
-      <Filter>Source\Overlay\Equip</Filter>
+    <ClCompile Include="Source\Animation\Animation.cpp">
+      <Filter>Source\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Input\ControlConfig.cpp">
+      <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Map\Checkpoint\Checkpoint.cpp">
+      <Filter>Source\Map\Checkpoint</Filter>
     </ClCompile>
     <ClCompile Include="Source\Map\Checkpoint\CheckpointManager.cpp">
       <Filter>Source\Map\Checkpoint</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Map\Checkpoint\Checkpoint.cpp">
-      <Filter>Source\Map\Checkpoint</Filter>
+    <ClCompile Include="Source\Overlay\Equip\EquipMenu.cpp">
+      <Filter>Source\Overlay\Equip</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameSetting\GameSetting.cpp">
+      <Filter>Source\GameSetting</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -248,17 +260,23 @@
     <ClInclude Include="Source\Skill\Skill.h">
       <Filter>Source\Skill</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Map\MapParameter.h">
-      <Filter>Source\Map</Filter>
+    <ClInclude Include="Source\Animation\Animation.h">
+      <Filter>Source\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Overlay\Equip\EquipMenu.h">
-      <Filter>Source\Overlay\Equip</Filter>
+    <ClInclude Include="Source\Input\ControlConfig.h">
+      <Filter>Source\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\Checkpoint\Checkpoint.h">
+      <Filter>Source\Map\Checkpoint</Filter>
     </ClInclude>
     <ClInclude Include="Source\Map\Checkpoint\CheckpointManager.h">
       <Filter>Source\Map\Checkpoint</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Map\Checkpoint\Checkpoint.h">
-      <Filter>Source\Map\Checkpoint</Filter>
+    <ClInclude Include="Source\Overlay\Equip\EquipMenu.h">
+      <Filter>Source\Overlay\Equip</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\MapParameter.h">
+      <Filter>Source\Map</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

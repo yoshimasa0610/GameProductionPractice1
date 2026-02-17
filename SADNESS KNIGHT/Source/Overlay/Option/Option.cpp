@@ -1,4 +1,4 @@
-/*
+
 #include "DxLib.h"
 #include "Option.h"
 #include "../../Scene/SceneManager.h"
@@ -6,6 +6,7 @@
 #include "../../Scene/Play/Play.h"
 #include "../../GameSetting/GameSetting.h"
 #include "../../Sound/Sound.h"
+#include "../../Input/ControlConfig.h"
 
 //==================================================
 // ì‡ïîèÛë‘
@@ -887,4 +888,3 @@ void DrawOption()
 void FinOptionScene()
 {
 }
-*/

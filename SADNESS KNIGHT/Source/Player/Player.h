@@ -94,37 +94,8 @@ int GetPlayerMaxHP();
 // 攻撃力を取得
 int GetPlayerAttack();
 
-// 所持金を取得
-int GetPlayerMoney();
-
-// スキルが使用可能か
-bool CanUseSkill(int skillNumber);
-
-// スキルの残り使用回数を取得
-int GetSkillCount(int skillNumber);
-
-// スキルの最大使用回数を取得
-int GetSkillMaxCount(int skillNumber);
-
-// ===== データ操作 =====
-
 // HPにダメージを与える
 void DamagePlayerHP(int damage);
 
 // HPを回復する
 void HealPlayerHP(int healAmount);
-
-// お金を追加
-void AddPlayerMoney(int amount);
-
-// お金を使用
-bool SpendPlayerMoney(int amount);
-
-// スキルを習得する
-void UnlockSkill(int skillNumber);
-
-// スキルの使用回数を回復する
-void RestoreSkillCount(int skillNumber, int amount);
-
-// スキルの使用回数を最大まで回復する
-void RestoreSkillCountToMax(int skillNumber);
