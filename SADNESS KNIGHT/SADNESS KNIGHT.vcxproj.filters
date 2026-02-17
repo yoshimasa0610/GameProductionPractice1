@@ -162,6 +162,12 @@
     <ClCompile Include="Source\Map\Checkpoint\Checkpoint.cpp">
       <Filter>Source\Map\Checkpoint</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Input\ControlConfig.cpp">
+      <Filter>Source\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\GameSetting\GameSetting.cpp">
+      <Filter>Source\GameSetting</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -259,6 +265,9 @@
     </ClInclude>
     <ClInclude Include="Source\Map\Checkpoint\Checkpoint.h">
       <Filter>Source\Map\Checkpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Input\ControlConfig.h">
+      <Filter>Source\Input</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

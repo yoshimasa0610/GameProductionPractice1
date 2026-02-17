@@ -1,86 +1,35 @@
 #pragma once
+#include "DxLib.h"
 
-// キーの状態
-enum class KeyState
+#define ACTION_MAX 15
+// 入力ボタン定義（ゲーム側はこれしか使わない）
+enum InputKey
 {
-    None,       // 押されていない
-    Pressed,    // 押された瞬間
-    Held,       // 押し続けている
-    Released    // 離された瞬間
+    INPUT_NONE = 0,
+    KEY_UP = (1 << 0),
+    KEY_DOWN = (1 << 1),
+    KEY_LEFT = (1 << 2),
+    KEY_RIGHT = (1 << 3),
+    KEY_JUMP = (1 << 4),  // ジャンプ
+    KEY_SKILL1 = (1 << 5),  // スキル1
+    KEY_SKILL2 = (1 << 6),  // スキル2
+    KEY_SKILL3 = (1 << 7),  // スキル3
+    KEY_CHANGE = (1 << 8),  // スキルセットの変更
+    KEY_DODGE = (1 << 9),  // 回避
+    KEY_HEAL = (1 << 10), // 回復(残機回復)
+    KEY_MENU = (1 << 11), // メニュー
+    KEY_INVENTORY = (1 << 12), // インベントリ
+    KEY_OK = ((1 << 13)),//決定!!!!
+    KEY_CANCEL = ((1 << 14))//メニューなどの戻る
 };
 
-/// <summary>
-/// 入力システムの初期化
-/// </summary>
+// プロトタイプ宣言
 void InitInput();
-
-/// <summary>
-/// 入力システムの更新（毎フレーム呼び出す）
-/// </summary>
 void UpdateInput();
 
-// 移動入力取得関数
-/// <summary>
-/// 左移動キー(A)が押されているか
-/// </summary>
-bool IsMoveLeft();
+void AutoDetectInputMode();
 
-/// <summary>
-/// 右移動キー(D)が押されているか
-/// </summary>
-bool IsMoveRight();
+bool IsInputKey(InputKey key);     // 入力判定
+bool IsTriggerKey(InputKey key);   // トリガー判定
 
-/// <summary>
-/// 上移動キー(W)が押されているか
-/// </summary>
-bool IsMoveUp();
-
-/// <summary>
-/// 下移動キー(S)が押されているか
-/// </summary>
-bool IsMoveDown();
-
-/// <summary>
-/// 水平方向の移動入力を取得 (-1.0f: 左, 0.0f: なし, 1.0f: 右)
-/// </summary>
-float GetMoveHorizontal();
-
-/// <summary>
-/// 垂直方向の移動入力を取得 (-1.0f: 下, 0.0f: なし, 1.0f: 上)
-/// </summary>
-float GetMoveVertical();
-
-// スキル入力取得関数
-/// <summary>
-/// スキル1(Q)の状態を取得
-/// </summary>
-KeyState GetSkill1State();
-
-/// <summary>
-/// スキル2(E)の状態を取得
-/// </summary>
-KeyState GetSkill2State();
-
-/// <summary>
-/// スキル3(F)の状態を取得
-/// </summary>
-KeyState GetSkill3State();
-
-/// <summary>
-/// スキル1(Q)が押された瞬間か
-/// </summary>
-bool IsSkill1Pressed();
-
-/// <summary>
-/// スキル2(E)が押された瞬間か
-/// </summary>
-bool IsSkill2Pressed();
-
-/// <summary>
-/// スキル3(F)が押された瞬間か
-/// </summary>
-bool IsSkill3Pressed();
-
-// セット切替 (Rキー)
-KeyState GetChangeSetState();
-bool IsChangeSetPressed();
+bool IsInputOKGuarded();
