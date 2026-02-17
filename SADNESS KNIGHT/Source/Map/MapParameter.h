@@ -4,8 +4,8 @@
 #define BLOCK_MAX 4096         //ゲーム全体で扱えるブロックの最大数 
 
 // マップ1チップの大きさ（共通）
-#define MAP_CHIP_WIDTH  (50.0f)
-#define MAP_CHIP_HEIGHT (50.0f)
+#define MAP_CHIP_WIDTH  (32.0f)
+#define MAP_CHIP_HEIGHT (32.0f)
 
 // =====================================
 // ■ マップサイズ動的設定対応
