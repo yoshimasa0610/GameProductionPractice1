@@ -367,14 +367,44 @@ void ResolveCollisions()
                 PlayerData* player = static_cast<PlayerData*>(a.owner);
                 if (!player) continue;
 
-                if (player->velocityY > 0.0f &&
-                    !player->dropThrough &&
-                    (player->posY <= b.top + 2.0f))
+                if (player->dropThrough)
+                    continue;
+
+                // 上昇中は無視
+                if (player->velocityY < 0.0f)
+                    continue;
+				// プレイヤー矩形（左上基準）
+                const float w = static_cast<float>(PLAYER_WIDTH);
+                const float h = static_cast<float>(PLAYER_HEIGHT);
+				// プレイヤーの底面と足場の上面を比較
+                float playerBottom = player->posY;
+                float prevPlayerBottom = player->prevPosY;
+                float platformTop = b.top;
+
+                // 前フレームで足場より上にいた
+                bool wasAbove = prevPlayerBottom <= platformTop;
+
+                // 今フレームで足場を跨いだ
+                bool crossed = playerBottom >= platformTop;
+
+                if (wasAbove && crossed)
                 {
-                    ResolvePlayerBlock(player, b, a);
+                    // 横方向が重なっているか確認（安全化）
+                    float pLeft = player->posX - (w * 0.5f);
+                    float pRight = pLeft + w;
+					// 足場の左右
+                    float bLeft = b.left;
+                    float bRight = b.left + b.width;
+					// 横方向が重なっていれば着地させる
+                    if (pRight > bLeft && pLeft < bRight)
+					{// 着地
+                        player->posY = platformTop;
+                        player->velocityY = 0.0f;
+                        player->isGrounded = true;
+                        player->jumpCount = 0;
+                    }
                 }
             }
-
             // Player <-> Enemy : 当たりを通知（簡易実装：プレイヤーへ固定ダメージ）
             else if ((a.tag == ColliderTag::Player && b.tag == ColliderTag::Enemy) ||
                      (b.tag == ColliderTag::Player && a.tag == ColliderTag::Enemy))

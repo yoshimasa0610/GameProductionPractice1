@@ -22,6 +22,8 @@ struct PlayerData
     float posY;
     float velocityX;
     float velocityY;
+	float prevPosX;// 前フレームの位置（衝突処理などで必要）
+	float prevPosY;// 前フレームの位置（衝突処理などで必要）
 
     // 状態
     PlayerState state;

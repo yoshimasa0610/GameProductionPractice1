@@ -110,6 +110,9 @@ void UpdatePlayer()
     {
         return;
     }
+	// 前フレームの位置を保存（衝突処理などで必要）
+    playerData.prevPosX = playerData.posX;
+    playerData.prevPosY = playerData.posY;
 
     ProcessInput();
     UpdatePhysics();
@@ -429,6 +432,16 @@ namespace
 
         if (playerData.posX < 0.0f) playerData.posX = 0.0f;
         if (playerData.posX > 1600.0f) playerData.posX = 1600.0f;
+
+        // すり抜けタイマー更新
+        if (playerData.dropTimer > 0)
+        {
+            playerData.dropTimer--;
+        }
+        else
+		{// タイマーが切れたらすり抜け状態を解除
+            playerData.dropThrough = false;
+        }
     }
 
     // 状態更新
