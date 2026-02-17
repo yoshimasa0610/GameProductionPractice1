@@ -6,8 +6,7 @@
 #include "../Camera/Camera.h"
 #include "../Scene/Play/Play.h"
 #include "../Fade/Fade.h"
-#include "Checkpoint/Checkpoint.h"
-
+#include "../Map/Checkpoint/Checkpoint.h"
 //ƒXƒe[ƒW‚Ì”wŒi
 int g_BackgroundFar = -1; // ‰“Œi
 int g_BackgroundMid = -1; // ’†Œi

@@ -11,6 +11,7 @@ void InitCamera()
 {
 	camera.posX = 0.0f;
 	camera.posY = 0.0f;
+	camera.scale = 1.0f;
 }
 
 void StepCamera()
