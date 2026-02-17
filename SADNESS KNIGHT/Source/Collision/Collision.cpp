@@ -360,6 +360,21 @@ void ResolveCollisions()
                 PlayerData* player = static_cast<PlayerData*>(b.owner);
                 if (player) ResolvePlayerBlock(player, a, b);
             }
+			// Player <-> SemiSolid : 下からの当たりを判定
+            //（簡易実装：プレイヤーが下から接触している場合のみブロックとして扱う）
+            if (a.tag == ColliderTag::Player && b.tag == ColliderTag::SemiSolid)
+            {
+                PlayerData* player = static_cast<PlayerData*>(a.owner);
+                if (!player) continue;
+
+                if (player->velocityY > 0.0f &&
+                    !player->dropThrough &&
+                    (player->posY <= b.top + 2.0f))
+                {
+                    ResolvePlayerBlock(player, b, a);
+                }
+            }
+
             // Player <-> Enemy : 当たりを通知（簡易実装：プレイヤーへ固定ダメージ）
             else if ((a.tag == ColliderTag::Player && b.tag == ColliderTag::Enemy) ||
                      (b.tag == ColliderTag::Player && a.tag == ColliderTag::Enemy))

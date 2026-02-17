@@ -6,6 +6,7 @@
 #include "Block.h"
 #include <vector>
 #include <string>
+#include "../Collision/Collision.h"
 
 // ============================
 // â¬ïœÉTÉCÉYëŒâû
@@ -138,6 +139,16 @@ void CreateMap()
             {
                 int visual = DecideNormalBlockVisual(x, y);
                 g_MapChip[y][x].data = CreateBlock(type, pos, visual);
+
+                float left = x * MAP_CHIP_WIDTH;
+                float top = y * MAP_CHIP_HEIGHT;
+
+                CreateCollider(ColliderTag::Block,
+                    left,
+                    top,
+                    MAP_CHIP_WIDTH,
+                    MAP_CHIP_HEIGHT,
+                    nullptr);
             }
             else
             {
@@ -146,6 +157,17 @@ void CreateMap()
 
             if (type == EXIT_BLOCK)
             {
+            }
+
+            if (type == SEMI_SOLID_BLOCK)
+            {
+                float left = x * MAP_CHIP_WIDTH;
+                float top = y * MAP_CHIP_HEIGHT;
+
+                float width = MAP_CHIP_WIDTH;
+                float height = 8.0f; // Å© è„ñ ÇæÇØîªíË
+                //Ç±ÇÍÇ≈è„Ç©ÇÁ8pxÇÃÇ›ìñÇΩÇËîªíËÇ™Ç¬Ç¢ÇƒÇ¢Ç‹Ç∑
+                CreateCollider(ColliderTag::SemiSolid, left, top, width, height, nullptr);
             }
 
             if (type == BREAKABLE_WALL)

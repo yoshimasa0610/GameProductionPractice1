@@ -29,19 +29,6 @@ void SetMapSize(int xNum, int yNum);
 int GetMapWidth();
 int GetMapHeight();
 
-// プレイヤーとの衝突判定
-void CheckMapPlayerCollision();
-
-// プレイヤー近接攻撃とマップの判定
-void CheckMapPlayerAttackCollision(
-    float ax, float ay,
-    float aw, float ah,
-    int damage
-);
-
-// 弾との衝突判定
-void CheckMapBulletCollision();
-
 // 現在のマップ名
 const char* GetCurrentMapName();
 void ChangeMap(const char* mapFolder);

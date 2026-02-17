@@ -19,7 +19,8 @@ enum class ColliderTag
 {
     Player,
     Enemy,
-    Block,
+	Block,// 壁や床などの通常ブロック
+	SemiSolid,// 下からはすり抜けるブロック
     Other
 };
 

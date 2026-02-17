@@ -19,6 +19,12 @@ enum MapChipType
 	MAP_CHIP_NONE = 0,
 	NORMAL_BLOCK,          //壁や天井などのブロック
 	EXIT_BLOCK,            //対応しているステージに移動
+
+
+
+
+
+	SEMI_SOLID_BLOCK,      // 下からはすり抜けるブロック
 	BREAKABLE_WALL,
 	BREAKABLE_STATUE,
 	SPIKE_BLOCK,           // トゲ（ダメージ）

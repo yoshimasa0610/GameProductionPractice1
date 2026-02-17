@@ -352,8 +352,16 @@ namespace
 
         // ジャンプはトリガー判定
         if (IsTriggerKey(KEY_JUMP))
-        {
-            ExecuteJump();
+		{// 下キーを押しながらジャンプした場合はすり抜け処理を優先
+            if (IsInputKey(KEY_DOWN))
+            {
+                playerData.dropThrough = true;
+                playerData.dropTimer = 15;
+            }
+			else// 通常のジャンプ処理
+            {
+                ExecuteJump();
+            }
         }
     }
 

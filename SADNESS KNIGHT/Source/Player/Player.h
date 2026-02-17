@@ -28,6 +28,8 @@ struct PlayerData
     bool isFacingRight;
     bool isGrounded;
     int jumpCount;
+	bool dropThrough = false;// すり抜け中かどうか(特定のブロックをすり抜けるのに必要)
+	int dropTimer = 0;// すり抜けタイマー（フレーム数）
 
     // ステータス
     int maxHP;
