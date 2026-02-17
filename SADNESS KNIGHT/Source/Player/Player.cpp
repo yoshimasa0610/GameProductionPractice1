@@ -319,37 +319,45 @@ namespace
     // 移動処理
     void ProcessMovement()
     {
-        float horizontal = GetMoveHorizontal();
+        float horizontal = 0.0f;
+
+        if (IsInputKey(KEY_LEFT))  horizontal -= 1.0f;
+        if (IsInputKey(KEY_RIGHT)) horizontal += 1.0f;
+
         playerData.velocityX = horizontal * MOVE_SPEED;
 
         if (horizontal > 0.0f) playerData.isFacingRight = true;
         else if (horizontal < 0.0f) playerData.isFacingRight = false;
 
-        if (IsMoveUp()) ExecuteJump();
+        // ジャンプはトリガー判定
+        if (IsTriggerKey(KEY_JUMP))
+        {
+            ExecuteJump();
+        }
     }
 
     // スキル処理
     void ProcessSkills()
     {
-        if (IsSkill1Pressed())
+        if (IsTriggerKey(KEY_SKILL1))
         {
             skillManager.UseSkill(0, &playerData);
             playerData.state = PlayerState::UsingSkill;
         }
 
-        if (IsSkill2Pressed())
+        if (IsTriggerKey(KEY_SKILL2))
         {
             skillManager.UseSkill(1, &playerData);
             playerData.state = PlayerState::UsingSkill;
         }
 
-        if (IsSkill3Pressed())
+        if (IsTriggerKey(KEY_SKILL3))
         {
             skillManager.UseSkill(2, &playerData);
             playerData.state = PlayerState::UsingSkill;
         }
 
-        if (IsChangeSetPressed())
+        if (IsTriggerKey(KEY_CHANGE))
         {
             skillManager.ChangeSet();
         }
