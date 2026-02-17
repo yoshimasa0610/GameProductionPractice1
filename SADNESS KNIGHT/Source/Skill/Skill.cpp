@@ -20,17 +20,37 @@ void Skill::Activate(PlayerData* player)
 {
     if (!CanUse()) return;
 
+    if (m_data.type == SkillType::Attack)
+    {
+        // コンボがある場合
+        if (!m_data.comboSteps.empty())
+        {
+            if (m_comboTimer > 0)
+            {
+                m_comboIndex++;
+                if (m_comboIndex >= m_data.comboSteps.size())
+                    m_comboIndex = 0;
+            }
+            else
+            {
+                m_comboIndex = 0;
+            }
+
+            m_activeTimer = m_data.comboSteps[m_comboIndex].duration;
+        }
+        else
+        {
+            m_activeTimer = m_data.duration;
+        }
+
+        m_comboTimer = 20; // 次段受付時間
+        m_isActive = true;
+    }
+
     m_currentCoolTime = m_data.coolTime;
 
     if (m_remainingUseCount > 0)
         m_remainingUseCount--;
-
-    if (m_data.type == SkillType::Attack)
-    {
-        player->state = PlayerState::UsingSkill;
-        m_isActive = true;
-        m_activeTimer = m_data.duration;
-    }
 }
 
 void Skill::Update(PlayerData* player)
@@ -47,5 +67,13 @@ void Skill::Update(PlayerData* player)
             m_isActive = false;
             player->state = PlayerState::Idle;
         }
+    }
+    // コンボの受付時間の減少
+    if (m_comboTimer > 0)
+        m_comboTimer--;
+
+    if (!m_isActive && m_comboTimer <= 0)
+    {
+        m_comboIndex = 0;
     }
 }

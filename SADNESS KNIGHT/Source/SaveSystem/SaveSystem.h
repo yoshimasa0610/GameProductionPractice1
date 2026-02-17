@@ -28,8 +28,12 @@ typedef struct
 struct SaveData
 {
 
+    // Checkpoint情報
+    char stageName[64];
+    int checkpointX;
+    int checkpointY;      // チェックポイント位置
 
-    // ====== 所持・装備関連 ======
+    // 所持・装備関連
     bool ownedItems[SAVE_MAX_ITEM];    // 所持中アイテムフラグ
     int equippedItemCount;             // 装備中アイテム数
     int equippedItemIDs[SAVE_MAX_EQUIP]; // 装備中のアイテムID

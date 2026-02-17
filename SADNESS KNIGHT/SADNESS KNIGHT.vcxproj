@@ -76,13 +76,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>"C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>"C:\08_DxLib_VC3_24b\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>"C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>"C:\08_DxLib_VC3_24b\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -110,13 +110,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>"C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>"C:\08_DxLib_VC3_24b\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>"C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>"C:\08_DxLib_VC3_24b\DxLib_VC\プロジェクトに追加すべきファイル_VC用"</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -143,6 +143,8 @@
     <ClCompile Include="Source\Camera\Camera.cpp" />
     <ClCompile Include="Source\Fade\Fade.cpp" />
     <ClCompile Include="Source\FPS\FPS.cpp" />
+    <ClCompile Include="Source\GameSetting\GameSetting.cpp" />
+    <ClCompile Include="Source\Input\ControlConfig.cpp" />
     <ClCompile Include="Source\Input\Input.cpp" />
     <ClCompile Include="Source\Item\Item.cpp" />
     <ClCompile Include="Source\Item\ItemData.cpp" />
@@ -150,12 +152,15 @@
     <ClCompile Include="Source\Item\ItemManager.cpp" />
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\Map\Block.cpp" />
+    <ClCompile Include="Source\Map\Checkpoint\Checkpoint.cpp" />
+    <ClCompile Include="Source\Map\Checkpoint\CheckpointManager.cpp" />
     <ClCompile Include="Source\Map\MapChip.cpp" />
     <ClCompile Include="Source\Map\MapManager.cpp" />
     <ClCompile Include="Source\Map\StageManager.cpp" />
     <ClCompile Include="Source\Money\MoneyManager.cpp" />
     <ClCompile Include="Source\Money\MoneyDropSystem.cpp" />
     <ClCompile Include="Source\Money\MoneyPopup.cpp" />
+    <ClCompile Include="Source\Overlay\Equip\EquipMenu.cpp" />
     <ClCompile Include="Source\Overlay\Menu\Menu.cpp" />
     <ClCompile Include="Source\Overlay\Option\Option.cpp" />
     <ClCompile Include="Source\Player\Player.cpp" />
@@ -175,18 +180,23 @@
     <ClInclude Include="Source\Fade\Fade.h" />
     <ClInclude Include="Source\FPS\FPS.h" />
     <ClInclude Include="Source\GameSetting\GameSetting.h" />
+    <ClInclude Include="Source\Input\ControlConfig.h" />
     <ClInclude Include="Source\Input\Input.h" />
     <ClInclude Include="Source\Item\Item.h" />
     <ClInclude Include="Source\Item\ItemData.h" />
     <ClInclude Include="Source\Item\ItemField.h" />
     <ClInclude Include="Source\Item\ItemManager.h" />
     <ClInclude Include="Source\Map\Block.h" />
+    <ClInclude Include="Source\Map\Checkpoint\Checkpoint.h" />
+    <ClInclude Include="Source\Map\Checkpoint\CheckpointManager.h" />
     <ClInclude Include="Source\Map\MapChip.h" />
     <ClInclude Include="Source\Map\MapManager.h" />
+    <ClInclude Include="Source\Map\MapParameter.h" />
     <ClInclude Include="Source\Map\StageManager.h" />
     <ClInclude Include="Source\Money\MoneyManager.h" />
     <ClInclude Include="Source\Money\MoneyDropSystem.h" />
     <ClInclude Include="Source\Money\MoneyPopup.h" />
+    <ClInclude Include="Source\Overlay\Equip\EquipMenu.h" />
     <ClInclude Include="Source\Overlay\Menu\Menu.h" />
     <ClInclude Include="Source\Overlay\Option\Option.h" />
     <ClInclude Include="Source\Player\Player.h" />

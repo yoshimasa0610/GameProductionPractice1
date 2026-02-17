@@ -10,3 +10,29 @@
 #define TRANS_COLOR_R (1)	// 透過色のR値
 #define TRANS_COLOR_G (100)	// 透過色のG値
 #define TRANS_COLOR_B (2)	// 透過色のB値
+
+//==============================
+// GameSetting
+//==============================
+#include "../Input/Input.h"
+#include "../Input/ControlConfig.h"
+
+namespace GameSetting
+{
+    // 起動時
+    void Load();
+
+    // 保存
+    void Save();
+
+    // ---- Sound ----
+    void SetBGMVolume(int v);
+    void SetSEVolume(int v);
+    int  GetBGMVolume();
+    int  GetSEVolume();
+
+    // ---- KeyConfig ----
+    void ApplyToControlConfig();
+    // デフォルト復帰（未実装）
+    void ResetKeyConfig();
+}
