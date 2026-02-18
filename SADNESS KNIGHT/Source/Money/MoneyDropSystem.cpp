@@ -144,8 +144,8 @@ void DrawMoneyDrops()
 {
     auto cam = GetCamera();
     float scale = cam.scale;
-    float camX = GetCameraX();
-    float camY = GetCameraY();
+    float camX = cam.posX;
+    float camY = cam.posY;
 
     for (int i = 0; i < MAX_MONEY_DROPS; ++i)
     {
