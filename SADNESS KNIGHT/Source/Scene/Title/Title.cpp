@@ -58,12 +58,17 @@ void InitTitleScene()
 
 void LoadTitleScene()
 {
-
+	g_BGHandle = LoadGraph("Data/Title/TitleBG.png");
+	g_TitleHandle = LoadGraph("Data/Title/TitleText.png");
 }
 
 void StartTitleScene()
 {
-	
+	PlayBGM(BGM_TITLE);
+	for (int i = 0; i < SAVE_SLOT_MAX; i++)
+	{
+		g_SaveSlotExists[i] = DoesSaveExist(i);
+	}
 }
 
 void StepTitleScene()
@@ -74,7 +79,6 @@ void StepTitleScene()
 static void StartNewGame(int slot)
 {
 	SaveData data{};
-	PlayerData data{};
 
 	// data.maxHP = PLAYER_INIT_HP;
 
