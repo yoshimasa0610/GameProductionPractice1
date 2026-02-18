@@ -1,6 +1,6 @@
-/*
 #include "ItemManager.h"
 #include "Item.h"
+#include "../Player/Player.h"
 #ifdef max
 #undef max
 #endif
@@ -127,7 +127,7 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
     if (!player) return;
 
     // まずベース値に戻す（InitPlayer で base 値が設定されている前提）
-    player->maxHp = player->baseMaxHp;
+    player->maxHP = player->baseMaxHp;
     player->recoverWait = player->baseRecoverWait;
     player->maxSlot = player->baseMaxSlot;
     player->healPowerBonus = 0;
@@ -251,22 +251,3 @@ void ItemManager_RemoveItem(int itemId)
         }
     }
 }
-
-/*
-以下メモ
-struct PlayerData
-{
-    int baseMaxHp = 150;
-    int maxHp = 300;
-    int hp = 150;
-    int baseMaxSlot = 5;
-    int maxSlot = 5;
-    int baseRecoverWait = 60;
-    int recoverWait = 60;
-    int healPowerBonus = 0;
-};
-こういう感じでPlayerDataをつくれば上記コードは使えるよ
-最小限上記の感じで作って
-
-
-*/
