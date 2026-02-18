@@ -27,6 +27,13 @@ typedef struct
 // =======================
 struct SaveData
 {
+    // Playerのセーブする内容
+    int currentHP;
+    int maxHP;
+
+
+    //お金
+    int money;
 
     // Checkpoint情報
     char stageName[64];
@@ -39,8 +46,6 @@ struct SaveData
     int equippedItemIDs[SAVE_MAX_EQUIP]; // 装備中のアイテムID
     int obtainedFieldItemCount;
     int obtainedFieldItemIds[SAVE_MAX_FIELD_ITEMS];
-    //お金
-    int money;
 };
 
 // ゲームセーブ

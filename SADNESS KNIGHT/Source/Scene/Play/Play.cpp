@@ -22,7 +22,7 @@
 #include "../../Money/MoneyManager.h"
 
 static ItemField g_ItemField;
-extern PlayerData g_PlayerData;
+PlayerData& player = GetPlayerData();
 extern SaveData  g_SaveData;
 
 // --- CSVロード用デバッグ表示 ---
@@ -96,8 +96,8 @@ void StepPlayScene()
 
 	// お金更新（吸い寄せ & 回収）
 	UpdateMoneyDrops(
-		g_PlayerData.posX,
-		g_PlayerData.posY
+		player.posX,
+		player.posY
 	);
 
 	// ---- フィールドアイテムとの当たり判定 ----
@@ -193,19 +193,18 @@ void UpdatePlayScene()
 		// 装備変更自体は椅子判定でチェックするため、ここでは false にして開くだけ
 		SetEquipMode(IsPlayerSitting());
 
-		// プレイヤーデータ参照を渡す（EquipMenu が参照するため）上で渡してます
-		// Player.h に extern PlayerData g_PlayerData; があるので直接渡せます
-		SetEquipMenuPlayer(&g_PlayerData);
+		// プレイヤーデータ参照を渡す（EquipMenu が参照するため）
+		SetEquipMenuPlayer(&player);
 
-		OpenEquipMenu(&g_PlayerData);
+		OpenEquipMenu(&player);
 		return;
 	}
 
 	// チェックポイント更新
 	UpdateCheckpoint(
 		&g_SaveData,
-		(int)g_PlayerData.posX,
-		(int)g_PlayerData.posY,
+		(int)player.posX,
+		(int)player.posY,
 		(int)PLAYER_WIDTH,
 		(int)PLAYER_HEIGHT
 	);

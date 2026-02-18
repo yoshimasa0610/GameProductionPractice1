@@ -136,7 +136,7 @@ void UpdateMoneyDrops(float playerX, float playerY)
         }
     }
 }
-/*
+
 //==================================================
 // •`‰æ
 //==================================================
@@ -197,7 +197,7 @@ void DrawMoneyDrops()
         }
     }
 }
-*/
+
 
 // ‚½‚é‚Æ‚©
 int DecideStatueDropMoney()

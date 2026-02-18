@@ -103,7 +103,7 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
 {
     // Player を参照して回復／セーブをする
     // Player モジュール内のグローバル g_PlayerData を直接使う
-    extern PlayerData g_PlayerData; // Player.cpp で定義されているグローバル
+    PlayerData& player = GetPlayerData(); // Player.cpp で定義されているグローバル
     //g_PlayerData.hp = g_PlayerData.maxHp;
 
     // セーブ通知
@@ -166,8 +166,8 @@ static void CheckpointInteraction(
         // 今回はメニューはどこでも開けるが、装備変更は椅子でのみ許可する仕様なので SetEquipMode は座り状態にする
         SetEquipMode(IsPlayerSitting()); // EquipMenu 側でも二重チェックするが念の為渡す
         // EquipMenu がプレイヤーデータ参照を必要とする場合は渡す（省略可能）
-        extern PlayerData g_PlayerData;
-        SetEquipMenuPlayer(&g_PlayerData);
+        PlayerData& player = GetPlayerData();
+        SetEquipMenuPlayer(&player);
         SetPaused(true);
     }
 }
