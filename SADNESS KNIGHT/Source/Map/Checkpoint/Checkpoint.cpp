@@ -139,9 +139,9 @@ static void CheckpointInteraction(
     Checkpoint& cp)
 {
     // プレイヤーと椅子の当たり判定
-    if (CheckCollisionRect(
-        playerX, playerY, pw, ph,
-        cp.x, cp.y, cp.w, cp.h))
+    if (AABBIntersect(
+        (float)playerX, (float)playerY, (float)pw, (float)ph,
+        (float)cp.x, (float)cp.y, (float)cp.w, (float)cp.h))
     {
         cp.isPlayerNear = true;
 

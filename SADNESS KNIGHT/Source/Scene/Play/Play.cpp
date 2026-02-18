@@ -104,8 +104,8 @@ void StepPlayScene()
 	g_ItemField.Update(
 		GetPlayerPosX(),
 		GetPlayerPosY(),
-		GetPlayerW(),
-		GetPlayerH()
+		(float)PLAYER_WIDTH,
+		(float)PLAYER_HEIGHT
 	);
 
 	// ---- このフレーム拾ったアイテム取得 ----
@@ -124,9 +124,10 @@ void StepPlayScene()
 
 //前方宣言
 static void RespawnFromCheckpoint();
-/*
+
 void UpdatePlayScene()
 {
+	/*
 	// ===== 死亡チェック =====
 	if (g_PlayerData.lifeState == PlayerLifeState::FadingOut &&
 		g_DeathState == PlayDeathState::None)
@@ -159,7 +160,7 @@ void UpdatePlayScene()
 		}
 		return;
 	}
-
+	*/
 	if (IsOptionOpen())
 	{
 		UpdateOption();
@@ -215,7 +216,7 @@ void UpdatePlayScene()
 
 	UpdateFade();
 }
-*/
+
 void DrawPlayScene()
 {
 	DrawBackgroundFar();

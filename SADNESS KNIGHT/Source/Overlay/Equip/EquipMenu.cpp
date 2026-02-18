@@ -1,4 +1,3 @@
-/*
 #include "EquipMenu.h"
 #include "../../SaveSystem/SaveSystem.h"
 #include "../../Input/Input.h"
@@ -478,4 +477,3 @@ void DrawEquipMenuScene()
 //    ExportSaveData(&g_SaveData);
 //    SaveGame(&g_SaveData, 0);
 //}
-*/

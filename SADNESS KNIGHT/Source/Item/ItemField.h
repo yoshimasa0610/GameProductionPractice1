@@ -18,12 +18,6 @@ struct FieldItem
 
     // ===== 演出用 =====
     float animTime = 0.0f;   // アニメーション用時間
-    /*
-    BoxCollision GetCollision() const
-    {
-        return BoxCollision(x, y, w, h);
-    }
-    */
 };
 
 // マップに応じたフィールドアイテム管理
