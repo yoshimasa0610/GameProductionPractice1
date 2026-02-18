@@ -1,10 +1,13 @@
 #pragma once
 
-struct TitleData
+// ƒ^ƒCƒgƒ‹‰æ–Ê‚Ìó‘Ô‚â
+enum class TitleState
 {
-	int bgHandle;
-	int logoHandle;
-	int m_InputWait;
+	MainMenu,
+	SelectSlot_New,
+	SelectSlot_Continue,
+	ConfirmOverwrite,
+	FadingOut
 };
 
 void InitTitleScene();
