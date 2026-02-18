@@ -140,8 +140,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\Animation\Animation.cpp" />
+    <ClCompile Include="Source\BigBoss\BigBossBase.cpp" />
+    <ClCompile Include="Source\BigBoss\CatCombat\CatCombat.cpp" />
+    <ClCompile Include="Source\BigBoss\Kether\Kether.cpp" />
+    <ClCompile Include="Source\BigBoss\Tiphereth\Tiphereth.cpp" />
     <ClCompile Include="Source\Camera\Camera.cpp" />
     <ClCompile Include="Source\Collision\Collision.cpp" />
+    <ClCompile Include="Source\Enemy\Assassin Cultist\Assassin Cultist.cpp" />
+    <ClCompile Include="Source\Enemy\Big Quartist\Big Quartist.cpp" />
+    <ClCompile Include="Source\Enemy\cultists\cultists.cpp" />
+    <ClCompile Include="Source\Enemy\EnemyBase.cpp" />
+    <ClCompile Include="Source\Enemy\Skeleton\Skeleton.cpp" />
+    <ClCompile Include="Source\Enemy\Slime\Slime.cpp" />
+    <ClCompile Include="Source\Enemy\Twisted Caltis\Twisted Caltis.cpp" />
     <ClCompile Include="Source\Fade\Fade.cpp" />
     <ClCompile Include="Source\FPS\FPS.cpp" />
     <ClCompile Include="Source\GameSetting\GameSetting.cpp" />
@@ -158,6 +169,9 @@
     <ClCompile Include="Source\Map\MapChip.cpp" />
     <ClCompile Include="Source\Map\MapManager.cpp" />
     <ClCompile Include="Source\Map\StageManager.cpp" />
+    <ClCompile Include="Source\MidBoss\Door of truth\Door of truth.cpp" />
+    <ClCompile Include="Source\MidBoss\Garok\Garok.cpp" />
+    <ClCompile Include="Source\MidBoss\MidBossBase.cpp" />
     <ClCompile Include="Source\Money\MoneyManager.cpp" />
     <ClCompile Include="Source\Money\MoneyDropSystem.cpp" />
     <ClCompile Include="Source\Money\MoneyPopup.cpp" />
@@ -177,8 +191,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Animation\Animation.h" />
+    <ClInclude Include="Source\BigBoss\BigBossBase.h" />
+    <ClInclude Include="Source\BigBoss\CatCombat\CatCombat.h" />
+    <ClInclude Include="Source\BigBoss\Kether\Kether.h" />
+    <ClInclude Include="Source\BigBoss\Tiphereth\Tiphereth.h" />
     <ClInclude Include="Source\Camera\Camera.h" />
     <ClInclude Include="Source\Collision\Collision.h" />
+    <ClInclude Include="Source\Enemy\Assassin Cultist\Assassin Cultist.h" />
+    <ClInclude Include="Source\Enemy\Big Quartist\Big Quartist.h" />
+    <ClInclude Include="Source\Enemy\cultists\cultists.h" />
+    <ClInclude Include="Source\Enemy\EnemyBase.h" />
+    <ClInclude Include="Source\Enemy\Skeleton\Skeleton.h" />
+    <ClInclude Include="Source\Enemy\Slime\Slime.h" />
+    <ClInclude Include="Source\Enemy\Twisted Caltis\Twisted Caltis.h" />
     <ClInclude Include="Source\Fade\Fade.h" />
     <ClInclude Include="Source\FPS\FPS.h" />
     <ClInclude Include="Source\GameSetting\GameSetting.h" />
@@ -195,6 +220,9 @@
     <ClInclude Include="Source\Map\MapManager.h" />
     <ClInclude Include="Source\Map\MapParameter.h" />
     <ClInclude Include="Source\Map\StageManager.h" />
+    <ClInclude Include="Source\MidBoss\Door of truth\Door of truth.h" />
+    <ClInclude Include="Source\MidBoss\Garok\Garok.h" />
+    <ClInclude Include="Source\MidBoss\MidBossBase.h" />
     <ClInclude Include="Source\Money\MoneyManager.h" />
     <ClInclude Include="Source\Money\MoneyDropSystem.h" />
     <ClInclude Include="Source\Money\MoneyPopup.h" />

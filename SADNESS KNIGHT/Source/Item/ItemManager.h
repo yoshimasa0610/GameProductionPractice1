@@ -29,10 +29,10 @@ public:
     int GetUsedSlots() const;
 
     // プレイヤーのステータスに装備効果を適用する（Equip/Unequip後に呼ぶ）
-    //void ApplyBuffsToPlayer(PlayerData* player);
+    void ApplyBuffsToPlayer(PlayerData* player);
 
     // スロット上限（ベース + 装備ボーナス）を計算して返す
-    //int GetPlayerMaxSlots(const PlayerData* player) const;
+    int GetPlayerMaxSlots(const PlayerData* player) const;
 private:
     std::vector<std::unique_ptr<Item>> m_items;
 };

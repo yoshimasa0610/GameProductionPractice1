@@ -1,4 +1,3 @@
-/*
 #include "DxLib.h"
 #include <fstream>
 #include <sstream>
@@ -133,8 +132,6 @@ void ItemField::LoadCSV(const std::string& path)
 
 void ItemField::Update(float playerX, float playerY, float playerW, float playerH)
 {
-    BoxCollision playerCol(playerX, playerY, playerW, playerH);
-
     for (auto& it : items)
     {
         if (it.picked) continue;
@@ -142,10 +139,13 @@ void ItemField::Update(float playerX, float playerY, float playerW, float player
         // アニメーション更新
         it.animTime += 0.05f;
 
-        if (playerCol.CheckCollision(it.GetCollision()))
+        if (AABBIntersect(
+            playerX, playerY, playerW, playerH,
+            it.x, it.y, it.w, it.h))
         {
             it.picked = true;
             pickedBuffer.push_back(it.itemId);
+
             // 配置IDを記録
             obtainedFieldItemIds.insert(it.fieldItemId);
         }
@@ -191,4 +191,3 @@ std::vector<int> ItemField::FetchPickedItems()
     pickedBuffer.clear();
     return out;
 }
-*/

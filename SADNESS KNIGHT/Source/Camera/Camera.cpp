@@ -41,6 +41,17 @@ void FinalCamera()
 
 }
 
+// カメラ位置とスケールを考慮した変換関数。
+float WorldToScreenX(float worldX, const CameraData& camera)
+{
+	return (worldX - camera.posX) * camera.scale;
+}
+
+float WorldToScreenY(float worldY, const CameraData& camera)
+{
+	return (worldY - camera.posY) * camera.scale;
+}
+
 CameraData GetCamera()
 {
 	return camera;

@@ -61,10 +61,21 @@ void InitPlayer(float startX, float startY)
     playerData.isGrounded = false;
     playerData.jumpCount = 0;
     
-    // ステータス
-    playerData.maxHP = 150;
-    playerData.currentHP = 150;
-    playerData.attackPower = 10;
+    // ===== 基礎ステータス =====
+    playerData.baseMaxHp = 150;
+    playerData.baseMaxSlot = 5;       // 仮に5スロット
+    playerData.basehealPower = 90;
+
+    // ===== 現在値（初期は基礎値と同じ） =====
+    playerData.maxHP = playerData.baseMaxHp;
+    playerData.currentHP = playerData.maxHP;
+    playerData.maxSlot = playerData.baseMaxSlot;
+
+    // ===== 装備補正 =====
+    playerData.healPowerBonus = 0;
+
+    // ひつように応じてろりろり
+    playerData.attackPower = 100;
     playerData.money = 0;
 
     // プレイヤーのコライダーを作成（左上座標で渡す）
@@ -325,9 +336,20 @@ void DamagePlayerHP(int damage)
 // HPを回復する
 void HealPlayerHP(int healAmount)
 {
-    playerData.currentHP += healAmount;
-    if (playerData.currentHP > playerData.maxHP) playerData.currentHP = playerData.maxHP;
-    printfDx("Player healed! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
+    int finalHeal = healAmount;
+
+    // 回復力補正を適用 
+    finalHeal += playerData.healPowerBonus;
+
+    playerData.currentHP += finalHeal;
+
+    if (playerData.currentHP > playerData.maxHP)
+        playerData.currentHP = playerData.maxHP;
+
+    printfDx("Player healed! +%d HP: %d / %d\n",
+        finalHeal,
+        playerData.currentHP,
+        playerData.maxHP);
 }
 
 // 内部関数の実装

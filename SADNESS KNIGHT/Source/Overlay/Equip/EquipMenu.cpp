@@ -1,4 +1,3 @@
-/*
 #include "EquipMenu.h"
 #include "../../SaveSystem/SaveSystem.h"
 #include "../../Input/Input.h"
@@ -114,7 +113,8 @@ static void BuildOwnedIndexList(const std::vector<std::unique_ptr<Item>>& items,
     outIndices.clear();
     for (size_t i = 0; i < items.size(); ++i)
     {
-        if (items[i]->isOwned) outIndices.push_back((int)i);
+        if (items[i]->ownedCount > 0)
+            outIndices.push_back((int)i);
     }
 }
 
@@ -244,7 +244,7 @@ void DrawEquipMenuScene()
             "item[%d] id=%d owned=%d equipped=%d",
             (int)i,
             items[i]->id,
-            items[i]->isOwned,
+            items[i]->ownedCount,
             items[i]->isEquipped
         );
     }
@@ -478,4 +478,3 @@ void DrawEquipMenuScene()
 //    ExportSaveData(&g_SaveData);
 //    SaveGame(&g_SaveData, 0);
 //}
-*/

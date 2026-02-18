@@ -39,6 +39,18 @@ struct PlayerData
     int attackPower;
     int money;
 
+    // ===== 追加（基礎値 + 拡張値管理用） =====
+    // 基礎ステータス（装備補正なし）
+    int baseMaxHp; // なんの補正もないときのHP仕様書で言うなら150。maxHPを装備補正込みにします
+    int baseMaxSlot; // 装備を行うために必要なスロットのベース。
+    int basehealPower; // 基礎回復値。healPowerBonusがあるなら追加で加算していく感じ
+
+    // 現在ステータス（装備補正込み）
+    int maxSlot;
+
+    // 装備補正値
+    int healPowerBonus;
+
     // アニメーション
     int currentFrame;
     int animationCounter;

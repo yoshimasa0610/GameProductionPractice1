@@ -171,7 +171,7 @@ bool LoadSaveSummary(int slot, SaveData* outData)
     fclose(fp);
     return true;
 }
-/*
+
 void ReachCheckpoint(int cpX, int cpY, const char* stageName)
 {
     ExportSaveData(&g_SaveData);
@@ -179,7 +179,10 @@ void ReachCheckpoint(int cpX, int cpY, const char* stageName)
     g_SaveData.checkpointX = cpX;
     g_SaveData.checkpointY = cpY;
     strcpy_s(g_SaveData.stageName, stageName);
-    g_SaveData.hp = g_SaveData.maxHp;
+
+    PlayerData& player = GetPlayerData();
+    g_SaveData.currentHP = player.currentHP;
+    g_SaveData.maxHP = player.maxHP;
 
     SaveGame(&g_SaveData, g_CurrentSaveSlot);
 }
@@ -191,12 +194,10 @@ void ReachCheckpoint(int cpX, int cpY, const char* stageName)
 void ExportSaveData(SaveData* data)
 {
     // --- プレイヤー情報をコピー ---
-    data->hp = g_PlayerData.hp;
-    data->maxHp = g_PlayerData.maxHp;
-    data->healGauge = g_PlayerData.healGauge;
-    data->maxHealGauge = g_PlayerData.maxHealGauge;
-    data->rangedGauge = g_PlayerData.rangedGauge;
-    data->maxRangedGauge = g_PlayerData.maxRangedGauge;
+    PlayerData& player = GetPlayerData();
+
+    data->currentHP = player.currentHP;
+    data->maxHP = player.maxHP;
 
     data->money = g_MoneyManager.GetMoney();
 
@@ -211,7 +212,7 @@ void ExportSaveData(SaveData* data)
         int id = it->id;
         if (id >= 0 && id < SAVE_MAX_ITEM)
         {
-            data->ownedItems[id] = it->isOwned;
+            data->ownedItems[id] = it->ownedCount;
         }
         else
         {
@@ -242,12 +243,9 @@ void ImportSaveData(const SaveData* data)
 
 
     // --- プレイヤー情報を復元 ---
-    g_PlayerData.hp = data->hp;
-    g_PlayerData.maxHp = data->maxHp;
-    g_PlayerData.healGauge = data->healGauge;
-    g_PlayerData.maxHealGauge = data->maxHealGauge;
-    g_PlayerData.rangedGauge = data->rangedGauge;
-    g_PlayerData.maxRangedGauge = data->maxRangedGauge;
+    PlayerData& player = GetPlayerData();
+    player.currentHP = data->currentHP;
+    player.maxHP = data->maxHP;
 
     g_MoneyManager.SetMoney(data->money);
 
@@ -267,7 +265,7 @@ void ImportSaveData(const SaveData* data)
         if (id >= 0)
             ItemManager_EquipItem(id);
     }
-    g_ItemManager.ApplyBuffsToPlayer(&g_PlayerData);
+    g_ItemManager.ApplyBuffsToPlayer(&player);
 }
 
 
