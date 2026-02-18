@@ -128,7 +128,6 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
 
     // まずベース値に戻す（InitPlayer で base 値が設定されている前提）
     player->maxHP = player->baseMaxHp;
-    player->recoverWait = player->baseRecoverWait;
     player->maxSlot = player->baseMaxSlot;
     player->healPowerBonus = 0;
 
@@ -158,12 +157,12 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
         }
     }
 
-    player->maxHp += addMaxHp;
+    player->maxHP += addMaxHp;
     player->maxSlot += addMaxSlot;
     player->healPowerBonus += addHealPower;
 
-    if (player->hp > player->maxHp)
-        player->hp = player->maxHp;
+    if (player->currentHP > player->maxHP)
+        player->currentHP = player->maxHP;
 }
 
 

@@ -336,9 +336,20 @@ void DamagePlayerHP(int damage)
 // HP‚ğ‰ñ•œ‚·‚é
 void HealPlayerHP(int healAmount)
 {
-    playerData.currentHP += healAmount;
-    if (playerData.currentHP > playerData.maxHP) playerData.currentHP = playerData.maxHP;
-    printfDx("Player healed! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
+    int finalHeal = healAmount;
+
+    // ‰ñ•œ—Í•â³‚ğ“K—p 
+    finalHeal += playerData.healPowerBonus;
+
+    playerData.currentHP += finalHeal;
+
+    if (playerData.currentHP > playerData.maxHP)
+        playerData.currentHP = playerData.maxHP;
+
+    printfDx("Player healed! +%d HP: %d / %d\n",
+        finalHeal,
+        playerData.currentHP,
+        playerData.maxHP);
 }
 
 // “à•”ŠÖ”‚ÌÀ‘•

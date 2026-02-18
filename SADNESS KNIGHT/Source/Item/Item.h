@@ -11,6 +11,10 @@ enum class ItemType
 //enum class PlayerAttackType;
 struct BuffEffect
 {
+
+    int addMaxHp;
+    int addMaxSlot;
+    int healPowerBonus;
    //ここにバフの内容を記載（後からわかるようコメントでも書いて）
 };
 
