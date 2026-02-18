@@ -13,4 +13,8 @@ void UpdateCamera();
 void DrawCamera();
 void FinalCamera();
 
+// カメラ位置とスケールを考慮した変換関数
+float WorldToScreenX(float worldX, const CameraData& camera);
+float WorldToScreenY(float worldY, const CameraData& camera);
+
 CameraData GetCamera();

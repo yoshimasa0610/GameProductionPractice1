@@ -1,4 +1,3 @@
-/*
 #include "DxLib.h"
 #include <fstream>
 #include <sstream>
@@ -191,4 +190,3 @@ std::vector<int> ItemField::FetchPickedItems()
     pickedBuffer.clear();
     return out;
 }
-*/

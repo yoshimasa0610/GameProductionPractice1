@@ -124,7 +124,7 @@ void StepPlayScene()
 
 //前方宣言
 static void RespawnFromCheckpoint();
-/*一時的にコメントアウト
+/*
 void UpdatePlayScene()
 {
 	// ===== 死亡チェック =====
@@ -213,10 +213,6 @@ void UpdatePlayScene()
 
 	// プレイヤー更新とか
 
-
-
-	CheckMapPlayerCollision();
-	CheckMapBulletCollision();
 	UpdateFade();
 }
 */

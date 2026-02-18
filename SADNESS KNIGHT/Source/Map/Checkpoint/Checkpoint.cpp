@@ -64,12 +64,12 @@ void InitCheckpoint(const char* stageName)
 
 void DrawCheckpoint()
 {
-    CameraData cam = GetCamera();
+    CameraData camera = GetCamera();
 
     for (const auto& cp : g_Checkpoints)
     {
-        int drawX = (int)WorldToScreenX((float)cp.x, cam);
-        int drawY = (int)WorldToScreenY((float)cp.y, cam);
+        int drawX = (int)WorldToScreenX((float)cp.x, camera);
+        int drawY = (int)WorldToScreenY((float)cp.y, camera);
 
         // ¡‰ñ‚ÍˆÖq‰æ‘œ‚ğ“™”{•\¦‚·‚é‘O’ñ
         DrawGraph(drawX, drawY, g_CheckpointImg, TRUE);
