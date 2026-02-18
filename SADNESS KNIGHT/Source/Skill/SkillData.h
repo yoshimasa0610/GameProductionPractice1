@@ -12,7 +12,7 @@ enum class SkillType
 
 struct ComboStep
 {
-    int power;          // この段階の威力
+    float attackRate;    // 攻撃力倍率（1.0 = 100%）
     int duration;       // モーション時間
     int hitStartFrame;  // 当たり判定開始
     int hitEndFrame;    // 当たり判定終了
@@ -27,7 +27,8 @@ struct SkillData
     int coolTime;               // CT（フレーム）
     int maxUseCount;            // 最大使用回数（-1なら無限）
 
-    int power;                  // 威力
+    // 通常単発用
+    float attackRate = 1.0f; // 攻撃倍率（1.0 = 等倍）
     int duration;               // 持続時間（召喚・追従用）
 
     // コンボ用

@@ -90,7 +90,6 @@ void InitPlayer(float startX, float startY)
     slash.type = SkillType::Attack;
     slash.coolTime = 120;
     slash.maxUseCount = -1;
-    slash.power = 20;
     slash.duration = 30;
 
     skillManager.AddSkill(slash);

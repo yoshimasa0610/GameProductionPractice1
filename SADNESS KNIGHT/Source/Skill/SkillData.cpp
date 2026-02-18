@@ -18,15 +18,15 @@ void RegisterSkills()
     Slash->maxUseCount = -1;
 
     // 通常値（未使用でもOK）
-    Slash->power = 25;
+    Slash->attackRate = 1.1f;
     Slash->duration = 30;
 
     // ===== コンボ定義 =====
     Slash->comboSteps =
     {//左から威力、モーションの時間、当たり判定の開始、当たり判定の終了
-        { 25, 20, 5, 10 },   // 1段目
-        { 30, 22, 6, 12 },   // 2段目
-        { 40, 30, 8, 16 }    // 3段目
+        { 0.95f, 20, 5, 10 },   // 1段目
+        { 1.0f, 22, 6, 12 },   // 2段目
+        { 1.1, 30, 8, 16 }    // 3段目
     };
 
     Slash->iconSmallPath = "Data/Skill/Icon_Small_Slash.png";
@@ -59,7 +59,6 @@ void RegisterSkills()
     shadow->coolTime = 300;
     shadow->maxUseCount = -1;
 
-    shadow->power = 15;
     shadow->duration = 600;
 
     shadow->iconSmallPath = "Data/Skill/Icon_Small_Shadow.png";

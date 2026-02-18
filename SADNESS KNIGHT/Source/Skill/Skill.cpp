@@ -45,6 +45,7 @@ void Skill::Activate(PlayerData* player)
 
         m_comboTimer = 20; // 次段受付時間
         m_isActive = true;
+        m_hasHitThisStep = false;
     }
 
     m_currentCoolTime = m_data.coolTime;
@@ -76,4 +77,39 @@ void Skill::Update(PlayerData* player)
     {
         m_comboIndex = 0;
     }
+}
+
+// スキルの攻撃倍率の取得
+float Skill::GetCurrentAttackRate() const
+{
+    if (m_data.type != SkillType::Attack)
+        return 0.0f;
+
+    if (!m_data.comboSteps.empty())
+    {
+        return m_data.comboSteps[m_comboIndex].attackRate;
+    }
+
+    return m_data.attackRate;
+}
+
+// ヒットフレーム判定
+bool Skill::CanHit()
+{
+    if (!m_isActive) return false;
+    if (m_hasHitThisStep) return false;
+    if (m_data.comboSteps.empty()) return false;
+
+    const ComboStep& step = m_data.comboSteps[m_comboIndex];
+
+    int currentFrame = step.duration - m_activeTimer;
+
+    if (currentFrame >= step.hitStartFrame &&
+        currentFrame <= step.hitEndFrame)
+    {
+        m_hasHitThisStep = true;  // 1回だけ
+        return true;
+    }
+
+    return false;
 }
