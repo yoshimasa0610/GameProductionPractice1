@@ -73,6 +73,48 @@
     <Filter Include="Source\Collision">
       <UniqueIdentifier>{813988f3-efa5-407d-818a-3a7eb68f69af}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Enemy">
+      <UniqueIdentifier>{ec103649-11f8-43b4-aa02-fafb92d86faf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\BigBoss">
+      <UniqueIdentifier>{e260ac6d-0a90-485b-9292-c2fb4064bf7f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\MidBoss">
+      <UniqueIdentifier>{624f5e58-6424-4c2a-8769-3740ae3648b7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Enemy\Assassin Cultist">
+      <UniqueIdentifier>{35195370-7878-4095-a9cf-4646b37bdf3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Enemy\Big Quartist">
+      <UniqueIdentifier>{986e0a4d-f16e-4fd5-8e52-bb3edf746cfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Enemy\cultists">
+      <UniqueIdentifier>{66d38cc3-fb8d-4687-b656-78bc6a179f33}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Enemy\Skeleton">
+      <UniqueIdentifier>{04e19603-8e25-44ec-8a9d-3989cb9ad877}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Enemy\Slime">
+      <UniqueIdentifier>{5b29bb34-e545-4a41-823d-84d97126354b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Enemy\Twisted Caltis">
+      <UniqueIdentifier>{8e19bcca-99fb-48c2-85c0-9212a0f60309}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\MidBoss\Garok">
+      <UniqueIdentifier>{04e337b0-691d-4a1f-a291-b55aed408153}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\MidBoss\Door of truth">
+      <UniqueIdentifier>{06134c0d-665f-45c3-8201-a35b593e4a1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\BigBoss\CatCombat">
+      <UniqueIdentifier>{362a65bf-288d-41e7-85c9-c3b7747756ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\BigBoss\Kether">
+      <UniqueIdentifier>{602927f9-bed8-4a87-8ac5-4dff392d6703}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\BigBoss\Tiphereth">
+      <UniqueIdentifier>{624d8068-bf9b-400a-9c76-33eb79512160}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -180,6 +222,48 @@
     <ClCompile Include="Source\Collision\Collision.cpp">
       <Filter>Source\Collision</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Enemy\Assassin Cultist\Assassin Cultist.cpp">
+      <Filter>Source\Enemy\Assassin Cultist</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy\Big Quartist\Big Quartist.cpp">
+      <Filter>Source\Enemy\Big Quartist</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy\cultists\cultists.cpp">
+      <Filter>Source\Enemy\cultists</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy\Twisted Caltis\Twisted Caltis.cpp">
+      <Filter>Source\Enemy\Twisted Caltis</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy\Slime\Slime.cpp">
+      <Filter>Source\Enemy\Slime</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MidBoss\MidBossBase.cpp">
+      <Filter>Source\MidBoss</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MidBoss\Door of truth\Door of truth.cpp">
+      <Filter>Source\MidBoss\Door of truth</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\MidBoss\Garok\Garok.cpp">
+      <Filter>Source\MidBoss\Garok</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy\EnemyBase.cpp">
+      <Filter>Source\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BigBoss\CatCombat\CatCombat.cpp">
+      <Filter>Source\BigBoss\CatCombat</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BigBoss\Kether\Kether.cpp">
+      <Filter>Source\BigBoss\Kether</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BigBoss\Tiphereth\Tiphereth.cpp">
+      <Filter>Source\BigBoss\Tiphereth</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\BigBoss\BigBossBase.cpp">
+      <Filter>Source\BigBoss</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Enemy\Skeleton\Skeleton.cpp">
+      <Filter>Source\Enemy\Skeleton</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -286,6 +370,48 @@
     </ClInclude>
     <ClInclude Include="Source\Collision\Collision.h">
       <Filter>Source\Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\Assassin Cultist\Assassin Cultist.h">
+      <Filter>Source\Enemy\Assassin Cultist</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\Big Quartist\Big Quartist.h">
+      <Filter>Source\Enemy\Big Quartist</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\cultists\cultists.h">
+      <Filter>Source\Enemy\cultists</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\Twisted Caltis\Twisted Caltis.h">
+      <Filter>Source\Enemy\Twisted Caltis</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\Slime\Slime.h">
+      <Filter>Source\Enemy\Slime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MidBoss\MidBossBase.h">
+      <Filter>Source\MidBoss</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MidBoss\Door of truth\Door of truth.h">
+      <Filter>Source\MidBoss\Door of truth</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\MidBoss\Garok\Garok.h">
+      <Filter>Source\MidBoss\Garok</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\EnemyBase.h">
+      <Filter>Source\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BigBoss\CatCombat\CatCombat.h">
+      <Filter>Source\BigBoss\CatCombat</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BigBoss\Kether\Kether.h">
+      <Filter>Source\BigBoss\Kether</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BigBoss\Tiphereth\Tiphereth.h">
+      <Filter>Source\BigBoss\Tiphereth</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\BigBoss\BigBossBase.h">
+      <Filter>Source\BigBoss</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Enemy\Skeleton\Skeleton.h">
+      <Filter>Source\Enemy\Skeleton</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
