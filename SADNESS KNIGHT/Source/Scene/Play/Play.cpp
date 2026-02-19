@@ -58,6 +58,9 @@ void LoadPlayScene()
 
 	// フィールドアイテム
 	g_ItemField.LoadForStage(GetCurrentStageName());
+
+	// セーブ復元後にバフ再計算
+	g_ItemManager.ApplyBuffsToPlayer(&player);
 }
 
 static BGMType GetStageBGM(const char* stageName)
@@ -114,7 +117,7 @@ void StepPlayScene()
 	{
 		// 所持にする
 		ItemManager_AddItem(id);
-
+		g_ItemManager.ApplyBuffsToPlayer(&player);
 		// 即セーブ（チェックポイント制なら後回しでもOK）
 		ExportSaveData(&g_SaveData);
 		SaveGame(&g_SaveData, g_CurrentSaveSlot);
@@ -268,7 +271,7 @@ static void RespawnFromCheckpoint()
 		if (LoadGame(&data, g_CurrentSaveSlot))
 		{
 			ImportSaveData(&data);
-
+			g_ItemManager.ApplyBuffsToPlayer(&player);
 			// ステージ再ロード
 			InitStage();
 			LoadStage(

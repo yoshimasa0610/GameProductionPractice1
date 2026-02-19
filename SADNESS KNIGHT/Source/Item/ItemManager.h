@@ -33,6 +33,12 @@ public:
 
     // スロット上限（ベース + 装備ボーナス）を計算して返す
     int GetPlayerMaxSlots(const PlayerData* player) const;
+
+    // アイコンを一括読み込み
+    void LoadItemIcons();
+
+
+    std::vector<std::unique_ptr<Item>>& AccessItems();
 private:
     std::vector<std::unique_ptr<Item>> m_items;
 };
