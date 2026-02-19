@@ -16,6 +16,9 @@ private:
     int m_comboIndex = 0;
     int m_comboTimer = 0;
 
+    // 一度の攻撃で複数ダメージを受けさせない
+    bool m_hasHitThisStep = false;
+
 public:
     Skill(const SkillData& data);
 
@@ -27,4 +30,7 @@ public:
 
     int GetID() const { return m_data.id; }
     SkillType GetType() const { return m_data.type; }
+
+    float GetCurrentAttackRate() const;
+    bool CanHit();
 };

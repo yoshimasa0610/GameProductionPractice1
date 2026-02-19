@@ -1,6 +1,7 @@
 #include "ItemManager.h"
 #include "Item.h"
 #include "../Player/Player.h"
+#include "DxLib.h"
 #ifdef max
 #undef max
 #endif
@@ -136,6 +137,7 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
     int addMaxSlot = 0;
     int addHealPower = 0;
 
+
     for (auto& it : m_items)
     {
         if (it->ownedCount <= 0)
@@ -157,12 +159,28 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
         }
     }
 
-    player->maxHP += addMaxHp;
-    player->maxSlot += addMaxSlot;
-    player->healPowerBonus += addHealPower;
+    // ===== HP上限増加（最大値が増えた分回復）=====
+    int oldMax = player->maxHP;
 
-    if (player->currentHP > player->maxHP)
-        player->currentHP = player->maxHP;
+    // 新しい最大HPを計算
+    player->maxHP = player->baseMaxHp + addMaxHp;
+
+    // 差分
+    int diff = player->maxHP - oldMax;
+
+    if (diff > 0)
+    {
+        player->currentHP += diff;
+
+        if (player->currentHP > player->maxHP)
+            player->currentHP = player->maxHP;
+    }
+
+    // ===== スロット =====
+    player->maxSlot += addMaxSlot;
+
+    // ===== 回復補正 =====
+    player->healPowerBonus = addHealPower;
 }
 
 
@@ -237,16 +255,39 @@ void ItemManager_EquipItem(int itemId)
     g_ItemManager.EquipItem(itemId, nullptr);
 }
 
+std::vector<std::unique_ptr<Item>>& ItemManager::AccessItems()
+{
+    return m_items;
+}
+
+
 // アイテム削除（所持解除）
 void ItemManager_RemoveItem(int itemId)
 {
-    auto& items = const_cast<std::vector<std::unique_ptr<Item>>&>(g_ItemManager.GetAllItems());
+    //auto& items = const_cast<std::vector<std::unique_ptr<Item>>&>(g_ItemManager.GetAllItems());
+    auto& items = g_ItemManager.AccessItems();
     for (auto& it : items)
     {
         if (it->id == itemId)
         {
             it->ownedCount = 0;
             it->isEquipped = false;
+        }
+    }
+}
+
+void ItemManager::LoadItemIcons()
+{
+    for (auto& it : m_items)
+    {
+        if (!it->iconSmallPath.empty())
+        {
+            it->iconSmallHandle = LoadGraph(it->iconSmallPath.c_str());
+        }
+
+        if (!it->iconLargePath.empty())
+        {
+            it->iconLargeHandle = LoadGraph(it->iconLargePath.c_str());
         }
     }
 }

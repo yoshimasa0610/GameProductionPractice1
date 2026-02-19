@@ -21,4 +21,9 @@ public:
     void UseSkill(int slotIndex, PlayerData* player);
 
     void Update(PlayerData* player);
+
+    const std::vector<std::shared_ptr<Skill>>& GetSkills() const
+    {
+        return m_ownedSkills;
+    }
 };

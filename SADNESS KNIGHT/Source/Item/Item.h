@@ -11,11 +11,14 @@ enum class ItemType
 //enum class PlayerAttackType;
 struct BuffEffect
 {
-
-    int addMaxHp;
-    int addMaxSlot;
-    int healPowerBonus;
-   //ここにバフの内容を記載（後からわかるようコメントでも書いて）
+    int addMaxHp = 0; // 最大HPの増加
+    int addMaxSlot = 0; // 最大スロットの増加
+    int healPowerBonus = 0; // 回復時受ける回復量の増加
+    float damageTakenRate = 0.0f;     // 被ダメ軽減（-0.25 = 25%軽減）
+    int skillCountBonus = 0;          // スキル使用回数+
+    float skillCooldownRate = 0.0f;   // リキャスト短縮（-0.2 = 20%短縮）
+    int healCountBonus = 0;           // 回復回数+
+   //ここにバフの内容を記載（後からわかるようコメントでもItem書いて）
 };
 
 class Item
@@ -26,6 +29,7 @@ public:
     ItemType type;
     int slotCost;              // 装備に必要なスロット数
     int ownedCount = 0;
+    bool showStack = true;   // 所持数をUI表示するか（×3など）
     bool isEquipped = false;   // 装備中フラグ
     BuffEffect buff;           // 効果
 
