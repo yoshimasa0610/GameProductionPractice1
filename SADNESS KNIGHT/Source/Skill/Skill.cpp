@@ -1,5 +1,28 @@
 #include "Skill.h"
 
+// スキルの攻撃の判定
+static void CreateAttackCollider(
+    ColliderId& collider,
+    const ComboStep& step,
+    PlayerData* player,
+    Skill* owner)
+{
+    float left =
+        player->posX
+        + (player->isFacingRight ? step.offsetX : -step.offsetX - step.hitWidth);
+
+    float top =
+        player->posY - PLAYER_HEIGHT + step.offsetY;
+
+    collider = CreateCollider(
+        ColliderTag::Other,
+        left,
+        top,
+        step.hitWidth,
+        step.hitHeight,
+        owner);
+}
+
 Skill::Skill(const SkillData& data)
     : m_data(data),
     m_currentCoolTime(0),
@@ -36,16 +59,30 @@ void Skill::Activate(PlayerData* player)
                 m_comboIndex = 0;
             }
 
-            m_activeTimer = m_data.comboSteps[m_comboIndex].duration;
+            const ComboStep& step = m_data.comboSteps[m_comboIndex];
+
+            m_activeTimer = step.duration;
+
+            // ヒット履歴リセット
+            ClearHitTargets();
+
+            // コライダー生成
+            if (m_attackCollider != -1)
+            {
+                DestroyCollider(m_attackCollider);
+                m_attackCollider = -1;
+            }
+            // 攻撃コライダー生成
+            CreateAttackCollider(m_attackCollider, step, player, this);
         }
         else
         {
             m_activeTimer = m_data.duration;
+            ClearHitTargets();
         }
 
         m_comboTimer = 20; // 次段受付時間
         m_isActive = true;
-        m_hasHitThisStep = false;
     }
 
     m_currentCoolTime = m_data.coolTime;
@@ -59,16 +96,19 @@ void Skill::Update(PlayerData* player)
     if (m_currentCoolTime > 0)
         m_currentCoolTime--;
 
-    if (m_isActive)
+    if (m_activeTimer <= 0)
     {
-        m_activeTimer--;
+        m_isActive = false;
+        player->state = PlayerState::Idle;
 
-        if (m_activeTimer <= 0)
+        // 攻撃コライダー破棄
+        if (m_attackCollider != -1)
         {
-            m_isActive = false;
-            player->state = PlayerState::Idle;
+            DestroyCollider(m_attackCollider);
+            m_attackCollider = -1;
         }
     }
+
     // コンボの受付時間の減少
     if (m_comboTimer > 0)
         m_comboTimer--;
@@ -77,6 +117,26 @@ void Skill::Update(PlayerData* player)
     {
         m_comboIndex = 0;
     }
+
+    // 攻撃コライダー更新
+    if (m_attackCollider != -1 && !m_data.comboSteps.empty())
+    {
+        const ComboStep& step = m_data.comboSteps[m_comboIndex];
+
+        float left =
+            player->posX
+            + (player->isFacingRight ? step.offsetX : -step.offsetX - step.hitWidth);
+
+        float top = player->posY - PLAYER_HEIGHT + step.offsetY;
+
+        UpdateCollider(
+            m_attackCollider,
+            left,
+            top,
+            step.hitWidth,
+            step.hitHeight);
+    }
+
 }
 
 // スキルの攻撃倍率の取得
@@ -93,23 +153,18 @@ float Skill::GetCurrentAttackRate() const
     return m_data.attackRate;
 }
 
-// ヒットフレーム判定
-bool Skill::CanHit()
+// 敵に攻撃がヒットしたことを記録（多段ヒット対策）
+bool Skill::RegisterHit(void* target)
 {
-    if (!m_isActive) return false;
-    if (m_hasHitThisStep) return false;
-    if (m_data.comboSteps.empty()) return false;
+    if (m_hitTargets.find(target) != m_hitTargets.end())
+        return false;
 
-    const ComboStep& step = m_data.comboSteps[m_comboIndex];
+    m_hitTargets.insert(target);
+    return true;
+}
 
-    int currentFrame = step.duration - m_activeTimer;
-
-    if (currentFrame >= step.hitStartFrame &&
-        currentFrame <= step.hitEndFrame)
-    {
-        m_hasHitThisStep = true;  // 1回だけ
-        return true;
-    }
-
-    return false;
+// ヒット履歴クリア
+void Skill::ClearHitTargets()
+{
+    m_hitTargets.clear();
 }

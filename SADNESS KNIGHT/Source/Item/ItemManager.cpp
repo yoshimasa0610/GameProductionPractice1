@@ -231,10 +231,13 @@ void ItemManager_AddItem(int itemId)
 // ‘S‘•”õ‰ğœ
 void ItemManager_ClearEquippedItems()
 {
-    auto& items = const_cast<std::vector<std::unique_ptr<Item>>&>(g_ItemManager.GetAllItems());
+    auto& items = g_ItemManager.AccessItems();
+
     for (auto& it : items)
         it->isEquipped = false;
 }
+
+
 
 // ŠE‘•”õEó‘Ô‚ğ‰Šú‰»
 void ItemManager_ClearAllItems(void)

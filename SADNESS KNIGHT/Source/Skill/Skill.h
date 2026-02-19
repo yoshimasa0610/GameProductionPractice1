@@ -1,6 +1,8 @@
 #pragma once
 #include "SkillData.h"
 #include "../Player/Player.h"
+#include "../Collision/Collision.h"
+#include <unordered_set>
 
 class Skill
 {
@@ -16,8 +18,10 @@ private:
     int m_comboIndex = 0;
     int m_comboTimer = 0;
 
-    // 一度の攻撃で複数ダメージを受けさせない
-    bool m_hasHitThisStep = false;
+    ColliderId m_attackCollider = -1;
+
+    // 敵ごとのヒット履歴
+    std::unordered_set<void*> m_hitTargets;
 
 public:
     Skill(const SkillData& data);
@@ -32,5 +36,8 @@ public:
     SkillType GetType() const { return m_data.type; }
 
     float GetCurrentAttackRate() const;
-    bool CanHit();
+
+    // ヒット管理
+    bool RegisterHit(void* target);
+    void ClearHitTargets();
 };

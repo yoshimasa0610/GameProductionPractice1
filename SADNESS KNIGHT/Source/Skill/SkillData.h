@@ -16,6 +16,12 @@ struct ComboStep
     int duration;       // モーション時間
     int hitStartFrame;  // 当たり判定開始
     int hitEndFrame;    // 当たり判定終了
+
+    // 攻撃判定サイズ（プレイヤー基準）
+    float hitWidth = 80;
+    float hitHeight = 60;
+    float offsetX = 40;   // 前方
+    float offsetY = -40;  // 少し上
 };
 
 struct SkillData

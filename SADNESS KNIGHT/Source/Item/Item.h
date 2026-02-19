@@ -24,6 +24,8 @@ struct BuffEffect
 class Item
 {
 public:
+    Item() = default;
+
     int id;                    // “à•”ID
     std::string name;          // •\Ž¦–¼
     ItemType type;
