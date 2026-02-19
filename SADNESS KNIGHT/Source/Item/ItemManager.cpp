@@ -137,6 +137,7 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
     int addMaxSlot = 0;
     int addHealPower = 0;
 
+
     for (auto& it : m_items)
     {
         if (it->ownedCount <= 0)
