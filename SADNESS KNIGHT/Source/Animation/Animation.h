@@ -84,3 +84,8 @@ void DrawAnimation(const AnimationData& anim, int x, int y, bool turnFlag = fals
 
 // アニメーションを回転描画
 void DrawAnimationRotated(const AnimationData& anim, int x, int y, double scale, double angle, bool turnFlag = false);
+
+// 追加: 画像サイズから自動で分割数を決めて読み込むヘルパー
+bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
+                       int frameWidth, int frameHeight,
+                       int animSpeed, AnimationMode mode = AnimationMode::Loop);

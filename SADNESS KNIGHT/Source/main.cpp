@@ -23,38 +23,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
     // 描画先を裏画面に設定
     SetDrawScreen(DX_SCREEN_BACK);
 
-    // 画像ファイルの存在を確認
-    printfDx("=== Checking Image Files ===\n");
-    if (FileRead_open("Data/Player/Idle.png") != 0)
-    {
-        printfDx("Idle.png: FOUND\n");
-        FileRead_close(FileRead_open("Data/Player/Idle.png"));
-    }
-    else
-    {
-        printfDx("Idle.png: NOT FOUND\n");
-    }
-    
-    if (FileRead_open("Data/Player/Walk.png") != 0)
-    {
-        printfDx("Walk.png: FOUND\n");
-        FileRead_close(FileRead_open("Data/Player/Walk.png"));
-    }
-    else
-    {
-        printfDx("Walk.png: NOT FOUND\n");
-    }
-    
-    if (FileRead_open("Data/Player/Jump.png") != 0)
-    {
-        printfDx("Jump.png: FOUND\n");
-        FileRead_close(FileRead_open("Data/Player/Jump.png"));
-    }
-    else
-    {
-        printfDx("Jump.png: NOT FOUND\n");
-    }
-    printfDx("============================\n");
 
     // 入力システム初期化
     InitInput();

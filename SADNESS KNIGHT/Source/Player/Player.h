@@ -8,10 +8,11 @@ constexpr int PLAYER_HEIGHT = 55;
 enum class PlayerState
 {
     Idle,       // 待機
-    Walk,       // 歩き
+    Walk,       // 移動
     Jump,       // ジャンプ
     Fall,       // 落下
-    UsingSkill,    // ← スキルは一つに統一します
+    Land,       // 着地
+    UsingSkill, // スキル
 };
 
 // プレイヤーのデータ構造体

@@ -1,5 +1,6 @@
 #include "Animation.h"
 #include "DxLib.h"
+#include <memory>
 
 // アニメーションデータの初期化
 void InitAnimation(AnimationData& anim)
@@ -20,47 +21,36 @@ bool LoadAnimationFromSheet(AnimationData& anim, const char* filePath,
                            int frameCount, int frameWidth, int frameHeight,
                            int animSpeed, AnimationMode mode)
 {
-    // 初期化
     InitAnimation(anim);
-    
-    // フレーム配列を確保
+
     anim.frames = new int[frameCount];
     anim.frameCount = frameCount;
     anim.animationSpeed = animSpeed;
     anim.mode = mode;
-    
-    // 配列を-1で初期化
+
     for (int i = 0; i < frameCount; i++)
     {
         anim.frames[i] = -1;
     }
-    
-    // スプライトシートを分割読み込み
+
     int result = LoadDivGraph(
         filePath,
         frameCount,
-        frameCount,     // 横方向の分割数
-        1,              // 縦方向の分割数
+        frameCount,
+        1,
         frameWidth,
         frameHeight,
         anim.frames
     );
-    
-    // デバッグ: 結果を表示
-    printfDx("LoadDivGraph '%s': result=%d, first frame=%d\n", 
-             filePath, result, anim.frames[0]);
-    
-    // 読み込み失敗チェック（result == -1 または最初のフレームが-1）
+
     if (result == -1 || anim.frames[0] == -1)
     {
-        printfDx("LoadAnimationFromSheet FAILED: %s\n", filePath);
         delete[] anim.frames;
         anim.frames = nullptr;
         anim.frameCount = 0;
         return false;
     }
-    
-    printfDx("LoadAnimationFromSheet SUCCESS: %s (%d frames)\n", filePath, frameCount);
+
     return true;
 }
 
@@ -70,47 +60,73 @@ bool LoadAnimationFromSheetRange(AnimationData& anim, const char* filePath,
                                 int frameWidth, int frameHeight,
                                 int animSpeed, AnimationMode mode)
 {
-    // 一時的に全フレームを読み込む
+    // 画像サイズから列・行を取得
+    int tempHandle = LoadGraph(filePath);
+    if (tempHandle == -1)
+    {
+        return false;
+    }
+
+    int imgW = 0, imgH = 0;
+    GetGraphSize(tempHandle, &imgW, &imgH);
+    DeleteGraph(tempHandle);
+
+    if (frameWidth <= 0 || frameHeight <= 0)
+    {
+        return false;
+    }
+
+    int cols = imgW / frameWidth;
+    int rows = imgH / frameHeight;
+    if (cols <= 0 || rows <= 0)
+    {
+        return false;
+    }
+
+    int computedTotal = cols * rows;
+    totalFrames = computedTotal;
+
+    if (startFrame < 0 || frameCount <= 0 || startFrame + frameCount > totalFrames)
+    {
+        return false;
+    }
+
     int* allFrames = new int[totalFrames];
-    
-    // 配列を-1で初期化
+
     for (int i = 0; i < totalFrames; i++)
     {
         allFrames[i] = -1;
     }
-    
+
     int result = LoadDivGraph(
         filePath,
         totalFrames,
-        totalFrames,
-        1,
+        cols,
+        rows,
         frameWidth,
         frameHeight,
         allFrames
     );
-    
+
     if (result == -1 || allFrames[0] == -1)
     {
         delete[] allFrames;
         return false;
     }
-    
-    // 初期化
+
     InitAnimation(anim);
     anim.frameCount = frameCount;
     anim.frames = new int[frameCount];
     anim.animationSpeed = animSpeed;
     anim.mode = mode;
-    
-    // 指定範囲のフレームをコピー
+
     for (int i = 0; i < frameCount; i++)
     {
         anim.frames[i] = allFrames[startFrame + i];
     }
-    
-    // 一時配列を解放
+
     delete[] allFrames;
-    
+
     return true;
 }
 
@@ -119,15 +135,13 @@ bool LoadJumpFallAnimations(AnimationData& jumpAnim, AnimationData& fallAnim,
                             const char* filePath, int totalFrames, int jumpFrameCount,
                             int frameWidth, int frameHeight)
 {
-    // 全フレームを一時的に読み込む
     int* allFrames = new int[totalFrames];
-    
-    // 配列を-1で初期化
+
     for (int i = 0; i < totalFrames; i++)
     {
         allFrames[i] = -1;
     }
-    
+
     int result = LoadDivGraph(
         filePath,
         totalFrames,
@@ -137,49 +151,38 @@ bool LoadJumpFallAnimations(AnimationData& jumpAnim, AnimationData& fallAnim,
         frameHeight,
         allFrames
     );
-    
-    printfDx("LoadJumpFallAnimations LoadDivGraph '%s': result=%d, first=%d\n", 
-             filePath, result, allFrames[0]);
-    
+
     if (result == -1 || allFrames[0] == -1)
     {
-        printfDx("LoadJumpFallAnimations FAILED\n");
         delete[] allFrames;
         return false;
     }
-    
-    // ジャンプアニメーションを初期化
+
     InitAnimation(jumpAnim);
     jumpAnim.frameCount = jumpFrameCount;
     jumpAnim.frames = new int[jumpFrameCount];
     jumpAnim.animationSpeed = 4;
     jumpAnim.mode = AnimationMode::Once;
-    
-    // 落下アニメーションを初期化
+
     int fallFrameCount = totalFrames - jumpFrameCount;
     InitAnimation(fallAnim);
     fallAnim.frameCount = fallFrameCount;
     fallAnim.frames = new int[fallFrameCount];
     fallAnim.animationSpeed = 4;
     fallAnim.mode = AnimationMode::Loop;
-    
-    // ジャンプフレームをコピー（前半）
+
     for (int i = 0; i < jumpFrameCount; i++)
     {
         jumpAnim.frames[i] = allFrames[i];
     }
-    
-    // 落下フレームをコピー（後半）
+
     for (int i = 0; i < fallFrameCount; i++)
     {
         fallAnim.frames[i] = allFrames[jumpFrameCount + i];
     }
-    
-    // 一時配列を解放
+
     delete[] allFrames;
-    
-    printfDx("LoadJumpFallAnimations SUCCESS: jump=%d, fall=%d frames\n", 
-             jumpFrameCount, fallFrameCount);
+
     return true;
 }
 
@@ -336,44 +339,54 @@ bool IsAnimationPlaying(const AnimationData& anim)
     return anim.isPlaying;
 }
 
-// アニメーションを描画（座標指定）
-void DrawAnimation(const AnimationData& anim, int x, int y, bool turnFlag)
+// 追加: 画像サイズを取得して自動で分割読み込みする関数
+bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
+    int frameWidth, int frameHeight,
+    int animSpeed, AnimationMode mode)
 {
-    int frameHandle = GetCurrentAnimationFrame(anim);
-    if (frameHandle == -1)
+    int tmpHandle = LoadGraph(filePath);
+    if (tmpHandle == -1)
     {
-        return;
+        return false;
     }
-    
-    if (turnFlag)
-    {
-        // 左右反転描画
-        DrawTurnGraph(x, y, frameHandle, TRUE);
-    }
-    else
-    {
-        // 通常描画
-        DrawGraph(x, y, frameHandle, TRUE);
-    }
-}
 
-// アニメーションを回転描画
-void DrawAnimationRotated(const AnimationData& anim, int x, int y, double scale, double angle, bool turnFlag)
-{
-    int frameHandle = GetCurrentAnimationFrame(anim);
-    if (frameHandle == -1)
+    int imgW = 0, imgH = 0;
+    GetGraphSize(tmpHandle, &imgW, &imgH);
+    DeleteGraph(tmpHandle);
+
+    if (frameWidth <= 0 || frameHeight <= 0)
     {
-        return;
+        return false;
     }
-    
-    if (turnFlag)
+
+    if (imgW % frameWidth != 0 || imgH % frameHeight != 0)
     {
-        // 左右反転 + 回転描画
-        DrawRotaGraph(x, y, scale, angle, frameHandle, TRUE, TRUE);
+        return false;
     }
-    else
+
+    int cols = imgW / frameWidth;
+    int rows = imgH / frameHeight;
+    int totalFrames = cols * rows;
+    if (totalFrames <= 0)
     {
-        // 回転描画
-        DrawRotaGraph(x, y, scale, angle, frameHandle, TRUE, FALSE);
+        return false;
     }
+
+    InitAnimation(anim);
+    anim.frames = new int[totalFrames];
+    anim.frameCount = totalFrames;
+    anim.animationSpeed = animSpeed;
+    anim.mode = mode;
+
+    for (int i = 0; i < totalFrames; ++i) anim.frames[i] = -1;
+
+    int result = LoadDivGraph(
+        filePath,
+        totalFrames,
+        cols,
+        rows,
+        frameWidth,
+        frameHeight,
+        anim.frames
+	);
 }

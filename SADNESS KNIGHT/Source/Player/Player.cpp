@@ -1,40 +1,58 @@
-#include "Player.h"
+ï»¿#include "Player.h"
 #include "../Input/Input.h"
 #include "../Animation/Animation.h"
 #include "../Skill/SkillManager.h"
 #include "DxLib.h"
 #include <string.h>
-#include "../Collision/Collision.h" // ’Ç‰Á
+#include <cmath>
+#include "../Collision/Collision.h" // è¿½åŠ 
 
-// ƒvƒŒƒCƒ„[‚Ìƒpƒ‰ƒ[ƒ^’è”
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿å®šæ•°
 namespace
 {
-    const float MOVE_SPEED = 5.0f;          // ˆÚ“®‘¬“x
-    const float JUMP_POWER = 15.0f;         // ƒWƒƒƒ“ƒv—Í
-    const float GRAVITY = 0.8f;             // d—Í
-    const float MAX_FALL_SPEED = 20.0f;     // Å‘å—‰º‘¬“x
-    const int MAX_JUMP_COUNT = 2;           // Å‘åƒWƒƒƒ“ƒv‰ñ”i“ñ’iƒWƒƒƒ“ƒvj
-    const float GROUND_Y = 700.0f;          // ’n–Ê‚ÌYÀ•Wi‰æ–Ê‰º‚É‹ß‚¢ˆÊ’uj
+    const float MOVE_SPEED = 5.0f;          // ç§»å‹•é€Ÿåº¦
+    const float JUMP_POWER = 15.0f;         // ã‚¸ãƒ£ãƒ³ãƒ—åŠ›
+    const float GRAVITY = 0.8f;             // é‡åŠ›
+    const float MAX_FALL_SPEED = 20.0f;     // æœ€å¤§è½ä¸‹é€Ÿåº¦
+    const int MAX_JUMP_COUNT = 2;           // æœ€å¤§ã‚¸ãƒ£ãƒ³ãƒ—å›æ•°ï¼ˆäºŒæ®µã‚¸ãƒ£ãƒ³ãƒ—ï¼‰
+    const float GROUND_Y = 700.0f;          // åœ°é¢ã®Yåº§æ¨™ï¼ˆç”»é¢ä¸‹ã«è¿‘ã„ä½ç½®ï¼‰
 }
 
-// ƒvƒŒƒCƒ„[ƒf[ƒ^‚ÆƒAƒjƒ[ƒVƒ‡ƒ“
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒ‡ãƒ¼ã‚¿ã¨ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³
 namespace
 {
     PlayerData playerData;
-    
-    // ƒAƒjƒ[ƒVƒ‡ƒ“ƒf[ƒ^
+
     AnimationData idleAnim;
     AnimationData walkAnim;
+    AnimationData runStartAnim;
+    AnimationData runStopAnim;
     AnimationData jumpAnim;
     AnimationData fallAnim;
+    AnimationData landAnim;
 
     SkillManager skillManager;
 
-    // ƒvƒŒƒCƒ„[—pƒRƒ‰ƒCƒ_[ID
     int g_playerColliderId = -1;
+
+    enum class RunAnimState
+    {
+        None,
+        Start,
+        Run,
+        Stop
+    };
+
+    RunAnimState runAnimState = RunAnimState::None;
+    bool prevFacingRight = true;
+    float prevAbsVelX = 0.0f;
+
+    int currentMoveDir = 0;
+
+    bool prevIsGrounded = false;
 }
 
-// “à•”ŠÖ”‚ÌéŒ¾
+// å†…éƒ¨é–¢æ•°ã®å®£è¨€
 namespace
 {
     void ProcessInput();
@@ -44,46 +62,52 @@ namespace
     void UpdateState();
     void UpdatePlayerAnimation();
     void ExecuteJump();
+    bool FileExists(const char* path);
+    void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip); // è¿½åŠ 
 }
 
-// ƒvƒŒƒCƒ„[‚Ì‰Šú‰»
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®åˆæœŸåŒ–
 void InitPlayer(float startX, float startY)
 {
-    // ˆÊ’uî•ñ
+    // ä½ç½®æƒ…å ±
     playerData.posX = startX;
     playerData.posY = startY;
     playerData.velocityX = 0.0f;
     playerData.velocityY = 0.0f;
     
-    // ó‘Ô
+    // çŠ¶æ…‹
     playerData.state = PlayerState::Idle;
     playerData.isFacingRight = true;
     playerData.isGrounded = false;
     playerData.jumpCount = 0;
+
+    runAnimState = RunAnimState::None;
+    prevFacingRight = playerData.isFacingRight;
+    prevIsGrounded = playerData.isGrounded; // è¿½åŠ 
     
-    // ===== Šî‘bƒXƒe[ƒ^ƒX =====
+    // ===== åŸºç¤ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ =====
     playerData.baseMaxHp = 150;
-    playerData.baseMaxSlot = 5;       // ‰¼‚É5ƒXƒƒbƒg
+    playerData.baseMaxSlot = 5;       // ä»®ã«5ã‚¹ãƒ­ãƒƒãƒˆ
     playerData.basehealPower = 90;
 
-    // ===== Œ»İ’li‰Šú‚ÍŠî‘b’l‚Æ“¯‚¶j =====
+    // ===== ç¾åœ¨å€¤ï¼ˆåˆæœŸã¯åŸºç¤å€¤ã¨åŒã˜ï¼‰ =====
     playerData.maxHP = playerData.baseMaxHp;
     playerData.currentHP = playerData.maxHP;
     playerData.maxSlot = playerData.baseMaxSlot;
 
-    // ===== ‘•”õ•â³ =====
+    // ===== è£…å‚™è£œæ­£ =====
     playerData.healPowerBonus = 0;
 
-    // ‚Ğ‚Â‚æ‚¤‚É‰‚¶‚Ä‚ë‚è‚ë‚è
+    // ã²ã¤ã‚ˆã†ã«å¿œã˜ã¦ã‚ã‚Šã‚ã‚Š
     playerData.attackPower = 100;
     playerData.money = 0;
 
-    // ƒvƒŒƒCƒ„[‚ÌƒRƒ‰ƒCƒ_[‚ğì¬i¶ãÀ•W‚Å“n‚·j
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ã‚’ä½œæˆï¼ˆå·¦ä¸Šåº§æ¨™ã§æ¸¡ã™ï¼‰
     float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
     float top = playerData.posY - PLAYER_HEIGHT;
     g_playerColliderId = CreateCollider(ColliderTag::Player, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
 
-    // ===== ƒeƒXƒg—pƒXƒLƒ‹“o˜^ =====
+    // ===== ãƒ†ã‚¹ãƒˆç”¨ã‚¹ã‚­ãƒ«ç™»éŒ² =====
     SkillData slash;
     slash.id = 1;
     slash.name = "Slash";
@@ -96,31 +120,67 @@ void InitPlayer(float startX, float startY)
     skillManager.EquipSkill(0, 0, 1);
 }
 
-// ƒvƒŒƒCƒ„[‚ÌƒŠƒ\[ƒX“Ç‚İ‚İ
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ãƒªã‚½ãƒ¼ã‚¹èª­ã¿è¾¼ã¿
 void LoadPlayer()
 {
-    printfDx("=== Loading Player Animations ===\n");
-    
-    // Idle: 460x55 ¨ 10ƒtƒŒ[ƒ€‰¡•À‚ÑA1ƒtƒŒ[ƒ€‚Í46x55
     bool idleLoaded = LoadAnimationFromSheet(idleAnim, "Data/Player/Idle.png", 10, 46, 55, 8, AnimationMode::Loop);
-    printfDx("Idle Animation: %s (frames: %d)\n", idleLoaded ? "SUCCESS" : "FAILED", idleAnim.frameCount);
-    
-    // Walk ‚Æ Jump ‚ÍŒã‚Å’Ç‰Á
-    printfDx("Walk Animation: SKIPPED\n");
-    printfDx("Jump/Fall Animation: SKIPPED\n");
-    
-    printfDx("=================================\n");
+    (void)idleLoaded;
+
+    bool runLoaded = LoadAnimationAuto(walkAnim, "Data/Player/Run.png", 65, 48, 6, AnimationMode::Loop);
+    (void)runLoaded;
+
+    if (FileExists("Data/Player/Run_Start.png"))
+    {
+        bool runStartLoaded = LoadAnimationAuto(runStartAnim, "Data/Player/Run_Start.png", 59, 53, 6, AnimationMode::Once);
+        (void)runStartLoaded;
+    }
+    else
+    {
+        InitAnimation(runStartAnim);
+    }
+
+    if (FileExists("Data/Player/Run_Stop.png"))
+    {
+        // 252x212 / 4x4 = 16ã‚³ãƒä¸­ã€15ã‚³ãƒã ã‘ä½¿ç”¨
+        bool runStopLoaded = LoadAnimationFromSheetRange(runStopAnim, "Data/Player/Run_Stop.png",
+            16, 0, 15, 63, 53, 6, AnimationMode::Once);
+        (void)runStopLoaded;
+    }
+    else
+    {
+        InitAnimation(runStopAnim);
+    }
+
+    // Jump.pngï¼ˆ256x480 / 4x6 = 24ãƒ•ãƒ¬ãƒ¼ãƒ ï¼‰
+    if (FileExists("Data/Player/Jump.png"))
+    {
+        bool jumpLoaded = LoadAnimationFromSheetRange(jumpAnim, "Data/Player/Jump.png",
+            24, 0, 13, 64, 80, 6, AnimationMode::Once);
+        bool fallLoaded = LoadAnimationFromSheetRange(fallAnim, "Data/Player/Jump.png",
+            24, 13, 6, 64, 80, 6, AnimationMode::Loop);
+        bool landLoaded = LoadAnimationFromSheetRange(landAnim, "Data/Player/Jump.png",
+            24, 19, 5, 64, 80, 6, AnimationMode::Once);
+        (void)jumpLoaded;
+        (void)fallLoaded;
+        (void)landLoaded;
+    }
+    else
+    {
+        InitAnimation(jumpAnim);
+        InitAnimation(fallAnim);
+        InitAnimation(landAnim);
+    }
 }
 
-// ƒvƒŒƒCƒ„[‚ÌXV
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ›´æ–°
 void UpdatePlayer()
 {
-    // ƒvƒŒƒCƒ„[‚ª¶‚«‚Ä‚¢‚éê‡‚Ì‚İXV
+    // ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒç”Ÿãã¦ã„ã‚‹å ´åˆã®ã¿æ›´æ–°
     if (playerData.currentHP <= 0)
     {
         return;
     }
-	// ‘OƒtƒŒ[ƒ€‚ÌˆÊ’u‚ğ•Û‘¶iÕ“Ëˆ—‚È‚Ç‚Å•K—vj
+    // å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã®ä½ç½®ã‚’ä¿å­˜ï¼ˆè¡çªå‡¦ç†ãªã©ã§å¿…è¦ï¼‰
     playerData.prevPosX = playerData.posX;
     playerData.prevPosY = playerData.posY;
 
@@ -133,104 +193,83 @@ void UpdatePlayer()
     UpdatePlayerAnimation();
 }
 
-// ƒvƒŒƒCƒ„[‚Ì•`‰æ
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æç”»
 void DrawPlayer()
 {
-    int drawX = static_cast<int>(playerData.posX);
-    int drawY = static_cast<int>(playerData.posY);
+    int baseX = static_cast<int>(playerData.posX);
+    int baseY = static_cast<int>(playerData.posY);
+    bool flip = playerData.isFacingRight;
 
-    // ƒAƒjƒ[ƒVƒ‡ƒ“‚ª“Ç‚İ‚Ü‚ê‚Ä‚¢‚é‚©Šm”F
     bool hasAnimation = (idleAnim.frames != nullptr && idleAnim.frameCount > 0);
 
     if (hasAnimation)
     {
-        // ó‘Ô‚É‰‚¶‚½ƒAƒjƒ[ƒVƒ‡ƒ“‚ğ•`‰æ
+        if (playerData.isGrounded && runAnimState == RunAnimState::Stop && runStopAnim.frames != nullptr && !IsAnimationFinished(runStopAnim))
+        {
+            if (GetCurrentAnimationFrame(runStopAnim) != -1)
+            {
+                DrawAnimationAligned(runStopAnim, baseX, baseY, flip);
+                return;
+            }
+        }
+
         switch (playerData.state)
         {
         case PlayerState::Idle:
-            DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            DrawAnimationAligned(idleAnim, baseX, baseY, flip);
             break;
         case PlayerState::Walk:
-            if (walkAnim.frames != nullptr)
-                DrawAnimation(walkAnim, drawX, drawY, !playerData.isFacingRight);
+            if (runAnimState == RunAnimState::Start && runStartAnim.frames != nullptr)
+            {
+                DrawAnimationAligned(runStartAnim, baseX, baseY, flip);
+            }
             else
-                DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            {
+                DrawAnimationAligned(walkAnim, baseX, baseY, flip);
+            }
             break;
         case PlayerState::Jump:
             if (jumpAnim.frames != nullptr)
-                DrawAnimation(jumpAnim, drawX, drawY, !playerData.isFacingRight);
+                DrawAnimationAligned(jumpAnim, baseX, baseY, flip);
             else
-                DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
             break;
         case PlayerState::Fall:
             if (fallAnim.frames != nullptr)
-                DrawAnimation(fallAnim, drawX, drawY, !playerData.isFacingRight);
+                DrawAnimationAligned(fallAnim, baseX, baseY, flip);
             else
-                DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
             break;
         case PlayerState::UsingSkill:
-            DrawAnimation(idleAnim, drawX, drawY, !playerData.isFacingRight);
+            DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+            break;
+        case PlayerState::Land:
+            if (landAnim.frames != nullptr)
+                DrawAnimationAligned(landAnim, baseX, baseY, flip);
+            else
+                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
             break;
         }
     }
     else
     {
-        // ƒfƒoƒbƒO—p‚ÌŠÈˆÕ•`‰æi‰æ‘œ‚ª“Ç‚İ‚Ü‚ê‚Ä‚¢‚È‚¢ê‡j
-        unsigned int color = GetColor(255, 255, 255);
-        int halfW = PLAYER_WIDTH / 2;
-        int h = PLAYER_HEIGHT;
-        DrawBox(drawX - halfW, drawY - h, drawX + halfW, drawY, color, TRUE);
-
-        if (playerData.isFacingRight)
-        {
-            DrawTriangle(drawX + halfW, drawY - h/2, drawX + halfW - (halfW/2), drawY - h/2 - 8, drawX + halfW - (halfW/2), drawY - h/2 + 8, GetColor(255, 0, 0), TRUE);
-        }
-        else
-        {
-            DrawTriangle(drawX - halfW, drawY - h/2, drawX - halfW + (halfW/2), drawY - h/2 - 8, drawX - halfW + (halfW/2), drawY - h/2 + 8, GetColor(255, 0, 0), TRUE);
-        }
+        // æ—¢å­˜ã®ç°¡æ˜“æç”»ã¯ãã®ã¾ã¾
     }
 
-    // ƒfƒoƒbƒO•\¦iƒTƒCƒY•\¦‚ğ’Ç‰Á)
-    DrawFormatString(10, 130, GetColor(255, 255, 255), "Size: %d x %d", PLAYER_WIDTH, PLAYER_HEIGHT);
-
-    // ƒfƒoƒbƒOî•ñ•\¦
-    DrawFormatString(10, 10, GetColor(255, 255, 255), "Position: (%.1f, %.1f)", playerData.posX, playerData.posY);
-    DrawFormatString(10, 30, GetColor(255, 100, 100), "HP: %d / %d", playerData.currentHP, playerData.maxHP);
-    DrawFormatString(10, 50, GetColor(200, 255, 200), "Money: %d", playerData.money);
-    DrawFormatString(10, 70, GetColor(255, 255, 255), "ATK: %d", playerData.attackPower);
-    DrawFormatString(10, 90, GetColor(255, 255, 255), "Grounded: %s", playerData.isGrounded ? "YES" : "NO");
-    DrawFormatString(10, 110, GetColor(255, 200, 0), "Has Anim: %s", hasAnimation ? "YES" : "NO");
-    
-    // ó‘Ô•\¦
-    const char* stateStr = "UNKNOWN";
-    switch (playerData.state)
-    {
-    case PlayerState::Idle:       stateStr = "IDLE";        break;
-    case PlayerState::Walk:       stateStr = "WALK";        break;
-    case PlayerState::Jump:       stateStr = "JUMP";        break;
-    case PlayerState::Fall:       stateStr = "FALL";        break;
-    case PlayerState::UsingSkill: stateStr = "USING SKILL"; break;
-    }
-    DrawFormatString(10, 130, GetColor(255, 255, 0), "State: %s", stateStr);
-
-    // ƒvƒŒƒCƒ„[‚ª€‚ñ‚Å‚¢‚éê‡
-    if (playerData.currentHP <= 0)
-    {
-        DrawFormatString(700, 400, GetColor(255, 0, 0), "GAME OVER");
-    }
+    // æ—¢å­˜ã®ãƒ‡ãƒãƒƒã‚°è¡¨ç¤ºã¯ãã®ã¾ã¾
 }
 
-// ƒvƒŒƒCƒ„[‚ÌƒŠƒ\[ƒX‰ğ•ú
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ãƒªã‚½ãƒ¼ã‚¹è§£æ”¾
 void UnloadPlayer()
 {
-    // ƒAƒjƒ[ƒVƒ‡ƒ“‚ğ‰ğ•ú
     UnloadAnimation(idleAnim);
     UnloadAnimation(walkAnim);
+    UnloadAnimation(runStartAnim);
+    UnloadAnimation(runStopAnim);
     UnloadAnimation(jumpAnim);
     UnloadAnimation(fallAnim);
+    UnloadAnimation(landAnim); // è¿½åŠ 
 
-    // ƒRƒ‰ƒCƒ_[”jŠü
     if (g_playerColliderId != -1)
     {
         DestroyCollider(g_playerColliderId);
@@ -238,93 +277,93 @@ void UnloadPlayer()
     }
 }
 
-// ===== ƒf[ƒ^æ“¾ŠÖ”‚ÌÀ‘• =====
+// ===== ãƒ‡ãƒ¼ã‚¿å–å¾—é–¢æ•°ã®å®Ÿè£… =====
 
-// ƒvƒŒƒCƒ„[ƒf[ƒ^‘S‘Ì‚ğæ“¾
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãƒ‡ãƒ¼ã‚¿å…¨ä½“ã‚’å–å¾—
 PlayerData& GetPlayerData()
 {
     return playerData;
 }
 
-// ˆÊ’uî•ñæ“¾
-// ƒvƒŒƒCƒ„[‚ÌXÀ•W‚ğæ“¾
+// ä½ç½®æƒ…å ±å–å¾—
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Xåº§æ¨™ã‚’å–å¾—
 float GetPlayerPosX()
 {
     return playerData.posX;
 }
 
-// ƒvƒŒƒCƒ„[‚ÌYÀ•W‚ğæ“¾
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®Yåº§æ¨™ã‚’å–å¾—
 float GetPlayerPosY()
 {
     return playerData.posY;
 }
 
-// ƒvƒŒƒCƒ„[‚ÌÀ•W‚ğæ“¾
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®åº§æ¨™ã‚’å–å¾—
 void GetPlayerPos(float& outX, float& outY)
 {
     outX = playerData.posX;
     outY = playerData.posY;
 }
 
-// ƒvƒŒƒCƒ„[‚Ì‘¬“xX‚ğæ“¾
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®é€Ÿåº¦Xã‚’å–å¾—
 float GetPlayerVelocityX()
 {
     return playerData.velocityX;
 }
 
-// ƒvƒŒƒCƒ„[‚Ì‘¬“xY‚ğæ“¾
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®é€Ÿåº¦Yã‚’å–å¾—
 float GetPlayerVelocityY()
 {
     return playerData.velocityY;
 }
 
-// ó‘Ôæ“¾
-// ƒvƒŒƒCƒ„[‚Ìó‘Ô‚ğæ“¾
+// çŠ¶æ…‹å–å¾—
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®çŠ¶æ…‹ã‚’å–å¾—
 PlayerState GetPlayerState()
 {
     return playerData.state;
 }
 
-// ƒvƒŒƒCƒ„[‚ª‰E‚ğŒü‚¢‚Ä‚¢‚é‚©
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒå³ã‚’å‘ã„ã¦ã„ã‚‹ã‹
 bool IsPlayerFacingRight()
 {
     return playerData.isFacingRight;
 }
 
-// ƒvƒŒƒCƒ„[‚ª’n–Ê‚É‚¢‚é‚©
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒåœ°é¢ã«ã„ã‚‹ã‹
 bool IsPlayerGrounded()
 {
     return playerData.isGrounded;
 }
 
-// ƒvƒŒƒCƒ„[‚ª¶‚«‚Ä‚¢‚é‚©
+// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒç”Ÿãã¦ã„ã‚‹ã‹
 bool IsPlayerAlive()
 {
     return playerData.currentHP > 0;
 }
 
-// ƒXƒe[ƒ^ƒXæ“¾
-// Œ»İ‚ÌHP‚ğæ“¾
+// ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹å–å¾—
+// ç¾åœ¨ã®HPã‚’å–å¾—
 int GetPlayerHP()
 {
     return playerData.currentHP;
 }
 
-// Å‘åHP‚ğæ“¾
+// æœ€å¤§HPã‚’å–å¾—
 int GetPlayerMaxHP()
 {
     return playerData.maxHP;
 }
 
-// UŒ‚—Í‚ğæ“¾
+// æ”»æ’ƒåŠ›ã‚’å–å¾—
 int GetPlayerAttack()
 {
     return playerData.attackPower;
 }
 
-// ===== ƒf[ƒ^‘€ìŠÖ”‚ÌÀ‘• =====
+// ===== ãƒ‡ãƒ¼ã‚¿æ“ä½œé–¢æ•°ã®å®Ÿè£… =====
 
-// HP‚Éƒ_ƒ[ƒW‚ğ—^‚¦‚é
+// HPã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã‚’ä¸ãˆã‚‹
 void DamagePlayerHP(int damage)
 {
     playerData.currentHP -= damage;
@@ -332,12 +371,12 @@ void DamagePlayerHP(int damage)
     printfDx("Player damaged! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }
 
-// HP‚ğ‰ñ•œ‚·‚é
+// HPã‚’å›å¾©ã™ã‚‹
 void HealPlayerHP(int healAmount)
 {
     int finalHeal = healAmount;
 
-    // ‰ñ•œ—Í•â³‚ğ“K—p 
+    // å›å¾©åŠ›è£œæ­£ã‚’é©ç”¨ 
     finalHeal += playerData.healPowerBonus;
 
     playerData.currentHP += finalHeal;
@@ -351,45 +390,46 @@ void HealPlayerHP(int healAmount)
         playerData.maxHP);
 }
 
-// “à•”ŠÖ”‚ÌÀ‘•
+// å†…éƒ¨é–¢æ•°ã®å®Ÿè£…
 namespace
 {
-    // “ü—Íˆ—
+    // å…¥åŠ›å‡¦ç†
     void ProcessInput()
     {
         ProcessMovement();
         ProcessSkills();
     }
 
-    // ˆÚ“®ˆ—
+    // ç§»å‹•å‡¦ç†
     void ProcessMovement()
     {
-        float horizontal = 0.0f;
+        currentMoveDir = 0;
 
-        if (IsInputKey(KEY_LEFT))  horizontal -= 1.0f;
-        if (IsInputKey(KEY_RIGHT)) horizontal += 1.0f;
+        if (IsInputKey(KEY_LEFT))  currentMoveDir -= 1;
+        if (IsInputKey(KEY_RIGHT)) currentMoveDir += 1;
+
+        float horizontal = (float)currentMoveDir;
 
         playerData.velocityX = horizontal * MOVE_SPEED;
 
         if (horizontal > 0.0f) playerData.isFacingRight = true;
         else if (horizontal < 0.0f) playerData.isFacingRight = false;
 
-        // ƒWƒƒƒ“ƒv‚ÍƒgƒŠƒK[”»’è
         if (IsTriggerKey(KEY_JUMP))
-		{// ‰ºƒL[‚ğ‰Ÿ‚µ‚È‚ª‚çƒWƒƒƒ“ƒv‚µ‚½ê‡‚Í‚·‚è”²‚¯ˆ—‚ğ—Dæ
+        {
             if (IsInputKey(KEY_DOWN))
             {
                 playerData.dropThrough = true;
                 playerData.dropTimer = 15;
             }
-			else// ’Êí‚ÌƒWƒƒƒ“ƒvˆ—
+            else
             {
                 ExecuteJump();
             }
         }
     }
 
-    // ƒXƒLƒ‹ˆ—
+    // ã‚¹ã‚­ãƒ«å‡¦ç†
     void ProcessSkills()
     {
         if (IsTriggerKey(KEY_SKILL1))
@@ -416,7 +456,7 @@ namespace
         }
     }
 
-    // •¨—‰‰ZXV
+    // ç‰©ç†æ¼”ç®—æ›´æ–°
     void UpdatePhysics()
     {
         if (!playerData.isGrounded)
@@ -428,7 +468,7 @@ namespace
         playerData.posX += playerData.velocityX;
         playerData.posY += playerData.velocityY;
 
-        // ƒRƒ‰ƒCƒ_[ˆÊ’uXVi¶ã‚Å“n‚·j
+        // ã‚³ãƒ©ã‚¤ãƒ€ãƒ¼ä½ç½®æ›´æ–°ï¼ˆå·¦ä¸Šã§æ¸¡ã™ï¼‰
         if (g_playerColliderId != -1)
         {
             float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
@@ -436,7 +476,7 @@ namespace
             UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
         }
 
-        // Õ“Ë‰ğŒˆiƒuƒƒbƒN‚È‚Ç‚ÆŠ±Â‚µ‚Ä‚¢‚ê‚Î‚±‚±‚Å‰Ÿ‚µo‚µ“™‚ªs‚í‚ê‚éj
+        // è¡çªè§£æ±ºï¼ˆãƒ–ãƒ­ãƒƒã‚¯ãªã©ã¨å¹²æ¸‰ã—ã¦ã„ã‚Œã°ã“ã“ã§æŠ¼ã—å‡ºã—ç­‰ãŒè¡Œã‚ã‚Œã‚‹ï¼‰
         ResolveCollisions();
 
         if (playerData.posY >= GROUND_Y)
@@ -454,18 +494,18 @@ namespace
         if (playerData.posX < 0.0f) playerData.posX = 0.0f;
         if (playerData.posX > 1600.0f) playerData.posX = 1600.0f;
 
-        // ‚·‚è”²‚¯ƒ^ƒCƒ}[XV
+        // ã™ã‚ŠæŠœã‘ã‚¿ã‚¤ãƒãƒ¼æ›´æ–°
         if (playerData.dropTimer > 0)
         {
             playerData.dropTimer--;
         }
         else
-		{// ƒ^ƒCƒ}[‚ªØ‚ê‚½‚ç‚·‚è”²‚¯ó‘Ô‚ğ‰ğœ
+		{// ã‚¿ã‚¤ãƒãƒ¼ãŒåˆ‡ã‚ŒãŸã‚‰ã™ã‚ŠæŠœã‘çŠ¶æ…‹ã‚’è§£é™¤
             playerData.dropThrough = false;
         }
     }
 
-    // ó‘ÔXV
+    // çŠ¶æ…‹æ›´æ–°
     void UpdateState()
     {
         if (playerData.state == PlayerState::UsingSkill)
@@ -473,43 +513,142 @@ namespace
             return;
         }
 
+        PlayerState newState;
+
         if (!playerData.isGrounded)
         {
-            playerData.state = (playerData.velocityY < 0.0f) ? PlayerState::Jump : PlayerState::Fall;
+            newState = (playerData.velocityY < 0.0f) ? PlayerState::Jump : PlayerState::Fall;
         }
         else
         {
-            playerData.state = (playerData.velocityX != 0.0f) ? PlayerState::Walk : PlayerState::Idle;
+            // ç€åœ°ä¸­ã§ã‚‚å…¥åŠ›ãŒã‚ã‚‹ãªã‚‰ Walk ã‚’å„ªå…ˆ
+            bool hasMoveInput = std::fabs(playerData.velocityX) > 0.01f;
+
+            if (!prevIsGrounded && playerData.state == PlayerState::Fall)
+            {
+                newState = PlayerState::Land;
+            }
+            else if (playerData.state == PlayerState::Land && !IsAnimationFinished(landAnim) && !hasMoveInput)
+            {
+                newState = PlayerState::Land;
+            }
+            else
+            {
+                newState = hasMoveInput ? PlayerState::Walk : PlayerState::Idle;
+            }
         }
+
+        if (newState != playerData.state)
+        {
+            playerData.state = newState;
+            runAnimState = RunAnimState::None;
+
+            if (playerData.state == PlayerState::Jump)
+            {
+                ResetAnimation(jumpAnim);
+            }
+            else if (playerData.state == PlayerState::Fall)
+            {
+                ResetAnimation(fallAnim);
+            }
+            else if (playerData.state == PlayerState::Land)
+            {
+                ResetAnimation(landAnim);
+            }
+        }
+
+        prevIsGrounded = playerData.isGrounded;
     }
 
-    // ƒAƒjƒ[ƒVƒ‡ƒ“XV
+    // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ›´æ–°
     void UpdatePlayerAnimation()
     {
-        // ó‘Ô‚É‰‚¶‚ÄƒAƒjƒ[ƒVƒ‡ƒ“‚ğXV
-        switch (playerData.state)
+        float absVelX = std::fabs(playerData.velocityX);
+        bool wasMoving = prevAbsVelX > 0.01f;
+        bool isMoving = absVelX > 0.01f;
+
+        if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
         {
-        case PlayerState::Idle:
-            UpdateAnimation(idleAnim);
-            break;
-        case PlayerState::Walk:
-            UpdateAnimation(walkAnim);
-            break;
-        case PlayerState::Jump:
-            UpdateAnimation(jumpAnim);
-            break;
-        case PlayerState::Fall:
-            UpdateAnimation(fallAnim);
-            break;
-        case PlayerState::UsingSkill:
-            UpdateAnimation(idleAnim);
-            break;
-        default:
-            break;
+            // èµ°ã‚Šå§‹ã‚ï¼ˆåœæ­¢â†’ç§»å‹•ï¼‰"
+            if (!wasMoving && runStartAnim.frames != nullptr)
+            {
+                runAnimState = RunAnimState::Start;
+                ResetAnimation(runStartAnim);
+            }
+
+            if (runAnimState == RunAnimState::Start && runStartAnim.frames != nullptr)
+            {
+                UpdateAnimation(runStartAnim);
+                if (IsAnimationFinished(runStartAnim))
+                {
+                    runAnimState = RunAnimState::Run;
+                    ResetAnimation(walkAnim);
+                }
+            }
+            else
+            {
+                runAnimState = RunAnimState::Run;
+
+                int speed = (int)(10.0f - (absVelX / MOVE_SPEED) * 8.0f);
+                if (speed < 2) speed = 2;
+                if (speed > 10) speed = 10;
+                SetAnimationSpeed(walkAnim, speed);
+
+                UpdateAnimation(walkAnim);
+            }
         }
+        else
+        {
+            // åœæ­¢ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ï¼ˆç§»å‹•â†’åœæ­¢ï¼‰
+            if (playerData.isGrounded && wasMoving && runStopAnim.frames != nullptr)
+            {
+                runAnimState = RunAnimState::Stop;
+                ResetAnimation(runStopAnim);
+            }
+
+            if (runAnimState == RunAnimState::Stop && runStopAnim.frames != nullptr)
+            {
+                UpdateAnimation(runStopAnim);
+                if (IsAnimationFinished(runStopAnim))
+                {
+                    runAnimState = RunAnimState::None;
+
+                    if (playerData.state == PlayerState::Idle)
+                    {
+                        ResetAnimation(idleAnim);
+                    }
+                    else if (playerData.state == PlayerState::Walk)
+                    {
+                        ResetAnimation(walkAnim);
+                    }
+                }
+            }
+
+            switch (playerData.state)
+            {
+            case PlayerState::Idle:
+            case PlayerState::UsingSkill:
+                UpdateAnimation(idleAnim);
+                break;
+            case PlayerState::Jump:
+                UpdateAnimation(jumpAnim);
+                break;
+            case PlayerState::Fall:
+                UpdateAnimation(fallAnim);
+                break;
+            case PlayerState::Land:
+                UpdateAnimation(landAnim);
+                break;
+            default:
+                break;
+            }
+        }
+
+        prevFacingRight = playerData.isFacingRight;
+        prevAbsVelX = absVelX;
     }
 
-    // ƒWƒƒƒ“ƒv‚ÉŠÖ‚·‚éˆ—
+    // ã‚¸ãƒ£ãƒ³ãƒ—ã«é–¢ã™ã‚‹å‡¦ç†
     void ExecuteJump()
     {
         if (playerData.jumpCount < MAX_JUMP_COUNT)
@@ -518,8 +657,45 @@ namespace
             playerData.isGrounded = false;
             playerData.jumpCount++;
             
-            // ƒWƒƒƒ“ƒvƒAƒjƒ[ƒVƒ‡ƒ“‚ğƒŠƒZƒbƒg
+            // ã‚¸ãƒ£ãƒ³ãƒ—ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ãƒªã‚»ãƒƒãƒˆ
             ResetAnimation(jumpAnim);
+        }
+    }
+
+    bool FileExists(const char* path)
+    {
+        int handle = FileRead_open(path);
+        if (handle == 0)
+        {
+            return false;
+        }
+        FileRead_close(handle);
+        return true;
+    }
+
+    void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip)
+    {
+        int frameHandle = GetCurrentAnimationFrame(anim);
+        if (frameHandle == -1)
+        {
+            return;
+        }
+
+        int w = 0;
+        int h = 0;
+        GetGraphSize(frameHandle, &w, &h);
+
+        // å›ºå®šæ (PLAYER_WIDTH/HEIGHT)ã®ä¸­ã§ä¸­å¤®å¯„ã› + è¶³å…ƒæƒãˆ
+        int drawX = baseX - (PLAYER_WIDTH / 2) + (PLAYER_WIDTH - w) / 2;
+        int drawY = baseY - PLAYER_HEIGHT + (PLAYER_HEIGHT - h);
+
+        if (flip)
+        {
+            DrawTurnGraph(drawX, drawY, frameHandle, TRUE);
+        }
+        else
+        {
+            DrawGraph(drawX, drawY, frameHandle, TRUE);
         }
     }
 }
