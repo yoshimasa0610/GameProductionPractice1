@@ -85,6 +85,43 @@ void Skill::Activate(PlayerData* player)
         m_isActive = true;
     }
 
+    if (m_data.type == SkillType::Follow)
+    {
+        m_isActive = true;
+        m_activeTimer = m_data.duration;
+        m_followAttackTimer = 0;
+
+        float left = player->posX + m_followOffsetX;
+        float top = player->posY - PLAYER_HEIGHT;
+
+        m_followCollider = CreateCollider(
+            ColliderTag::Other,
+            left,
+            top,
+            60,
+            60,
+            this);
+    }
+
+    if (m_data.type == SkillType::Summon)
+    {
+        m_isActive = true;
+        m_activeTimer = m_data.duration;
+
+        m_summonX = player->posX;
+        m_summonY = player->posY;
+
+        m_summonCollider = CreateCollider(
+            ColliderTag::Other,
+            m_summonX - 40,
+            m_summonY - 80,
+            80,
+            80,
+            this);
+
+        ClearHitTargets();
+    }
+
     m_currentCoolTime = m_data.coolTime;
 
     if (m_remainingUseCount > 0)
@@ -137,6 +174,56 @@ void Skill::Update(PlayerData* player)
             step.hitHeight);
     }
 
+    // í«è]å^ÇÃèàóù
+    if (m_data.type == SkillType::Follow && m_isActive)
+    {
+        m_activeTimer--;
+
+        if (m_activeTimer <= 0)
+        {
+            m_isActive = false;
+            if (m_followCollider != -1)
+            {
+                DestroyCollider(m_followCollider);
+                m_followCollider = -1;
+            }
+            return;
+        }
+
+        // ÉvÉåÉCÉÑÅ[Ç…í«è]
+        float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
+
+        float left = player->posX + offset;
+        float top = player->posY - PLAYER_HEIGHT;
+
+        UpdateCollider(m_followCollider, left, top, 60, 60);
+
+        // çUåÇä‘äu
+        if (m_followAttackTimer > 0)
+            m_followAttackTimer--;
+
+        if (m_followAttackTimer <= 0)
+        {
+            ClearHitTargets();
+            m_followAttackTimer = m_followAttackInterval;
+        }
+    }
+
+    if (m_data.type == SkillType::Summon && m_isActive)
+    {
+        m_activeTimer--;
+
+        if (m_activeTimer <= 0)
+        {
+            m_isActive = false;
+
+            if (m_summonCollider != -1)
+            {
+                DestroyCollider(m_summonCollider);
+                m_summonCollider = -1;
+            }
+        }
+    }
 }
 
 // ÉXÉLÉãÇÃçUåÇî{ó¶ÇÃéÊìæ
