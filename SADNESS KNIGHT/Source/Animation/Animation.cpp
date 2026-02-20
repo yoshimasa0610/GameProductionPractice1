@@ -388,5 +388,15 @@ bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
         frameWidth,
         frameHeight,
         anim.frames
-	);
+    );
+
+    if (result == -1 || anim.frames[0] == -1)
+    {
+        delete[] anim.frames;
+        anim.frames = nullptr;
+        anim.frameCount = 0;
+        return false;
+    }
+
+    return true;
 }

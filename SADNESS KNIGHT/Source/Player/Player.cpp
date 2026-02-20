@@ -159,11 +159,17 @@ void LoadPlayer()
     if (FileExists("Data/Player/Jump.png"))
     {
         bool jumpLoaded = LoadAnimationFromSheetRange(jumpAnim, "Data/Player/Jump.png",
-            24, 0, 13, 64, 80, 6, AnimationMode::Once);
+            24, 0, 13, 64, 80, 3, AnimationMode::Once);
         bool fallLoaded = LoadAnimationFromSheetRange(fallAnim, "Data/Player/Jump.png",
-            24, 13, 6, 64, 80, 6, AnimationMode::Loop);
+            24, 13, 7, 64, 80, 2, AnimationMode::Loop);
         bool landLoaded = LoadAnimationFromSheetRange(landAnim, "Data/Player/Jump.png",
-            24, 19, 5, 64, 80, 6, AnimationMode::Once);
+            24, 20, 4, 64, 80, 3, AnimationMode::Once);
+        
+        // デバッグ: ロード結果を表示
+        printfDx("Jump anim loaded: %d, frames=%d\n", jumpLoaded, jumpAnim.frameCount);
+        printfDx("Fall anim loaded: %d, frames=%d\n", fallLoaded, fallAnim.frameCount);
+        printfDx("Land anim loaded: %d, frames=%d\n", landLoaded, landAnim.frameCount);
+        
         (void)jumpLoaded;
         (void)fallLoaded;
         (void)landLoaded;
@@ -173,6 +179,7 @@ void LoadPlayer()
         InitAnimation(jumpAnim);
         InitAnimation(fallAnim);
         InitAnimation(landAnim);
+        printfDx("Jump.png not found!\n");
     }
 }
 

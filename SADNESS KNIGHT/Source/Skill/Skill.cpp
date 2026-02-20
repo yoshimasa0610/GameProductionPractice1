@@ -133,16 +133,21 @@ void Skill::Update(PlayerData* player)
     if (m_currentCoolTime > 0)
         m_currentCoolTime--;
 
-    if (m_activeTimer <= 0)
+    if (m_isActive && m_data.type == SkillType::Attack)
     {
-        m_isActive = false;
-        player->state = PlayerState::Idle;
+        if (m_activeTimer > 0)
+            m_activeTimer--;
 
-        // 攻撃コライダー破棄
-        if (m_attackCollider != -1)
+        if (m_activeTimer <= 0)
         {
-            DestroyCollider(m_attackCollider);
-            m_attackCollider = -1;
+            m_isActive = false;
+
+            // 攻撃コライダー破棄
+            if (m_attackCollider != -1)
+            {
+                DestroyCollider(m_attackCollider);
+                m_attackCollider = -1;
+            }
         }
     }
 
