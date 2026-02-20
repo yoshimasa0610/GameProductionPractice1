@@ -1,4 +1,5 @@
 #include "SkillManager.h"
+#include <cmath>
 
 SkillManager::SkillManager()
     : m_currentSet(0)
@@ -8,9 +9,47 @@ SkillManager::SkillManager()
             m_equipSlots[i][j] = -1;
 }
 
-void SkillManager::AddSkill(const SkillData& data)
+// ƒXƒLƒ‹‚Ì”­“®‰ñ”ŒvZ‚µ‚Ä“o˜^
+void SkillManager::AddSkill(const SkillData& data, PlayerData* player)
 {
-    m_ownedSkills.push_back(std::make_shared<Skill>(data));
+    auto skill = std::make_shared<Skill>(data);
+
+    // šFollow’e–òÁ”ïƒR[ƒ‹ƒoƒbƒN
+    skill->SetConsumeCallback(
+        [this](int id)
+        {
+            auto it = m_remainingUses.find(id);
+            if (it == m_remainingUses.end())
+                return;
+
+            int& remain = it->second;
+
+            if (remain > 0)
+                remain--;
+
+            // 0‚É‚È‚Á‚½‚çÁ–Å
+            if (remain == 0)
+            {
+                for (auto& s : m_ownedSkills)
+                {
+                    if (s->GetID() == id)
+                        s->ForceEnd();
+                }
+            }
+        });
+
+    m_ownedSkills.push_back(skill);
+
+    int base = data.maxUseCount;
+
+    if (base < 0)
+    {
+        m_remainingUses[data.id] = -1;
+        return;
+    }
+
+    float rate = 1.0f + player->skillCountRate;
+    m_remainingUses[data.id] = (int)ceil(base * rate);
 }
 
 void SkillManager::EquipSkill(int setIndex, int slotIndex, int skillID)
@@ -30,20 +69,46 @@ void SkillManager::UseSkill(int slotIndex, PlayerData* player)
 
     for (auto& skill : m_ownedSkills)
     {
-        if (skill->GetID() == skillID)
-        {
-            // UŒ‚Œ^‚Ì”r‘¼ˆ—
-            if (skill->GetType() == SkillType::Attack)
-            {
-                for (auto& s : m_ownedSkills)
-                {
-                    if (s->GetType() == SkillType::Attack && s->IsActive())
-                        return; // ‘¼‚ÌUŒ‚Œ^‚ª”­“®’†
-                }
-            }
+        if (skill->GetID() != skillID)
+            continue;
 
-            skill->Activate(player);
+        // ‰ñ”ƒ`ƒFƒbƒN
+        auto it = m_remainingUses.find(skillID);
+        if (it == m_remainingUses.end()) return;
+
+        int& remain = it->second;
+        if (remain == 0)
+            return;
+
+        // UŒ‚Œ^”r‘¼
+        if (skill->GetType() == SkillType::Attack)
+        {
+            for (auto& s : m_ownedSkills)
+            {
+                if (s->GetType() == SkillType::Attack && s->IsActive())
+                    return;
+            }
         }
+
+        // Attack / Summon‚¾‚¯‘¦Á”ï
+        if (skill->GetType() != SkillType::Follow)
+        {
+            auto it = m_remainingUses.find(skillID);
+            if (it != m_remainingUses.end())
+            {
+                int& remain = it->second;
+
+                if (remain == 0)
+                    return;
+
+                if (remain > 0)
+                    remain--;
+            }
+        }
+
+        skill->Activate(player);
+
+        return;
     }
 }
 
@@ -52,5 +117,24 @@ void SkillManager::Update(PlayerData* player)
     for (auto& skill : m_ownedSkills)
     {
         skill->Update(player);
+    }
+}
+
+// ‘•”õEƒAƒCƒeƒ€•ÏX‚ÉŒÄ‚Ô
+void SkillManager::RecalculateUses(PlayerData* player)
+{
+    for (auto& skill : m_ownedSkills)
+    {
+        int id = skill->GetID();
+        int base = skill->GetBaseUseCount();
+
+        if (base < 0)
+        {
+            m_remainingUses[id] = -1;
+            continue;
+        }
+
+        float rate = 1.0f + player->skillCountRate;
+        m_remainingUses[id] = (int)ceil(base * rate);
     }
 }

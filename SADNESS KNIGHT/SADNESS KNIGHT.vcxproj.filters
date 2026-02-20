@@ -264,6 +264,9 @@
     <ClCompile Include="Source\Enemy\Skeleton\Skeleton.cpp">
       <Filter>Source\Enemy\Skeleton</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Overlay\OverlayMenu.cpp">
+      <Filter>Source\Overlay</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -412,6 +415,9 @@
     </ClInclude>
     <ClInclude Include="Source\Enemy\Skeleton\Skeleton.h">
       <Filter>Source\Enemy\Skeleton</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Overlay\OverlayMenu.h">
+      <Filter>Source\Overlay</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

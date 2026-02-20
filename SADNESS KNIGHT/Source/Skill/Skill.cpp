@@ -26,7 +26,6 @@ static void CreateAttackCollider(
 Skill::Skill(const SkillData& data)
     : m_data(data),
     m_currentCoolTime(0),
-    m_remainingUseCount(data.maxUseCount),
     m_isActive(false),
     m_activeTimer(0)
 {
@@ -35,8 +34,12 @@ Skill::Skill(const SkillData& data)
 bool Skill::CanUse() const
 {
     if (m_currentCoolTime > 0) return false;
-    if (m_remainingUseCount == 0) return false;
     return true;
+}
+
+void Skill::StartCoolTime()
+{
+    m_currentCoolTime = m_data.coolTime;
 }
 
 void Skill::Activate(PlayerData* player)
@@ -122,10 +125,7 @@ void Skill::Activate(PlayerData* player)
         ClearHitTargets();
     }
 
-    m_currentCoolTime = m_data.coolTime;
-
-    if (m_remainingUseCount > 0)
-        m_remainingUseCount--;
+    StartCoolTime();
 }
 
 void Skill::Update(PlayerData* player)
@@ -158,6 +158,11 @@ void Skill::Update(PlayerData* player)
     if (!m_isActive && m_comboTimer <= 0)
     {
         m_comboIndex = 0;
+    }
+
+    if (m_isActive && m_data.type == SkillType::Attack)
+    {
+        m_activeTimer--;
     }
 
     // 攻撃コライダー更新
@@ -211,6 +216,8 @@ void Skill::Update(PlayerData* player)
         {
             ClearHitTargets();
             m_followAttackTimer = m_followAttackInterval;
+            if (m_onConsumeUse)
+                m_onConsumeUse(m_data.id);
         }
     }
 
@@ -259,4 +266,21 @@ bool Skill::RegisterHit(void* target)
 void Skill::ClearHitTargets()
 {
     m_hitTargets.clear();
+}
+
+void Skill::ForceEnd()
+{
+    m_isActive = false;
+
+    if (m_followCollider != -1)
+    {
+        DestroyCollider(m_followCollider);
+        m_followCollider = -1;
+    }
+
+    if (m_summonCollider != -1)
+    {
+        DestroyCollider(m_summonCollider);
+        m_summonCollider = -1;
+    }
 }

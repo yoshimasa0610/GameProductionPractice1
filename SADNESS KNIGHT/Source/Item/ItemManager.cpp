@@ -128,7 +128,7 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
     if (!player) return;
 
     // ========= 1 ƒx[ƒX‚É–ß‚· =========
-    int oldMaxHp = player->maxHP;
+    int oldMaxHp = player->currentHP;
 
     player->maxHP = player->baseMaxHp;
     player->maxSlot = player->baseMaxSlot;

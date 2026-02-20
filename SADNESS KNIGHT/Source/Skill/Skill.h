@@ -3,6 +3,7 @@
 #include "../Player/Player.h"
 #include "../Collision/Collision.h"
 #include <unordered_set>
+#include <functional>
 
 class Skill
 {
@@ -10,7 +11,6 @@ private:
     SkillData m_data;
 
     int m_currentCoolTime;
-    int m_remainingUseCount;
     bool m_isActive;
     int m_activeTimer;
     int m_comboIndex = 0;
@@ -28,7 +28,7 @@ private:
 
     // 敵ごとのヒット履歴
     std::unordered_set<void*> m_hitTargets;
-
+    std::function<void(int)> m_onConsumeUse;
 public:
     Skill(const SkillData& data);
 
@@ -40,10 +40,18 @@ public:
 
     int GetID() const { return m_data.id; }
     SkillType GetType() const { return m_data.type; }
-
+    int GetBaseUseCount() const { return m_data.maxUseCount; }
     float GetCurrentAttackRate() const;
 
     // ヒット管理
     bool RegisterHit(void* target);
     void ClearHitTargets();
+    void StartCoolTime();
+    // 強制終了（上限の使用回数まで消費したから）
+    void ForceEnd();
+
+    void SetConsumeCallback(std::function<void(int)> cb)
+    {
+        m_onConsumeUse = cb;
+    }
 };

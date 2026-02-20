@@ -57,7 +57,7 @@ void RegisterSkills()
     shadow->type = SkillType::Follow;
 
     shadow->coolTime = 300;
-    shadow->maxUseCount = -1;
+    shadow->maxUseCount = 50;
 
     shadow->duration = 600;
 
