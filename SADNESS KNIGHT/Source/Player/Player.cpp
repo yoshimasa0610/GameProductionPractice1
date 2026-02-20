@@ -97,6 +97,10 @@ void InitPlayer(float startX, float startY)
 
     // ===== 装備補正 =====
     playerData.healPowerBonus = 0;
+    playerData.damageTakenRate = 0.0f;
+    playerData.skillCountRate = 0.0f;
+    playerData.skillCooldownRate = 0.0f;
+    playerData.healCountBonus = 0;
 
     // ひつように応じてろりろり
     playerData.attackPower = 100;
@@ -366,7 +370,11 @@ int GetPlayerAttack()
 // HPにダメージを与える
 void DamagePlayerHP(int damage)
 {
-    playerData.currentHP -= damage;
+    // 装備によるダメージ減少の補正を加えました
+    int finalDamage = (int)floor(damage * (1.0f + playerData.damageTakenRate));
+    if (finalDamage < 1) finalDamage = 1;
+
+    playerData.currentHP -= finalDamage;
     if (playerData.currentHP < 0) playerData.currentHP = 0;
     printfDx("Player damaged! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }

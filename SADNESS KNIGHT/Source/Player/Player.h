@@ -50,7 +50,13 @@ struct PlayerData
     int maxSlot;
 
     // 装備補正値
-    int healPowerBonus;
+    int healPowerBonus; //回復量の増加
+
+    // ===== バフ倍率（装備・パッシブ結果）=====
+    float damageTakenRate = 0.0f;     // 被ダメ倍率（-0.2 = 20%軽減）
+    float skillCountRate = 0.0f;      // スキル回数倍率
+    float skillCooldownRate = 0.0f;   // リキャ短縮
+    int healCountBonus = 0;           // 回復回数+
 
     // アニメーション
     int currentFrame;
