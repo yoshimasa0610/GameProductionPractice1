@@ -127,60 +127,70 @@ void ItemManager::ApplyBuffsToPlayer(PlayerData* player)
 {
     if (!player) return;
 
-    // まずベース値に戻す（InitPlayer で base 値が設定されている前提）
+    // ========= 1 ベースに戻す =========
+    int oldMaxHp = player->maxHP;
+
     player->maxHP = player->baseMaxHp;
     player->maxSlot = player->baseMaxSlot;
     player->healPowerBonus = 0;
 
-    // 合算
+    // ========= 2 固定値合算 =========
     int addMaxHp = 0;
     int addMaxSlot = 0;
     int addHealPower = 0;
+    int addHealCount = 0;
 
+    // ========= 3 倍率合算 =========
+    float damageTakenRate = 0.0f;
+    float skillCountRate = 0.0f;
+    float cooldownRate = 0.0f;
 
     for (auto& it : m_items)
     {
-        if (it->ownedCount <= 0)
-            continue;
+        if (it->ownedCount <= 0) continue;
 
-        // Passive → 所持数分適用
-        if (it->type == ItemType::Passive)
-        {
-            addMaxHp += it->buff.addMaxHp * it->ownedCount;
-            addMaxSlot += it->buff.addMaxSlot * it->ownedCount;
-            addHealPower += it->buff.healPowerBonus * it->ownedCount;
-        }
+        int stack = (it->type == ItemType::Passive) ? it->ownedCount : 1;
+        bool active = (it->type == ItemType::Passive) || it->isEquipped;
+        if (!active) continue;
 
-        // Equip → 装備中のみ
-        if (it->type == ItemType::Equip && it->isEquipped)
-        {
-            addMaxHp += it->buff.addMaxHp;
-            addMaxSlot += it->buff.addMaxSlot;
-        }
+        // ===== 固定 =====
+        addMaxHp += it->buff.addMaxHp * stack;
+        addMaxSlot += it->buff.addMaxSlot * stack;
+        addHealPower += it->buff.healPowerBonus * stack;
+        addHealCount += it->buff.healCountBonus * stack;
+
+        // ===== 倍率 =====
+        damageTakenRate += it->buff.damageTakenRate * stack;
+        skillCountRate += it->buff.skillCountRate * stack;
+        cooldownRate += it->buff.skillCooldownRate * stack;
     }
 
-    // ===== HP上限増加（最大値が増えた分回復）=====
-    int oldMax = player->maxHP;
+    // ========= 4 最終反映 =========
 
-    // 新しい最大HPを計算
+    // HP
     player->maxHP = player->baseMaxHp + addMaxHp;
 
-    // 差分
-    int diff = player->maxHP - oldMax;
-
+    // 差分回復（正しい版）
+    int diff = player->maxHP - oldMaxHp;
     if (diff > 0)
     {
         player->currentHP += diff;
-
         if (player->currentHP > player->maxHP)
             player->currentHP = player->maxHP;
     }
 
-    // ===== スロット =====
-    player->maxSlot += addMaxSlot;
+    // スロット
+    player->maxSlot = player->baseMaxSlot + addMaxSlot;
 
-    // ===== 回復補正 =====
+    // 回復量
     player->healPowerBonus = addHealPower;
+
+    // ========= 5 倍率をPlayerに保存 =========
+    // PlayerDataにこれ追加してね
+    player->damageTakenRate = damageTakenRate;
+    player->skillCountRate = skillCountRate;
+    player->skillCooldownRate = cooldownRate;
+    player->healCountBonus = addHealCount;
 }
 
 

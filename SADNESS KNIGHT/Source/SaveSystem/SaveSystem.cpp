@@ -202,30 +202,36 @@ void ExportSaveData(SaveData* data)
     data->money = g_MoneyManager.GetMoney();
 
     // --- 所持アイテム情報 ---
-     // 安全のため一旦全部 false にクリア
-    for (int i = 0; i < SAVE_MAX_ITEM; ++i) data->ownedItems[i] = false;
-
+    for (int i = 0; i < SAVE_MAX_ITEM; ++i)
+        data->ownedItemCount[i] = 0;
     // アイテムマネージャーのアイテムリストを走査して、id が範囲内のものだけ保存する
     const auto& items = g_ItemManager.GetAllItems();
     for (const auto& it : items)
     {
         int id = it->id;
+
         if (id >= 0 && id < SAVE_MAX_ITEM)
         {
-            data->ownedItems[id] = it->ownedCount;
+            data->ownedItemCount[id] = it->ownedCount;
         }
         else
         {
-            // id が大きい／負の場合はログに出す（開発時に役立つ）
             printf("ExportSaveData: item id %d is out of save range\n", id);
         }
     }
 
     // --- 装備情報 ---
     data->equippedItemCount = ItemManager_GetEquippedItemCount();
-    for (int i = 0; i < SAVE_MAX_EQUIP; i++)
+
+    for (int i = 0; i < data->equippedItemCount; i++)
     {
         data->equippedItemIDs[i] = ItemManager_GetEquippedItemID(i);
+    }
+
+    // 残りをクリア
+    for (int i = data->equippedItemCount; i < SAVE_MAX_EQUIP; i++)
+    {
+        data->equippedItemIDs[i] = -1;
     }
     ItemField::ExportToSave(*data);
 }
@@ -253,8 +259,12 @@ void ImportSaveData(const SaveData* data)
     //ItemManager_ClearAllItems();
     for (int i = 0; i < SAVE_MAX_ITEM; i++)
     {
-        if (data->ownedItems[i])
-            ItemManager_AddItem(i);     // 所持しているなら登録
+        int count = data->ownedItemCount[i];
+
+        for (int n = 0; n < count; n++)
+        {
+            ItemManager_AddItem(i); // 所持しているなら登録
+        }
     }
 
     // --- 装備情報を反映 ---

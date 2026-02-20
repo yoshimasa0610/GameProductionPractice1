@@ -87,5 +87,52 @@ void InitAllItems()
         g_ItemManager.AddItem(std::move(item));
     }
 
+    // ここからは装備することで効果を発動できる装備アイテムの内容です
 
+    // =========================
+    // 10. ダメージ軽減
+    // =========================
+    {
+        auto item = std::make_unique<Item>();
+
+        item->id = 10;
+        item->name = "守りのチャーム";
+        item->type = ItemType::Equip;
+        item->slotCost = 2;
+
+        item->iconSmallPath = "Data/Item/Icon/charm_guard_small.png";
+        item->iconLargePath = "Data/Item/Icon/charm_guard_large.png";
+
+        item->buff.damageTakenRate = -0.10f; // 10%軽減
+
+        item->systemDesc = {
+            "受けるダメージが15%減少する",
+            "他の軽減効果と重複する"
+        };
+
+        item->flavorDesc = {
+            "古い守護の刻印。",
+            "装着者を静かに守り続ける。"
+        };
+
+        g_ItemManager.AddItem(std::move(item));
+    }
+
+
+    {
+        auto item = std::make_unique<Item>();
+
+        item->id = 11;
+        item->name = "魔力のチャーム";
+        item->type = ItemType::Equip;
+        item->slotCost = 2;
+
+        item->buff.skillCountRate = 0.15f;
+
+        item->systemDesc = {
+            "スキル使用回数が15%増加する"
+        };
+
+        g_ItemManager.AddItem(std::move(item));
+    }
 }

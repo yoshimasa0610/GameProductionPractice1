@@ -15,7 +15,7 @@ struct BuffEffect
     int addMaxSlot = 0; // 最大スロットの増加
     int healPowerBonus = 0; // 回復時受ける回復量の増加
     float damageTakenRate = 0.0f;     // 被ダメ軽減（-0.25 = 25%軽減）
-    int skillCountBonus = 0;          // スキル使用回数+
+    float  skillCountRate = 0.0f;          // スキル使用回数+(0.2 = 20)
     float skillCooldownRate = 0.0f;   // リキャスト短縮（-0.2 = 20%短縮）
     int healCountBonus = 0;           // 回復回数+
    //ここにバフの内容を記載（後からわかるようコメントでもItem書いて）
