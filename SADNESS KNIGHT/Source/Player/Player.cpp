@@ -16,6 +16,8 @@ namespace
     const float MAX_FALL_SPEED = 20.0f;     // 最大落下速度
     const int MAX_JUMP_COUNT = 2;           // 最大ジャンプ回数（二段ジャンプ）
     const float GROUND_Y = 700.0f;          // 地面のY座標（画面下に近い位置）
+    const float DODGE_DISTANCE = 80.0f;     // 回避ダッシュ距離
+    const int DODGE_COOLDOWN = 30;          // 回避クールダウン（フレーム）
 }
 
 // プレイヤーデータとアニメーション
@@ -30,6 +32,9 @@ namespace
     AnimationData jumpAnim;
     AnimationData fallAnim;
     AnimationData landAnim;
+    AnimationData healingAnim;  // 回復アニメーション
+    AnimationData dodgeAnim;     // 回避アニメーション
+    AnimationData dashEffectAnim;// ダッシュエフェクトアニメーション
 
     SkillManager skillManager;
 
@@ -84,6 +89,24 @@ void InitPlayer(float startX, float startY)
     runAnimState = RunAnimState::None;
     prevFacingRight = playerData.isFacingRight;
     prevIsGrounded = playerData.isGrounded; // 追加
+
+    // ===== パッシブアビリティ =====
+    playerData.hasDoubleJump = false;  // 初期状態では二段ジャンプは未解放
+
+    // ===== 回復関連 =====
+    playerData.healCount = 3;
+    playerData.maxHealCount = 3;
+    playerData.healExecuted = false;
+
+    // ===== 回避関連 =====
+    playerData.isInvincible = false;
+    playerData.dodgeCooldown = 0;
+
+    // ===== ダッシュエフェクト関連 =====
+    playerData.showDashEffect = false;
+    playerData.dashEffectX = 0.0f;
+    playerData.dashEffectY = 0.0f;
+    playerData.dashEffectFacingRight = true;
     
     // ===== 基礎ステータス =====
     playerData.baseMaxHp = 150;
@@ -149,7 +172,7 @@ void LoadPlayer()
         bool jumpLoaded = LoadAnimationFromSheetRange(jumpAnim, "Data/Player/Jump.png",
             24, 0, 13, 64, 80, 3, AnimationMode::Once);
         bool fallLoaded = LoadAnimationFromSheetRange(fallAnim, "Data/Player/Jump.png",
-            24, 13, 7, 64, 80, 2, AnimationMode::Loop);
+            24, 13, 7, 64, 80, 4, AnimationMode::Loop);
         bool landLoaded = LoadAnimationFromSheetRange(landAnim, "Data/Player/Jump.png",
             24, 20, 4, 64, 80, 3, AnimationMode::Once);
         
@@ -168,6 +191,52 @@ void LoadPlayer()
         InitAnimation(fallAnim);
         InitAnimation(landAnim);
         printfDx("Jump.png not found!\n");
+    }
+
+    // healing_merged.png（291x486 / 3x6 = 18フレーム）
+    if (FileExists("Data/Player/healing_merged.png"))
+    {
+        bool healLoaded = LoadAnimationAuto(healingAnim, "Data/Player/healing_merged.png",
+            97, 81, 6, AnimationMode::Once);
+        printfDx("Healing anim loaded: %d, frames=%d\n", healLoaded, healingAnim.frameCount);
+        (void)healLoaded;
+    }
+    else
+    {
+        InitAnimation(healingAnim);
+        printfDx("healing_merged.png not found!\n");
+    }
+
+    // aerial dash.png（624x100 / 6x2 = 12フレーム、上の6フレームのみ使用）
+    if (FileExists("Data/Player/aerial dash.png"))
+    {
+        // 624 / 6 = 104px per frame, 100 / 2 = 50px per row
+        // 上の6フレーム（インデックス0-5）のみ使用
+        bool dodgeLoaded = LoadAnimationFromSheetRange(dodgeAnim, "Data/Player/aerial dash.png",
+            12, 0, 6, 104, 50, 3, AnimationMode::Once);
+        printfDx("Dodge anim loaded: %d, frames=%d\n", dodgeLoaded, dodgeAnim.frameCount);
+        (void)dodgeLoaded;
+    }
+    else
+    {
+        InitAnimation(dodgeAnim);
+        printfDx("aerial dash.png not found!\n");
+    }
+
+    // aerial dash_smoke.png（240x314 / 4x2 = 8フレーム、上の4フレーム+下の2フレーム = 6フレーム使用）
+    if (FileExists("Data/Player/aerial dash_smoke.png"))
+    {
+        // 240 / 4 = 60px per frame, 314 / 2 = 157px per row
+        // 6フレーム使用（0-3の4フレーム + 4-5の2フレーム）
+        bool dashEffectLoaded = LoadAnimationFromSheetRange(dashEffectAnim, "Data/Player/aerial dash_smoke.png",
+            8, 0, 6, 60, 157, 2, AnimationMode::Once);
+        printfDx("Dash effect anim loaded: %d, frames=%d\n", dashEffectLoaded, dashEffectAnim.frameCount);
+        (void)dashEffectLoaded;
+    }
+    else
+    {
+        InitAnimation(dashEffectAnim);
+        printfDx("aerial dash_smoke.png not found!\n");
     }
 }
 
@@ -190,6 +259,18 @@ void UpdatePlayer()
 
     UpdateState();
     UpdatePlayerAnimation();
+
+    // ダッシュエフェクトの更新
+    if (playerData.showDashEffect)
+    {
+        UpdateAnimation(dashEffectAnim);
+        
+        // エフェクトアニメーションが終了したら非表示にする
+        if (IsAnimationFinished(dashEffectAnim))
+        {
+            playerData.showDashEffect = false;
+        }
+    }
 }
 
 // プレイヤーの描画
@@ -200,6 +281,43 @@ void DrawPlayer()
     bool flip = playerData.isFacingRight;
 
     bool hasAnimation = (idleAnim.frames != nullptr && idleAnim.frameCount > 0);
+
+    // ダッシュエフェクトの描画（プレイヤーの後ろに描画）
+    if (playerData.showDashEffect && dashEffectAnim.frames != nullptr)
+    {
+        int effectX = static_cast<int>(playerData.dashEffectX);
+        int effectY = static_cast<int>(playerData.dashEffectY);
+        
+        int frameHandle = GetCurrentAnimationFrame(dashEffectAnim);
+        if (frameHandle != -1)
+        {
+            int w = 0;
+            int h = 0;
+            GetGraphSize(frameHandle, &w, &h);
+            
+            // エフェクトをプレイヤーサイズの1.3倍に縮小
+            // 元のサイズ: 60x157 → プレイヤーの高さ(55)の約1.3倍 = 70前後
+            float scale = (PLAYER_HEIGHT * 1.3f) / h;
+            int scaledW = static_cast<int>(w * scale);
+            int scaledH = static_cast<int>(h * scale);
+            
+            // プレイヤーの中心に配置（スケール適用後）
+            int drawX = effectX - (scaledW / 2);
+            int drawY = effectY - scaledH;
+            
+            // 両方向とも DrawExtendGraph を使用して統一
+            if (playerData.dashEffectFacingRight)
+            {
+                // 右向き: 通常描画
+                DrawExtendGraph(drawX, drawY, drawX + scaledW, drawY + scaledH, frameHandle, TRUE);
+            }
+            else
+            {
+                // 左向き: X座標を反転
+                DrawExtendGraph(drawX + scaledW, drawY, drawX, drawY + scaledH, frameHandle, TRUE);
+            }
+        }
+    }
 
     if (hasAnimation)
     {
@@ -248,6 +366,18 @@ void DrawPlayer()
             else
                 DrawAnimationAligned(idleAnim, baseX, baseY, flip);
             break;
+        case PlayerState::Healing:
+            if (healingAnim.frames != nullptr)
+                DrawAnimationAligned(healingAnim, baseX, baseY, flip);
+            else
+                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+            break;
+        case PlayerState::Dodging:
+            if (dodgeAnim.frames != nullptr)
+                DrawAnimationAligned(dodgeAnim, baseX, baseY, flip);
+            else
+                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+            break;
         }
     }
     else
@@ -267,7 +397,10 @@ void UnloadPlayer()
     UnloadAnimation(runStopAnim);
     UnloadAnimation(jumpAnim);
     UnloadAnimation(fallAnim);
-    UnloadAnimation(landAnim); // 追加
+    UnloadAnimation(landAnim);
+    UnloadAnimation(healingAnim);
+    UnloadAnimation(dodgeAnim);
+    UnloadAnimation(dashEffectAnim);  // 追加
 
     if (g_playerColliderId != -1)
     {
@@ -365,6 +498,21 @@ int GetPlayerAttack()
 // HPにダメージを与える
 void DamagePlayerHP(int damage)
 {
+    // 無敵中はダメージを受けない
+    if (playerData.isInvincible)
+    {
+        printfDx("無敵中！ダメージ無効\n");
+        return;
+    }
+
+    // 回復中の場合はキャンセル
+    if (playerData.state == PlayerState::Healing)
+    {
+        printfDx("回復キャンセル: ダメージを受けた\n");
+        playerData.state = PlayerState::Idle;
+        playerData.healExecuted = false;
+    }
+
     // 装備によるダメージ減少の補正を加えました
     int finalDamage = (int)floor(damage * (1.0f + playerData.damageTakenRate));
     if (finalDamage < 1) finalDamage = 1;
@@ -393,6 +541,115 @@ void HealPlayerHP(int healAmount)
         playerData.maxHP);
 }
 
+// ===== パッシブアビリティ関数の実装 =====
+
+// 二段ジャンプを解放する
+void UnlockDoubleJump()
+{
+    playerData.hasDoubleJump = true;
+    printfDx("パッシブアビリティ解放: 二段ジャンプ\n");
+}
+
+// 二段ジャンプが解放されているか
+bool HasDoubleJump()
+{
+    return playerData.hasDoubleJump;
+}
+
+// ===== 回復関連関数の実装 =====
+
+// 回復を試みる（キー入力時）
+void TryHeal()
+{
+    // デバッグ: 条件をチェック
+    printfDx("TryHeal called! healCount=%d, isGrounded=%d, state=%d\n", 
+             playerData.healCount, playerData.isGrounded, (int)playerData.state);
+
+    // 回復回数が残っており、地上にいて、回復中でない場合のみ実行
+    if (playerData.healCount > 0 && 
+        playerData.isGrounded && 
+        playerData.state != PlayerState::Healing &&
+        playerData.state != PlayerState::UsingSkill)
+    {
+        // 回復開始時に移動を強制停止
+        playerData.velocityX = 0.0f;
+        currentMoveDir = 0;  // 移動入力をクリア
+        
+        // 走行アニメーション状態をリセット
+        runAnimState = RunAnimState::None;
+        
+        playerData.state = PlayerState::Healing;
+        playerData.healExecuted = false;  // 回復未実行状態にリセット
+        ResetAnimation(healingAnim);
+        printfDx("回復モーション開始！残り回復回数: %d\n", playerData.healCount);
+    }
+    else
+    {
+        printfDx("回復条件を満たしていません\n");
+    }
+}
+
+// 残り回復回数を取得
+int GetHealCount()
+{
+    return playerData.healCount;
+}
+
+// 最大回復回数を取得
+int GetMaxHealCount()
+{
+    return playerData.maxHealCount;
+}
+
+// ===== 回避関連関数の実装 =====
+
+// 回避を試みる（キー入力時）
+void TryDodge()
+{
+    // クールダウン中、回復中、スキル使用中は回避できない
+    if (playerData.dodgeCooldown > 0 ||
+        playerData.state == PlayerState::Healing ||
+        playerData.state == PlayerState::UsingSkill ||
+        playerData.state == PlayerState::Dodging)  // 回避中は再発動できない
+    {
+        return;
+    }
+
+    // 回避状態に移行
+    playerData.state = PlayerState::Dodging;
+    
+    // アニメーションをリセット
+    ResetAnimation(dodgeAnim);
+    
+    // 1フレーム目から無敵付与
+    playerData.isInvincible = true;
+    
+    // 前方にダッシュ（向いている方向に移動）
+    float dashDirection = playerData.isFacingRight ? 1.0f : -1.0f;
+    playerData.velocityX = dashDirection * (DODGE_DISTANCE / 6.0f);  // 6フレームで移動
+    
+    // クールダウン設定
+    playerData.dodgeCooldown = DODGE_COOLDOWN;
+    
+    // 走行アニメーション状態をリセット
+    runAnimState = RunAnimState::None;
+    
+    // ダッシュエフェクトを開始
+    playerData.showDashEffect = true;
+    playerData.dashEffectX = playerData.posX;
+    playerData.dashEffectY = playerData.posY;
+    playerData.dashEffectFacingRight = playerData.isFacingRight;
+    ResetAnimation(dashEffectAnim);
+    
+    printfDx("回避開始！velocity=%f, frameCount=%d\n", playerData.velocityX, dodgeAnim.frameCount);
+}
+
+// 無敵状態かどうかを取得
+bool IsPlayerInvincible()
+{
+    return playerData.isInvincible;
+}
+
 // 内部関数の実装
 namespace
 {
@@ -406,6 +663,21 @@ namespace
     // 移動処理
     void ProcessMovement()
     {
+        // 回避中は移動入力を完全に無効化
+        if (playerData.state == PlayerState::Dodging)
+        {
+            // 回避中の速度は維持（ダッシュ移動）
+            return;
+        }
+
+        // 回復中は移動入力を完全に無効化
+        if (playerData.state == PlayerState::Healing)
+        {
+            playerData.velocityX = 0.0f;
+            currentMoveDir = 0;  // 入力状態もクリア
+            return;
+        }
+
         currentMoveDir = 0;
 
         if (IsInputKey(KEY_LEFT))  currentMoveDir -= 1;
@@ -435,6 +707,19 @@ namespace
     // スキル処理
     void ProcessSkills()
     {
+        // 回避中でも回避キーは処理する（クールダウンでガード済み）
+        // ただし他のスキルは無効化
+        if (playerData.state == PlayerState::Dodging)
+        {
+            // 回避キー入力だけは処理
+            if (IsTriggerKey(KEY_DODGE))
+            {
+                printfDx("KEY_DODGE pressed!\n");
+                TryDodge();
+            }
+            return;
+        }
+
         if (IsTriggerKey(KEY_SKILL1))
         {
             skillManager.UseSkill(0, &playerData);
@@ -456,6 +741,19 @@ namespace
         if (IsTriggerKey(KEY_CHANGE))
         {
             skillManager.ChangeSet();
+        }
+
+        // 回復キー入力処理
+        if (IsTriggerKey(KEY_HEAL))
+        {
+            printfDx("KEY_HEAL pressed!\n");
+            TryHeal();
+        }
+
+        // 回避キー入力処理
+        if (IsTriggerKey(KEY_DODGE))
+        {
+            TryDodge();
         }
     }
 
@@ -506,11 +804,115 @@ namespace
 		{// タイマーが切れたらすり抜け状態を解除
             playerData.dropThrough = false;
         }
+
+        // 回避クールダウン更新
+        if (playerData.dodgeCooldown > 0)
+        {
+            playerData.dodgeCooldown--;
+        }
     }
 
     // 状態更新
     void UpdateState()
     {
+        // 回避中の処理
+        if (playerData.state == PlayerState::Dodging)
+        {
+            // アニメーションがロードされていない場合は即座に終了
+            if (dodgeAnim.frameCount == 0 || dodgeAnim.frames == nullptr)
+            {
+                printfDx("Dodge animation not loaded! Ending dodge.\n");
+                playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
+                playerData.isInvincible = false;
+                playerData.velocityX = 0.0f;
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
+            // アニメーションが終了したらIdleに戻る
+            if (IsAnimationFinished(dodgeAnim))
+            {
+                playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
+                playerData.isInvincible = false;
+                playerData.velocityX = 0.0f;
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
+            prevIsGrounded = playerData.isGrounded;
+            return;
+        }
+
+        // 回復中の処理
+        if (playerData.state == PlayerState::Healing)
+        {
+            // ジャンプキーのトリガー入力があればキャンセルしてジャンプ
+            if (IsTriggerKey(KEY_JUMP))
+            {
+                printfDx("回復キャンセル: ジャンプ入力\n");
+                
+                // キャンセル時は入力をクリア
+                playerData.velocityX = 0.0f;
+                currentMoveDir = 0;
+                
+                playerData.state = PlayerState::Idle;
+                playerData.healExecuted = false;
+                
+                // 即座にジャンプ実行
+                ExecuteJump();
+                
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+            
+            // 移動キーのトリガー入力（新しい入力）があればキャンセル
+            if (IsTriggerKey(KEY_LEFT) || IsTriggerKey(KEY_RIGHT))
+            {
+                printfDx("回復キャンセル: 移動入力\n");
+                
+                // キャンセル時は入力をクリアしてIdleに戻る
+                // 次のフレームで新しい入力を待つ
+                playerData.velocityX = 0.0f;
+                currentMoveDir = 0;
+                
+                playerData.state = PlayerState::Idle;
+                playerData.healExecuted = false;
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
+            // アニメーションが終了したら Idle に戻る
+            if (IsAnimationFinished(healingAnim))
+            {
+                playerData.state = PlayerState::Idle;
+                playerData.healExecuted = false;
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
+            // 14フレーム目（インデックス13）で回復実行
+            if (!playerData.healExecuted && healingAnim.currentFrame == 13)
+            {
+                // 体力が最大値の場合は回復処理をスキップ
+                if (playerData.currentHP >= playerData.maxHP)
+                {
+                    printfDx("体力が最大値のため回復をスキップ（回数消費なし）\n");
+                    playerData.healExecuted = true;  // フラグは立てて重複実行を防ぐ
+                }
+                else
+                {
+                    // 回復処理を実行
+                    HealPlayerHP(playerData.basehealPower);
+                    playerData.healCount--;
+                    playerData.healExecuted = true;
+                    printfDx("回復実行！残り回復回数: %d\n", playerData.healCount);
+                }
+            }
+
+            prevIsGrounded = playerData.isGrounded;
+            return;
+        }
+
         if (playerData.state == PlayerState::UsingSkill)
         {
             return;
@@ -518,7 +920,13 @@ namespace
 
         PlayerState newState;
 
-        if (!playerData.isGrounded)
+        // 回避中は地上/空中判定に関わらず回避状態を維持
+        if (playerData.state == PlayerState::Dodging)
+        {
+            // UpdateState()の先頭で処理されるので、ここには来ないはず
+            newState = PlayerState::Dodging;
+        }
+        else if (!playerData.isGrounded)
         {
             newState = (playerData.velocityY < 0.0f) ? PlayerState::Jump : PlayerState::Fall;
         }
@@ -543,6 +951,13 @@ namespace
 
         if (newState != playerData.state)
         {
+            // 回避中は状態変更を防ぐ
+            if (playerData.state == PlayerState::Dodging)
+            {
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
             playerData.state = newState;
             runAnimState = RunAnimState::None;
 
@@ -570,9 +985,40 @@ namespace
         bool wasMoving = prevAbsVelX > 0.01f;
         bool isMoving = absVelX > 0.01f;
 
-        if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
+        // 回避中は回避アニメーションを優先
+        if (playerData.state == PlayerState::Dodging)
         {
-            // 走り始め（停止→移動）"
+            UpdateAnimation(dodgeAnim);
+            prevFacingRight = playerData.isFacingRight;
+            prevAbsVelX = absVelX;
+            return;
+        }
+
+        // 回復中は回復アニメーションを優先
+        if (playerData.state == PlayerState::Healing)
+        {
+            UpdateAnimation(healingAnim);
+            prevFacingRight = playerData.isFacingRight;
+            prevAbsVelX = absVelX;
+            return;
+        }
+
+        // 空中状態（Jump/Fall/Land）は優先的に処理
+        if (playerData.state == PlayerState::Jump)
+        {
+            UpdateAnimation(jumpAnim);
+        }
+        else if (playerData.state == PlayerState::Fall)
+        {
+            UpdateAnimation(fallAnim);
+        }
+        else if (playerData.state == PlayerState::Land)
+        {
+            UpdateAnimation(landAnim);
+        }
+        else if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
+        {
+            // 走り始め（停止→移動）
             if (!wasMoving && runStartAnim.frames != nullptr)
             {
                 runAnimState = RunAnimState::Start;
@@ -626,24 +1072,13 @@ namespace
                     }
                 }
             }
-
-            switch (playerData.state)
+            else
             {
-            case PlayerState::Idle:
-            case PlayerState::UsingSkill:
-                UpdateAnimation(idleAnim);
-                break;
-            case PlayerState::Jump:
-                UpdateAnimation(jumpAnim);
-                break;
-            case PlayerState::Fall:
-                UpdateAnimation(fallAnim);
-                break;
-            case PlayerState::Land:
-                UpdateAnimation(landAnim);
-                break;
-            default:
-                break;
+                // Idle または UsingSkill 状態
+                if (playerData.state == PlayerState::Idle || playerData.state == PlayerState::UsingSkill)
+                {
+                    UpdateAnimation(idleAnim);
+                }
             }
         }
 
@@ -654,7 +1089,10 @@ namespace
     // ジャンプに関する処理
     void ExecuteJump()
     {
-        if (playerData.jumpCount < MAX_JUMP_COUNT)
+        // 二段ジャンプが解放されている場合はMAX_JUMP_COUNT、そうでない場合は1
+        int maxJumps = playerData.hasDoubleJump ? MAX_JUMP_COUNT : 1;
+        
+        if (playerData.jumpCount < maxJumps)
         {
             playerData.velocityY = -JUMP_POWER;
             playerData.isGrounded = false;

@@ -13,6 +13,8 @@ enum class PlayerState
     Fall,       // 落下
     Land,       // 着地
     UsingSkill, // スキル
+    Healing,    // 回復中
+    Dodging,    // 回避中
 };
 
 // プレイヤーのデータ構造体
@@ -57,6 +59,24 @@ struct PlayerData
     float skillCountRate = 0.0f;      // スキル回数倍率
     float skillCooldownRate = 0.0f;   // リキャ短縮
     int healCountBonus = 0;           // 回復回数+
+
+    // ===== パッシブアビリティ =====
+    bool hasDoubleJump = false;       // 二段ジャンプ解放フラグ
+
+    // ===== 回復関連 =====
+    int healCount = 3;                // 残り回復回数
+    int maxHealCount = 3;             // 最大回復回数
+    bool healExecuted = false;        // 今回の回復で回復処理を実行したか
+
+    // ===== 回避関連 =====
+    bool isInvincible = false;        // 無敵状態フラグ
+    int dodgeCooldown = 0;            // 回避クールダウン
+
+    // ===== ダッシュエフェクト関連 =====
+    bool showDashEffect = false;      // ダッシュエフェクト表示フラグ
+    float dashEffectX = 0.0f;         // エフェクトX座標
+    float dashEffectY = 0.0f;         // エフェクトY座標
+    bool dashEffectFacingRight = true;// エフェクトの向き
 
     // アニメーション
     int currentFrame;
@@ -126,3 +146,30 @@ void DamagePlayerHP(int damage);
 
 // HPを回復する
 void HealPlayerHP(int healAmount);
+
+// ===== パッシブアビリティ =====
+
+// 二段ジャンプを解放する
+void UnlockDoubleJump();
+
+// 二段ジャンプが解放されているか
+bool HasDoubleJump();
+
+// ===== 回復関連 =====
+
+// 回復を試みる（キー入力時）
+void TryHeal();
+
+// 残り回復回数を取得
+int GetHealCount();
+
+// 最大回復回数を取得
+int GetMaxHealCount();
+
+// ===== 回避関連 =====
+
+// 回避を試みる（キー入力時）
+void TryDodge();
+
+// 無敵状態かどうかを取得
+bool IsPlayerInvincible();

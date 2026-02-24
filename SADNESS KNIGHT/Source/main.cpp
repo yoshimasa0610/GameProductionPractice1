@@ -43,6 +43,17 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
         // 入力更新
         UpdateInput();
 
+        // テスト用: Uキーで二段ジャンプを解放
+        if (CheckHitKey(KEY_INPUT_U) == 1)
+        {
+            static bool unlocked = false;
+            if (!unlocked)
+            {
+                UnlockDoubleJump();
+                unlocked = true;
+            }
+        }
+
         // プレイヤー更新
         UpdatePlayer();
 
@@ -60,7 +71,29 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
         DrawFormatString(10, 220, GetColor(255, 255, 255), "[A][D] Move");
         DrawFormatString(10, 240, GetColor(255, 255, 255), "[W] Jump");
         DrawFormatString(10, 260, GetColor(255, 255, 255), "[Q][E][F] Skills");
-        DrawFormatString(10, 280, GetColor(255, 255, 255), "[ESC] Exit");
+        DrawFormatString(10, 280, GetColor(255, 255, 255), "[TAB] Heal");
+        DrawFormatString(10, 300, GetColor(255, 255, 255), "[SHIFT] Dodge");
+        DrawFormatString(10, 320, GetColor(255, 255, 255), "[U] Unlock Double Jump (Test)");
+        DrawFormatString(10, 340, GetColor(255, 255, 255), "[ESC] Exit");
+        
+        // 二段ジャンプの状態表示
+        if (HasDoubleJump())
+        {
+            DrawFormatString(10, 370, GetColor(100, 255, 100), "Double Jump: UNLOCKED");
+        }
+        else
+        {
+            DrawFormatString(10, 370, GetColor(255, 100, 100), "Double Jump: LOCKED");
+        }
+        
+        // 回復回数の表示
+        DrawFormatString(10, 390, GetColor(100, 255, 255), "Heal Count: %d / %d", GetHealCount(), GetMaxHealCount());
+        
+        // 無敵状態の表示
+        if (IsPlayerInvincible())
+        {
+            DrawFormatString(10, 410, GetColor(255, 255, 0), "INVINCIBLE!");
+        }
 
         // 裏画面を表画面に反映
         ScreenFlip();
