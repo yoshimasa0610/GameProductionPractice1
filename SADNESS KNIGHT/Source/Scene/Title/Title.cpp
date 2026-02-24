@@ -19,6 +19,13 @@
 #define MENU_POS_Y 450
 #define MENU_INTERVAL 50
 
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
+
+#define SLOT_WIDTH 900
+#define SLOT_HEIGHT 130
+#define SLOT_SPACING 160
+
 // 状態管理
 static TitleState g_TitleState = TitleState::MainMenu;
 
@@ -80,9 +87,9 @@ static void StartNewGame(int slot)
 {
 	SaveData data{};
 
-	// data.maxHP = PLAYER_INIT_HP;
+	 data.maxHP = PLAYER_INIT_HP;
 
-	strcpy_s(data.stageName, "forest_1");
+	strcpy_s(data.stageName, "Forest_1");
 
 	SaveGame(&data, slot);
 
@@ -121,9 +128,22 @@ static void UpdateSlotSelect(bool isNewGame)
 			return;
 		}
 
-		StartNewGame(g_SelectedSlot);
+		g_CurrentSaveSlot = g_SelectedSlot;
 
-		StartFadeOutEx(FadeType::Title);
+		if (isNewGame)
+		{
+			StartNewGame(g_SelectedSlot);
+		}
+		else
+		{
+			SaveData data;
+			if (LoadGame(&data, g_SelectedSlot))
+			{
+				ImportSaveData(&data);
+			}
+		}
+
+		StartFadeOut(60);
 		g_TitleState = TitleState::FadingOut;
 	}
 }
@@ -140,10 +160,13 @@ void UpdateTitleScene()
 
 	if (g_TitleState == TitleState::FadingOut)
 	{
-		if (IsFadeFinished())
+		UpdateFade();
+
+		if (IsFadeOutFinished())
 		{
 			StopBGM(BGM_TITLE);
 			PlayBGM(BGM_PLAY);
+			ResetInput();
 			ChangeScene(SCENE_PLAY);
 		}
 		return;
@@ -155,7 +178,7 @@ void UpdateTitleScene()
 
 		if (IsTriggerKey(KEY_UP))
 		{
-			g_SelectedMenu = (g_SelectedMenu + 1) % g_MenuCount;
+			g_SelectedMenu = (g_SelectedMenu + g_MenuCount - 1) % g_MenuCount;
 			PlaySE(SE_MENU_MOVE);
 		}
 
@@ -231,15 +254,26 @@ void UpdateTitleScene()
 
 void DrawTitleScene()
 {
+	// 背景
 	DrawGraph(0, 0, g_BGHandle, TRUE);
 	DrawGraph(TITLE_POS_X, TITLE_POS_Y, g_TitleHandle, TRUE);
+
+	// スロット画面のときは背景を暗くするんや
+	if (g_TitleState == TitleState::SelectSlot_New ||
+		g_TitleState == TitleState::SelectSlot_Continue ||
+		g_TitleState == TitleState::ConfirmOverwrite)
+	{
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 180);
+		DrawBox(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GetColor(0, 0, 0), TRUE);
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
 
 	// メインメニュー
 	if (g_TitleState == TitleState::MainMenu)
 	{
 		for (int i = 0; i < g_MenuCount; i++)
 		{
-			int y = MENU_POS_Y + 1 * MENU_INTERVAL;
+			int y = MENU_POS_Y + i * MENU_INTERVAL;
 
 			int color = (i == g_SelectedMenu)
 				? GetColor(255, 255, 0)
@@ -248,34 +282,107 @@ void DrawTitleScene()
 			DrawString(MENU_POS_X, y, g_MenuItems[i], color);
 		}
 	}
+
+	// スロット選択
 	else if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
 	{
-		DrawString(MENU_POS_X - 30, MENU_POS_Y - 40,
-			"セーブスロット選択", GetColor(255, 255, 255));
+		DrawString(SCREEN_WIDTH / 2 - 60, 120,
+			"データ選択", GetColor(255, 255, 255));
 
 		for (int i = 0; i < SAVE_SLOT_MAX; i++)
 		{
-			int x = MENU_POS_X - 40;
-			int y = MENU_POS_Y + i * 110;
-
 			bool selected = (i == g_SelectedSlot);
 
-			DrawBox(x, y, x + 360, y + 90, selected ? GetColor(255, 255, 0) : GetColor(200, 200, 200), FALSE);
+			int width = SLOT_WIDTH;
+			int height = SLOT_HEIGHT;
 
-			DrawFormatString(x + 10, y + 10,GetColor(255, 255, 255),"SLOT %d", i + 1);
+			int x = (SCREEN_WIDTH - width) / 2;
+			int y = 200 + i * SLOT_SPACING;
+
+			// 非選択は暗い色
+			int frameColor = selected
+				? GetColor(255, 255, 255)
+				: GetColor(80, 80, 80);
+
+			DrawBox(x, y, x + width, y + height, frameColor, FALSE);
+
+			int textColor = selected
+				? GetColor(255, 255, 255)
+				: GetColor(150, 150, 150);
+
+			DrawFormatString(x + 30, y + 20, textColor, "SLOT %d", i + 1);
 
 			SaveData summary;
 			if (LoadSaveSummary(i, &summary))
 			{
-				DrawFormatString(x + 10, y + 35,GetColor(200, 200, 255),"ステージ : %s", summary.stageName);
+				DrawFormatString(x + 200, y + 25, textColor,
+					"ステージ : %s", summary.stageName);
 
-				DrawFormatString(x + 10, y + 55,GetColor(200, 200, 255),"HP : %d / %d", summary.currentHP, summary.maxHP);
+				DrawFormatString(x + 200, y + 60, textColor,
+					"HP : %d / %d", summary.currentHP, summary.maxHP);
 			}
 			else
 			{
-				DrawString(x + 10, y + 45,"セーブデータがありません",GetColor(150, 150, 150));
+				DrawString(x + 200, y + 45,
+					"新規作成", textColor);
 			}
 		}
+	}
+
+	// 上書き確認
+	else if (g_TitleState == TitleState::ConfirmOverwrite)
+	{
+		int boxW = 600;
+		int boxH = 200;
+
+		int x = (SCREEN_WIDTH - boxW) / 2;
+		int y = (SCREEN_HEIGHT - boxH) / 2;
+
+		DrawBox(x, y, x + boxW, y + boxH,
+			GetColor(255, 255, 255), FALSE);
+
+		DrawString(x + 120, y + 40,
+			"セーブデータを上書きしますか？",
+			GetColor(255, 255, 255));
+
+		int yesColor = (g_ConfirmIndex == 0)
+			? GetColor(255, 255, 0)
+			: GetColor(255, 255, 255);
+
+		int noColor = (g_ConfirmIndex == 1)
+			? GetColor(255, 255, 0)
+			: GetColor(255, 255, 255);
+
+		DrawString(x + 200, y + 120, "はい", yesColor);
+		DrawString(x + 320, y + 120, "いいえ", noColor);
+	}
+
+// 操作ガイド（スロット画面のみ）
+	if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
+	{
+		const char* guide1 = "SPACE : 決定";
+		const char* guide2 = "ESC   : 戻る";
+
+		int colorKey = GetColor(255, 255, 255);
+		int colorText = GetColor(150, 150, 150);
+
+		// 右寄せ用に文字幅取得
+		int w1 = GetDrawStringWidth(guide1, strlen(guide1));
+		int w2 = GetDrawStringWidth(guide2, strlen(guide2));
+
+		int x1 = SCREEN_WIDTH - w1 - 30;
+		int x2 = SCREEN_WIDTH - w2 - 30;
+
+		int y2 = SCREEN_HEIGHT - 30;
+		int y1 = y2 - 25;
+
+		// 少し透明にするんやな
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 200);
+
+		DrawString(x1, y1, guide1, colorText);
+		DrawString(x2, y2, guide2, colorText);
+
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 	}
 }
 

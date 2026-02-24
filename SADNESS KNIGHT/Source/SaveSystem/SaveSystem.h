@@ -6,7 +6,7 @@
 #define SAVE_MAX_ITEM 50      // 所持アイテムの最大数（必要に応じて調整）
 #define SAVE_SLOT_MAX 3       // セーブスロット数
 #define SAVE_MAX_FIELD_ITEMS 256
-#define PLAYER_INIT_HP         (5)
+#define PLAYER_INIT_HP         (150)
 #define SAVE_FILE_VERSION 1
 
 //現在使用中のスロット

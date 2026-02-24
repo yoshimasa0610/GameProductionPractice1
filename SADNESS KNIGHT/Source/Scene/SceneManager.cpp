@@ -178,6 +178,8 @@ void ChangeScene(Scene scene)
 	// 次に遷移するシーンを設定
 	g_NextScene = scene;
 
+	ResetInput();
+
 	// シーンのループを終了させる
 	g_SceneState = SCENE_STATE_FIN;
 }

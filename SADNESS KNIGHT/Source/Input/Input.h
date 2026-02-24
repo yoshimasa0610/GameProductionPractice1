@@ -27,6 +27,8 @@ enum InputKey
 void InitInput();
 void UpdateInput();
 
+void ResetInput();
+
 void AutoDetectInputMode();
 
 bool IsInputKey(InputKey key);     // “ü—Í”»’è

@@ -35,6 +35,13 @@ void UpdateInput()
     }
 }
 
+void ResetInput()
+{
+    g_InputState = 0;
+    g_PrevInputState = 0;
+    g_OKGuardTimer = 0;
+}
+
 bool IsInputKey(InputKey key)
 {
     return (g_InputState & key) != 0;
