@@ -110,18 +110,6 @@ void InitPlayer(float startX, float startY)
     float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
     float top = playerData.posY - PLAYER_HEIGHT;
     g_playerColliderId = CreateCollider(ColliderTag::Player, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
-
-    // ===== テスト用スキル登録 =====
-    SkillData slash;
-    slash.id = 1;
-    slash.name = "Slash";
-    slash.type = SkillType::Attack;
-    slash.coolTime = 120;
-    slash.maxUseCount = -1;
-    slash.duration = 30;
-
-    skillManager.AddSkill(slash);
-    skillManager.EquipSkill(0, 0, 1);
 }
 
 // プレイヤーのリソース読み込み
