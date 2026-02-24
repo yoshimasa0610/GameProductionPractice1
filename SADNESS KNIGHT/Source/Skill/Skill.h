@@ -4,6 +4,7 @@
 #include "../Collision/Collision.h"
 #include <unordered_set>
 #include <functional>
+#include <vector>
 
 class Skill
 {
@@ -20,10 +21,24 @@ private:
     int m_followAttackInterval = 60;
     int m_followAttackTimer = 0;
     ColliderId m_followCollider = -1;
+    float m_followPosX = 0;
+    float m_followPosY = 0;
+    float m_followLerpSpeed = 0.15f; // 追従速度
     //　Summon型の処理
     float m_summonX = 0;
     float m_summonY = 0;
     ColliderId m_summonCollider = -1;
+    struct SummonUnit
+    {
+        float x;
+        float y;
+        int timer;
+        ColliderId collider;
+    };
+
+    std::vector<SummonUnit> m_summons;
+    int m_maxSummons = 2; // 同時数（後でdata化可能）
+
     ColliderId m_attackCollider = -1;
 
     // 敵ごとのヒット履歴

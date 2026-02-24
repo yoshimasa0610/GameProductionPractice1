@@ -94,13 +94,15 @@ void Skill::Activate(PlayerData* player)
         m_activeTimer = m_data.duration;
         m_followAttackTimer = 0;
 
-        float left = player->posX + m_followOffsetX;
-        float top = player->posY - PLAYER_HEIGHT;
+        float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
+
+        m_followPosX = player->posX + offset;
+        m_followPosY = player->posY - PLAYER_HEIGHT;
 
         m_followCollider = CreateCollider(
             ColliderTag::Other,
-            left,
-            top,
+            m_followPosX,
+            m_followPosY,
             60,
             60,
             this);
@@ -108,19 +110,27 @@ void Skill::Activate(PlayerData* player)
 
     if (m_data.type == SkillType::Summon)
     {
-        m_isActive = true;
-        m_activeTimer = m_data.duration;
+        // 同時数制限
+        if ((int)m_summons.size() >= m_maxSummons)
+            return;
 
-        m_summonX = player->posX;
-        m_summonY = player->posY;
+        SummonUnit unit;
 
-        m_summonCollider = CreateCollider(
+        unit.x = player->posX;
+        unit.y = player->posY;
+        unit.timer = m_data.duration;
+
+        unit.collider = CreateCollider(
             ColliderTag::Other,
-            m_summonX - 40,
-            m_summonY - 80,
+            unit.x - 40,
+            unit.y - 80,
             80,
             80,
             this);
+
+        m_summons.push_back(unit);
+
+        m_isActive = true;
 
         ClearHitTargets();
     }
@@ -203,10 +213,14 @@ void Skill::Update(PlayerData* player)
         // プレイヤーに追従
         float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
 
-        float left = player->posX + offset;
-        float top = player->posY - PLAYER_HEIGHT;
+        float targetX = player->posX + offset;
+        float targetY = player->posY - PLAYER_HEIGHT;
 
-        UpdateCollider(m_followCollider, left, top, 60, 60);
+        // Lerp
+        m_followPosX += (targetX - m_followPosX) * m_followLerpSpeed;
+        m_followPosY += (targetY - m_followPosY) * m_followLerpSpeed;
+
+        UpdateCollider(m_followCollider, m_followPosX, m_followPosY, 60, 60);
 
         // 攻撃間隔
         if (m_followAttackTimer > 0)
@@ -221,20 +235,34 @@ void Skill::Update(PlayerData* player)
         }
     }
 
-    if (m_data.type == SkillType::Summon && m_isActive)
+    if (m_data.type == SkillType::Summon)
     {
-        m_activeTimer--;
-
-        if (m_activeTimer <= 0)
+        for (int i = (int)m_summons.size() - 1; i >= 0; --i)
         {
-            m_isActive = false;
+            auto& s = m_summons[i];
 
-            if (m_summonCollider != -1)
+            s.timer--;
+
+            if (s.timer <= 0)
             {
-                DestroyCollider(m_summonCollider);
-                m_summonCollider = -1;
+                if (s.collider != -1)
+                    DestroyCollider(s.collider);
+
+                m_summons.erase(m_summons.begin() + i);
+                continue;
             }
+
+            // 位置更新（固定設置）
+            UpdateCollider(
+                s.collider,
+                s.x - 40,
+                s.y - 80,
+                80,
+                80);
         }
+
+        if (m_summons.empty())
+            m_isActive = false;
     }
 }
 
@@ -283,4 +311,11 @@ void Skill::ForceEnd()
         DestroyCollider(m_summonCollider);
         m_summonCollider = -1;
     }
+
+    for (auto& s : m_summons)
+    {
+        if (s.collider != -1)
+            DestroyCollider(s.collider);
+    }
+    m_summons.clear();
 }
