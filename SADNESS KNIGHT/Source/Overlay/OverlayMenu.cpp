@@ -22,7 +22,7 @@ void CloseOverlayMenu()
 {
     g_IsOverlayOpen = false;
 }
-
+// 次のタブに移動
 void NextOverlayTab()
 {
     if (g_CurrentTab == OverlayTab::Equip)
@@ -30,12 +30,12 @@ void NextOverlayTab()
     else
         g_CurrentTab = OverlayTab::Equip;
 }
-
+// 前のタブに移動（今回はタブが2つしかないのでNextと同じ）
 void PrevOverlayTab()
 {
     NextOverlayTab();
 }
-
+// オーバーレイメニューの更新
 void UpdateOverlayMenu()
 {
     if (!g_IsOverlayOpen) return;

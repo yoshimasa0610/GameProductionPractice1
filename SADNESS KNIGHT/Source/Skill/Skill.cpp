@@ -22,7 +22,7 @@ static void CreateAttackCollider(
         step.hitHeight,
         owner);
 }
-
+// 追従型の攻撃判定
 Skill::Skill(const SkillData& data)
     : m_data(data),
     m_currentCoolTime(0),
@@ -30,18 +30,18 @@ Skill::Skill(const SkillData& data)
     m_activeTimer(0)
 {
 }
-
+// スキルが使用可能か
 bool Skill::CanUse() const
 {
     if (m_currentCoolTime > 0) return false;
     return true;
 }
-
+// クールタイム開始
 void Skill::StartCoolTime()
 {
     m_currentCoolTime = m_data.coolTime;
 }
-
+// スキルの強制終了（CTは消費する）
 void Skill::Activate(PlayerData* player)
 {
     if (!CanUse()) return;
@@ -61,7 +61,7 @@ void Skill::Activate(PlayerData* player)
             {
                 m_comboIndex = 0;
             }
-
+			// コンボステップ取得
             const ComboStep& step = m_data.comboSteps[m_comboIndex];
 
             m_activeTimer = step.duration;
@@ -87,7 +87,7 @@ void Skill::Activate(PlayerData* player)
         m_comboTimer = 20; // 次段受付時間
         m_isActive = true;
     }
-
+	// 追従型の処理
     if (m_data.type == SkillType::Follow)
     {
         m_isActive = true;
@@ -98,7 +98,7 @@ void Skill::Activate(PlayerData* player)
 
         m_followPosX = player->posX + offset;
         m_followPosY = player->posY - PLAYER_HEIGHT;
-
+        
         m_followCollider = CreateCollider(
             ColliderTag::Other,
             m_followPosX,
@@ -107,7 +107,7 @@ void Skill::Activate(PlayerData* player)
             60,
             this);
     }
-
+	// 召喚型の処理
     if (m_data.type == SkillType::Summon)
     {
         // 同時数制限
@@ -131,10 +131,10 @@ void Skill::Activate(PlayerData* player)
         m_summons.push_back(unit);
 
         m_isActive = true;
-
+		// ヒット履歴リセット
         ClearHitTargets();
     }
-
+	// スキル使用時のコールバック
     StartCoolTime();
 }
 
@@ -229,7 +229,7 @@ void Skill::Update(PlayerData* player)
                 m_onConsumeUse(m_data.id);
         }
     }
-
+	// 召喚型の処理
     if (m_data.type == SkillType::Summon)
     {
         for (int i = (int)m_summons.size() - 1; i >= 0; --i)
@@ -301,7 +301,7 @@ void Skill::Update(PlayerData* player)
                 }
             }
         }
-
+		// 召喚ユニットがいなくなったらスキル非アクティブ
         if (m_summons.empty())
             m_isActive = false;
     }

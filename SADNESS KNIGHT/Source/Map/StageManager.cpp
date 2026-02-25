@@ -22,7 +22,7 @@ struct ExitPoint
 	float spawnX, spawnY;
 };
 
-static std::string g_CurrentStage = "Forest_1";
+static std::string g_CurrentStage = "forest_1";
 static std::vector<ExitPoint> g_ExitPoints;
 
 // -------------------------------------
