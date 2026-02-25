@@ -115,6 +115,9 @@
     <Filter Include="Source\BigBoss\Tiphereth">
       <UniqueIdentifier>{624d8068-bf9b-400a-9c76-33eb79512160}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Overlay\SkillSet">
+      <UniqueIdentifier>{5592465f-a8d8-4f83-8065-90d92a8ce01d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -267,6 +270,9 @@
     <ClCompile Include="Source\Overlay\OverlayMenu.cpp">
       <Filter>Source\Overlay</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Overlay\SkillSet\SkillSetMenu.cpp">
+      <Filter>Source\Overlay\SkillSet</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -418,6 +424,9 @@
     </ClInclude>
     <ClInclude Include="Source\Overlay\OverlayMenu.h">
       <Filter>Source\Overlay</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Overlay\SkillSet\SkillSetMenu.h">
+      <Filter>Source\Overlay\SkillSet</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

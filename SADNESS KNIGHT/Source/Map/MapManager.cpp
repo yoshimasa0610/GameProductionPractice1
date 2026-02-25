@@ -15,7 +15,7 @@
 // 内部データ
 // ===================================================
 static std::string g_DebugLog = "";
-static char g_CurrentMap[128] = "forest_1";
+static char g_CurrentMap[128] = "Forest_1";
 
 #define CHECK_ROUND_NUM (2)  // プレイヤー周囲のチェック範囲
 

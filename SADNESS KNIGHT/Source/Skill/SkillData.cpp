@@ -72,9 +72,20 @@ void RegisterSkills()
 
     shadow->flavorDesc =
     {
-        "‚©‚Â‚Ä‰¤‚Éd‚¦‚½‰e‚ÌímB",
-        "å‚ğç‚é‚½‚ßí‚¢‘±‚¯‚éB"
+        "",
+        ""
     };
 
     g_SkillDatabase.push_back(std::move(shadow));
+
+
+
+
+
+
+
+
+
+
+
 }

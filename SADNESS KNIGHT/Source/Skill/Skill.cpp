@@ -170,11 +170,6 @@ void Skill::Update(PlayerData* player)
         m_comboIndex = 0;
     }
 
-    if (m_isActive && m_data.type == SkillType::Attack)
-    {
-        m_activeTimer--;
-    }
-
     // 攻撃コライダー更新
     if (m_attackCollider != -1 && !m_data.comboSteps.empty())
     {
@@ -241,6 +236,7 @@ void Skill::Update(PlayerData* player)
         {
             auto& s = m_summons[i];
 
+            // ===== 寿命 =====
             s.timer--;
 
             if (s.timer <= 0)
@@ -248,17 +244,62 @@ void Skill::Update(PlayerData* player)
                 if (s.collider != -1)
                     DestroyCollider(s.collider);
 
+                if (s.attackCollider != -1)
+                    DestroyCollider(s.attackCollider);
+
                 m_summons.erase(m_summons.begin() + i);
                 continue;
             }
 
-            // 位置更新（固定設置）
+            // ===== 本体位置更新 =====
             UpdateCollider(
                 s.collider,
                 s.x - 40,
                 s.y - 80,
                 80,
                 80);
+
+            // ===== 攻撃タイマー =====
+            if (s.attackTimer > 0)
+                s.attackTimer--;
+
+            // ===== 攻撃開始 =====
+            if (s.attackTimer <= 0)
+            {
+                // ヒット履歴リセット
+                ClearHitTargets();
+
+                if (s.attackCollider != -1)
+                    DestroyCollider(s.attackCollider);
+
+                s.attackCollider = CreateCollider(
+                    ColliderTag::Other,
+                    s.x - m_summonAttackWidth * 0.5f,
+                    s.y - m_summonAttackHeight,
+                    m_summonAttackWidth,
+                    m_summonAttackHeight,
+                    this);
+
+                s.attackTimer = s.attackInterval;
+                // 個体の攻撃寿命
+                s.attackLife = m_summonAttackDuration;
+
+                // 弾薬消費（Summonは攻撃した時）
+                if (m_onConsumeUse)
+                    m_onConsumeUse(m_data.id);
+            }
+
+            // ===== 攻撃コライダー寿命 =====
+            if (s.attackCollider != -1)
+            {
+                s.attackLife--;
+
+                if (s.attackLife <= 0)
+                {
+                    DestroyCollider(s.attackCollider);
+                    s.attackCollider = -1;
+                }
+            }
         }
 
         if (m_summons.empty())
@@ -316,6 +357,8 @@ void Skill::ForceEnd()
     {
         if (s.collider != -1)
             DestroyCollider(s.collider);
+        if (s.attackCollider != -1)
+            DestroyCollider(s.attackCollider);
     }
     m_summons.clear();
 }

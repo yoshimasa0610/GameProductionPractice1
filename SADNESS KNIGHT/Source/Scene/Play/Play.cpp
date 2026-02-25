@@ -44,7 +44,7 @@ void LoadPlayScene()
 	// SaveData からステージをロード
 	if (g_SaveData.stageName[0] == '\0')
 	{
-		strcpy_s(g_SaveData.stageName, "forest_1");
+		strcpy_s(g_SaveData.stageName, "Forest_1");
 		g_SaveData.checkpointX = 100;
 		g_SaveData.checkpointY = 386;
 	}

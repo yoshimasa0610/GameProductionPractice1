@@ -14,6 +14,7 @@ private:
 
     int m_equipSlots[2][3];
     int m_currentSet;
+    int m_lastUsedSkillID = -1;
 
 public:
     SkillManager();
@@ -32,4 +33,7 @@ public:
     {
         return m_ownedSkills;
     }
+
+    int GetLastUsedSkillID() const { return m_lastUsedSkillID; }
+    void ClearLastUsedSkillID() { m_lastUsedSkillID = -1; }
 };

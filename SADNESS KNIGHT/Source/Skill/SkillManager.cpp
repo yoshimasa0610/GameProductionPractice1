@@ -108,6 +108,9 @@ void SkillManager::UseSkill(int slotIndex, PlayerData* player)
 
         skill->Activate(player);
 
+        // 
+        m_lastUsedSkillID = skillID;
+
         return;
     }
 }
