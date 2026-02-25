@@ -20,6 +20,7 @@
 #include "../../Sound/Sound.h"
 #include "../../Item/ItemField.h"
 #include "../../Money/MoneyManager.h"
+#include "../../Overlay/OverlayMenu.h"
 
 static ItemField g_ItemField;
 PlayerData& player = GetPlayerData();
@@ -46,7 +47,7 @@ void LoadPlayScene()
 	// SaveData からステージをロード
 	if (g_SaveData.stageName[0] == '\0')
 	{
-		strcpy_s(g_SaveData.stageName, "forest_1");
+		strcpy_s(g_SaveData.stageName, "Forest_1");
 		g_SaveData.checkpointX = 100;
 		g_SaveData.checkpointY = 386;
 	}
@@ -178,10 +179,9 @@ void UpdatePlayScene()
 		return;
 	}
 
-	if (g_IsEquipMenuOpen)
+	if (g_IsOverlayOpen)
 	{
-		// PlayScene の更新を止める
-		UpdateEquipMenuScene();
+		UpdateOverlayMenu();
 		return;
 	}
 
@@ -193,15 +193,8 @@ void UpdatePlayScene()
 
 	if (IsTriggerKey(KEY_INVENTORY))
 	{
-		//シーンが変わっている間は一時中止
 		SetPaused(true);
-		// 装備変更自体は椅子判定でチェックするため、ここでは false にして開くだけ
-		SetEquipMode(IsPlayerSitting());
-
-		// プレイヤーデータ参照を渡す（EquipMenu が参照するため）
-		SetEquipMenuPlayer(&player);
-
-		OpenEquipMenu(&player);
+		OpenOverlayMenu(&player);
 		return;
 	}
 
@@ -249,9 +242,9 @@ void DrawPlayScene()
 		DrawMenu();
 	}
 
-	if (g_IsEquipMenuOpen)
+	if (g_IsOverlayOpen)
 	{
-		DrawEquipMenuScene(); // 半透明 UI
+		DrawOverlayMenu();
 	}
 	DrawFade();
 }

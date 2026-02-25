@@ -35,3 +35,5 @@ bool IsInputKey(InputKey key);     // “ü—Í”»’è
 bool IsTriggerKey(InputKey key);   // ƒgƒŠƒK[”»’è
 
 bool IsInputOKGuarded();
+
+int GetInputFrame();

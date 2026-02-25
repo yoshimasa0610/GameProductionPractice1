@@ -10,6 +10,7 @@
 #include <algorithm>
 #include "../../Sound/Sound.h"
 #include "../../Scene/Play/Play.h"
+#include "../OverlayMenu.h"
 
 // “à•”•Ï”
 extern  SaveData g_SaveData;
@@ -18,7 +19,6 @@ static bool g_IsEquipMode = false; // ‘•”õ•ÏX‚ª‹–‰Â‚³‚ê‚Ä‚¢‚é‚©iSetEquipMode ‚
 static PlayerData* g_PlayerRef = nullptr; // ƒvƒŒƒCƒ„[ƒf[ƒ^QÆiSetEquipMenuPlayer ‚ÅƒZƒbƒg‰Â”\j
 static int g_MessageTimer = 0;
 static std::string g_Message;
-bool g_IsEquipMenuOpen = false;
 
 // ‘•”õà–¾‚È‚Ç‚Ìà–¾•¶‚ÌÜ‚è•Ô‚µ—pƒwƒ‹ƒp[ŠÖ”
 static int DrawWrappedString(
@@ -78,20 +78,6 @@ void SetEquipMenuPlayer(PlayerData* player)
     g_PlayerRef = player;
 }
 
-void OpenEquipMenu(PlayerData* player)
-{
-    g_IsEquipMenuOpen = true;
-    g_SelectedIndex = 0;
-    g_MessageTimer = 0;
-    g_Message.clear();
-    g_PlayerRef = player;
-}
-
-void CloseEquipMenu()
-{
-    g_IsEquipMenuOpen = false;
-}
-
 void LoadEquipMenuScene()
 {
     // ƒŠƒ\[ƒX“Ç‚İ‚İ“™‚ª‚ ‚ê‚Î‚±‚±‚É
@@ -121,7 +107,7 @@ static void BuildOwnedIndexList(const std::vector<std::unique_ptr<Item>>& items,
 
 void UpdateEquipMenuScene()
 {
-    if (!g_IsEquipMenuOpen)
+    if (!g_IsOverlayOpen)
         return;
 
     const auto& items = g_ItemManager.GetAllItems();
@@ -140,7 +126,7 @@ void UpdateEquipMenuScene()
         if (IsTriggerKey(KEY_CANCEL))
         {
             SetPaused(false);
-            CloseEquipMenu();
+            //CloseEquipMenu();
         }
         return;
         // •Â‚¶‚é‚©•\¦‚¾‚¯‚É‚·‚é‚©‚ÍÀ‘•Ÿ‘æB‚±‚±‚Å‚Í‰½‚à‚µ‚È‚¢B
@@ -160,7 +146,7 @@ void UpdateEquipMenuScene()
     if (IsTriggerKey(KEY_CANCEL))
     {
         SetPaused(false);
-        CloseEquipMenu();
+        //CloseEquipMenu();
         return;
     }
 
@@ -231,7 +217,7 @@ void UpdateEquipMenuScene()
 
 void DrawEquipMenuScene()
 {
-    if (!g_IsEquipMenuOpen)
+    if (!g_IsOverlayOpen)
         return;
 
     const auto& items = g_ItemManager.GetAllItems();

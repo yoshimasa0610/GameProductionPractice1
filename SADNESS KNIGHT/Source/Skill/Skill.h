@@ -33,11 +33,18 @@ private:
         float x;
         float y;
         int timer;
-        ColliderId collider;
+        int attackTimer = 0;
+        int attackInterval = 90;   // UŒ‚ŠÔŠu
+        int attackLife = 0;
+        ColliderId collider = -1;  // –{‘Ì
+        ColliderId attackCollider = -1; // UŒ‚”»’è
     };
 
     std::vector<SummonUnit> m_summons;
     int m_maxSummons = 2; // “¯”iŒã‚Ådata‰»‰Â”\j
+    float m_summonAttackWidth = 80;
+    float m_summonAttackHeight = 80;
+    int m_summonAttackDuration = 15;
 
     ColliderId m_attackCollider = -1;
 
