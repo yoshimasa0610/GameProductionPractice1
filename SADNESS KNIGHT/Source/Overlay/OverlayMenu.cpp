@@ -1,8 +1,7 @@
 #include "OverlayMenu.h"
 #include "../Overlay/Equip/EquipMenu.h"
 #include "../Input/Input.h"
-// è´óà
-// #include "../SkillMenu/SkillMenu.h"
+#include "../Overlay/SkillMenu/SkillMenu.h"
 
 static OverlayTab g_CurrentTab = OverlayTab::Equip;
 static PlayerData* g_PlayerRef = nullptr;
@@ -41,6 +40,12 @@ void UpdateOverlayMenu()
 {
     if (!g_IsOverlayOpen) return;
 
+        if (IsTriggerKey(KEY_CANCEL))
+    {
+        CloseOverlayMenu();
+        return;
+    }
+
     // LRì¸óÕÅiâºÅj
     if (IsTriggerKey(KEY_LEFT))
         PrevOverlayTab();
@@ -55,7 +60,7 @@ void UpdateOverlayMenu()
         break;
 
     case OverlayTab::Skill:
-        // UpdateSkillMenuScene();
+        UpdateSkillMenuScene();
         break;
     }
 }
@@ -71,7 +76,7 @@ void DrawOverlayMenu()
         break;
 
     case OverlayTab::Skill:
-        // DrawSkillMenuScene();
+        DrawSkillMenuScene();
         break;
     }
 }

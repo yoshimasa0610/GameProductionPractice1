@@ -1,6 +1,8 @@
 #include "SkillManager.h"
 #include <cmath>
 
+SkillManager g_SkillManager;
+
 SkillManager::SkillManager()
     : m_currentSet(0)
 {
@@ -51,11 +53,11 @@ void SkillManager::AddSkill(const SkillData& data, PlayerData* player)
     float rate = 1.0f + player->skillCountRate;
     m_remainingUses[data.id] = (int)ceil(base * rate);
 }
-
+/*
 void SkillManager::EquipSkill(int setIndex, int slotIndex, int skillID)
 {
     m_equipSlots[setIndex][slotIndex] = skillID;
-}
+}*/
 
 void SkillManager::ChangeSet()
 {
@@ -140,4 +142,31 @@ void SkillManager::RecalculateUses(PlayerData* player)
         float rate = 1.0f + player->skillCountRate;
         m_remainingUses[id] = (int)ceil(base * rate);
     }
+}
+
+int SkillManager::GetEquipSkill(int set, int slot) const
+{
+    return m_equipSlots[set][slot];
+}
+
+void SkillManager::UnequipSkill(int set, int slot)
+{
+    m_equipSlots[set][slot] = -1;
+}
+
+void SkillManager::EquipSkill(int setIndex, int slotIndex, int skillID)
+{
+    // 同一セット内重複チェック
+    for (int i = 0; i < 3; i++)
+    {
+        if (i == slotIndex) continue;
+
+        if (m_equipSlots[setIndex][i] == skillID)
+        {
+            // 古い方外す
+            m_equipSlots[setIndex][i] = -1;
+        }
+    }
+
+    m_equipSlots[setIndex][slotIndex] = skillID;
 }
