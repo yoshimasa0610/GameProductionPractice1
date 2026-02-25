@@ -16,15 +16,15 @@
 #define TITLE_POS_Y 130
 
 #define MENU_POS_X 700
-#define MENU_POS_Y 450
+#define MENU_POS_Y 550
 #define MENU_INTERVAL 50
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
-#define SLOT_WIDTH 900
-#define SLOT_HEIGHT 130
-#define SLOT_SPACING 160
+#define SLOT_WIDTH 1050
+#define SLOT_HEIGHT 180
+#define SLOT_SPACING 210
 
 // 状態管理
 static TitleState g_TitleState = TitleState::MainMenu;
@@ -263,8 +263,11 @@ void DrawTitleScene()
 		g_TitleState == TitleState::SelectSlot_Continue ||
 		g_TitleState == TitleState::ConfirmOverwrite)
 	{
+		int screenW, screenH;
+		GetDrawScreenSize(&screenW, &screenH);
+
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 180);
-		DrawBox(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GetColor(0, 0, 0), TRUE);
+		DrawBox(0, 0, screenW, screenH, GetColor(0, 0, 0), TRUE);
 		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 	}
 
@@ -286,8 +289,13 @@ void DrawTitleScene()
 	// スロット選択
 	else if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
 	{
-		DrawString(SCREEN_WIDTH / 2 - 60, 120,
-			"データ選択", GetColor(255, 255, 255));
+		int offsetX = 150;
+
+		int titleW = GetDrawStringWidth("データ選択", strlen("データ選択"));
+		DrawString((SCREEN_WIDTH - titleW) / 2 + offsetX,
+			120,
+			"データ選択",
+			GetColor(255, 255, 255));
 
 		for (int i = 0; i < SAVE_SLOT_MAX; i++)
 		{
@@ -296,10 +304,10 @@ void DrawTitleScene()
 			int width = SLOT_WIDTH;
 			int height = SLOT_HEIGHT;
 
-			int x = (SCREEN_WIDTH - width) / 2;
+			int x = (SCREEN_WIDTH - width) / 2 + offsetX;
+
 			int y = 200 + i * SLOT_SPACING;
 
-			// 非選択は暗い色
 			int frameColor = selected
 				? GetColor(255, 255, 255)
 				: GetColor(80, 80, 80);
@@ -310,7 +318,8 @@ void DrawTitleScene()
 				? GetColor(255, 255, 255)
 				: GetColor(150, 150, 150);
 
-			DrawFormatString(x + 30, y + 20, textColor, "SLOT %d", i + 1);
+			DrawFormatString(x + 30, y + 20, textColor,
+				"SLOT %d", i + 1);
 
 			SaveData summary;
 			if (LoadSaveSummary(i, &summary))
@@ -319,7 +328,9 @@ void DrawTitleScene()
 					"ステージ : %s", summary.stageName);
 
 				DrawFormatString(x + 200, y + 60, textColor,
-					"HP : %d / %d", summary.currentHP, summary.maxHP);
+					"HP : %d / %d",
+					summary.currentHP,
+					summary.maxHP);
 			}
 			else
 			{
@@ -361,7 +372,7 @@ void DrawTitleScene()
 	if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
 	{
 		const char* guide1 = "SPACE : 決定";
-		const char* guide2 = "ESC   : 戻る";
+		const char* guide2 = "A   : 戻る";
 
 		int colorKey = GetColor(255, 255, 255);
 		int colorText = GetColor(150, 150, 150);
@@ -370,10 +381,10 @@ void DrawTitleScene()
 		int w1 = GetDrawStringWidth(guide1, strlen(guide1));
 		int w2 = GetDrawStringWidth(guide2, strlen(guide2));
 
-		int x1 = SCREEN_WIDTH - w1 - 30;
-		int x2 = SCREEN_WIDTH - w2 - 30;
+		int x1 = SCREEN_WIDTH - w1 + 300;
+		int x2 = SCREEN_WIDTH - w2 + 300;
 
-		int y2 = SCREEN_HEIGHT - 30;
+		int y2 = SCREEN_HEIGHT + 150;
 		int y1 = y2 - 25;
 
 		// 少し透明にするんやな
