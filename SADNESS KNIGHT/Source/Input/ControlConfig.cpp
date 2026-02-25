@@ -29,7 +29,7 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_DODGE].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LSHIFT };  // SHIFTÉLÅ[Ç…ïœçX
     m_Binds[KEY_HEAL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_TAB };
     m_Binds[KEY_MENU].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_ESCAPE };
-    m_Binds[KEY_CANCEL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_ESCAPE };
+    m_Binds[KEY_CANCEL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_A };
     m_Binds[KEY_INVENTORY].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_S };
 
     // =====================

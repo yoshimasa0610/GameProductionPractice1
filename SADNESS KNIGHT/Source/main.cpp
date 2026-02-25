@@ -4,6 +4,7 @@
 #include "Input/Input.h"
 #include "Scene/SceneManager.h"
 #include "Scene/Title/Title.h"
+#include "FPS/FPS.h"
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
@@ -39,7 +40,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
         // ì¸óÕçXêV
         UpdateInput();
-
 
         SceneManagerUpdate();
        
