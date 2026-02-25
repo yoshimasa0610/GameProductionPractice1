@@ -11,6 +11,7 @@
 #include "../../Player/Player.h"
 #include "../../Sound/Sound.h"
 #include "../../Item/Item.h"
+#include "../../Overlay/Option/Option.h"
 
 #define TITLE_POS_X 280
 #define TITLE_POS_Y 130
@@ -278,9 +279,7 @@ void DrawTitleScene()
 		{
 			int y = MENU_POS_Y + i * MENU_INTERVAL;
 
-			int color = (i == g_SelectedMenu)
-				? GetColor(255, 255, 0)
-				: GetColor(255, 255, 255);
+			int color = (i == g_SelectedMenu)? GetColor(255, 255, 0): GetColor(255, 255, 255);
 
 			DrawString(MENU_POS_X, y, g_MenuItems[i], color);
 		}
@@ -292,10 +291,7 @@ void DrawTitleScene()
 		int offsetX = 150;
 
 		int titleW = GetDrawStringWidth("データ選択", strlen("データ選択"));
-		DrawString((SCREEN_WIDTH - titleW) / 2 + offsetX,
-			120,
-			"データ選択",
-			GetColor(255, 255, 255));
+		DrawString((SCREEN_WIDTH - titleW) / 2 + offsetX,120,"データ選択",GetColor(255, 255, 255));
 
 		for (int i = 0; i < SAVE_SLOT_MAX; i++)
 		{
@@ -308,34 +304,24 @@ void DrawTitleScene()
 
 			int y = 200 + i * SLOT_SPACING;
 
-			int frameColor = selected
-				? GetColor(255, 255, 255)
-				: GetColor(80, 80, 80);
+			int frameColor = selected? GetColor(255, 255, 255): GetColor(80, 80, 80);
 
 			DrawBox(x, y, x + width, y + height, frameColor, FALSE);
 
-			int textColor = selected
-				? GetColor(255, 255, 255)
-				: GetColor(150, 150, 150);
+			int textColor = selected? GetColor(255, 255, 255): GetColor(150, 150, 150);
 
-			DrawFormatString(x + 30, y + 20, textColor,
-				"SLOT %d", i + 1);
+			DrawFormatString(x + 30, y + 20, textColor,"SLOT %d", i + 1);
 
 			SaveData summary;
 			if (LoadSaveSummary(i, &summary))
 			{
-				DrawFormatString(x + 200, y + 25, textColor,
-					"ステージ : %s", summary.stageName);
+				DrawFormatString(x + 200, y + 25, textColor,"ステージ : %s", summary.stageName);
 
-				DrawFormatString(x + 200, y + 60, textColor,
-					"HP : %d / %d",
-					summary.currentHP,
-					summary.maxHP);
+				DrawFormatString(x + 200, y + 60, textColor,"HP : %d / %d",summary.currentHP,summary.maxHP);
 			}
 			else
 			{
-				DrawString(x + 200, y + 45,
-					"新規作成", textColor);
+				DrawString(x + 200, y + 45,"新規作成", textColor);
 			}
 		}
 	}
@@ -343,32 +329,40 @@ void DrawTitleScene()
 	// 上書き確認
 	else if (g_TitleState == TitleState::ConfirmOverwrite)
 	{
+		int offsetX = 150;
+		int offsetY = 80;
+
 		int boxW = 600;
 		int boxH = 200;
 
-		int x = (SCREEN_WIDTH - boxW) / 2;
-		int y = (SCREEN_HEIGHT - boxH) / 2;
+		int x = (SCREEN_WIDTH - boxW) / 2 + offsetX;
+		int y = (SCREEN_HEIGHT - boxH) / 2 + offsetY;
 
-		DrawBox(x, y, x + boxW, y + boxH,
-			GetColor(255, 255, 255), FALSE);
+		DrawBox(x, y, x + boxW, y + boxH,GetColor(255, 255, 255), FALSE);
 
-		DrawString(x + 120, y + 40,
-			"セーブデータを上書きしますか？",
-			GetColor(255, 255, 255));
+		const char* msg = "セーブデータを上書きしますか？";int msgW = GetDrawStringWidth(msg, strlen(msg));
 
-		int yesColor = (g_ConfirmIndex == 0)
-			? GetColor(255, 255, 0)
-			: GetColor(255, 255, 255);
+		DrawString(x + (boxW - msgW) / 2,y + 40,msg,GetColor(255, 255, 255));
 
-		int noColor = (g_ConfirmIndex == 1)
-			? GetColor(255, 255, 0)
-			: GetColor(255, 255, 255);
+		int yesColor = (g_ConfirmIndex == 0)? GetColor(255, 255, 0): GetColor(255, 255, 255);
 
-		DrawString(x + 200, y + 120, "はい", yesColor);
-		DrawString(x + 320, y + 120, "いいえ", noColor);
+		int noColor = (g_ConfirmIndex == 1)? GetColor(255, 255, 0): GetColor(255, 255, 255);
+
+		const char* yes = "はい";
+		const char* no = "いいえ";
+
+		int yesW = GetDrawStringWidth(yes, strlen(yes));
+		int noW = GetDrawStringWidth(no, strlen(no));
+
+		int buttonSpacing = 100;
+
+		int centerX = x + boxW / 2;
+
+		DrawString(centerX - buttonSpacing - yesW / 2,y + 120,yes,yesColor);
+
+		DrawString(centerX + buttonSpacing - noW / 2,y + 120,no,noColor);
 	}
 
-// 操作ガイド（スロット画面のみ）
 	if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
 	{
 		const char* guide1 = "SPACE : 決定";
@@ -387,13 +381,19 @@ void DrawTitleScene()
 		int y2 = SCREEN_HEIGHT + 150;
 		int y1 = y2 - 25;
 
-		// 少し透明にするんやな
+		// 少し透明にするんやな。どうすんの？真希ちゃん
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 200);
 
 		DrawString(x1, y1, guide1, colorText);
 		DrawString(x2, y2, guide2, colorText);
 
 		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
+
+	// オプション描画
+	if (IsOptionOpen())
+	{
+		DrawOption();
 	}
 }
 
