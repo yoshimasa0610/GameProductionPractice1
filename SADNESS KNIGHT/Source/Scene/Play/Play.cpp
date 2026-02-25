@@ -35,6 +35,8 @@ void InitPlayScene()
 {
 	InitMoneyDrops();
 	InitMoneyPopup();
+	// プレイヤー初期化（画面中央、地面より少し上）
+	InitPlayer(400.0f, 500.0f);
 }
 
 void LoadPlayScene()
@@ -215,7 +217,7 @@ void UpdatePlayScene()
 	if (g_IsPaused) return; // ポーズ中は更新を止める
 
 	// プレイヤー更新とか
-
+	UpdatePlayer();
 	UpdateFade();
 }
 
@@ -231,6 +233,8 @@ void DrawPlayScene()
 	DrawMapOutsideMask();
 	DrawForeground();
 
+	// プレイヤー描画
+	DrawPlayer();
 	g_MoneyManager.Draw();
 	DrawMoneyPopup();
 

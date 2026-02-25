@@ -2,6 +2,9 @@
 #include "GameSetting/GameSetting.h"
 #include "Player/Player.h"
 #include "Input/Input.h"
+#include "Scene/SceneManager.h"
+#include "Scene/Title/Title.h"
+#include "FPS/FPS.h"
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
@@ -10,9 +13,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
     // 画面サイズ設定
     SetGraphMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_COLOR_DEPTH);
-
-    // ウィンドウタイトル
-    SetMainWindowText("SADNESS KNIGHT - Player Test");
 
     // DXライブラリ初期化
     if (DxLib_Init() == -1)
@@ -27,9 +27,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
     // 入力システム初期化
     InitInput();
 
-    // プレイヤー初期化（画面中央、地面より少し上）
-    InitPlayer(400.0f, 500.0f);
-    LoadPlayer();
+
 
     // メインループ
     while (ProcessMessage() == 0)
@@ -42,6 +40,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
         // 入力更新
         UpdateInput();
+
+        SceneManagerUpdate();
+       
 
         // テスト用: Uキーで二段ジャンプを解放
         if (CheckHitKey(KEY_INPUT_U) == 1)

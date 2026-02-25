@@ -6,12 +6,14 @@ static int g_InputState = 0;
 static int g_PrevInputState = 0;
 // 決定後一部部分でそのまま適用されるケースがあるため、追加
 static int g_OKGuardTimer = 0;
+static int g_InputFrame = 0;
 
 void InitInput()
 {
     g_InputState = 0;
     g_PrevInputState = 0;
     g_OKGuardTimer = 0;
+    g_InputFrame = 0;
 
     ControlConfig::InitDefault();
 }
@@ -20,6 +22,7 @@ void UpdateInput()
 {
     g_PrevInputState = g_InputState;
     g_InputState = 0;
+    g_InputFrame++;
 
     if (g_OKGuardTimer > 0)
         g_OKGuardTimer--;
@@ -33,6 +36,14 @@ void UpdateInput()
             g_InputState |= key;
         }
     }
+}
+
+void ResetInput()
+{
+    g_InputState = 0;
+    g_PrevInputState = 0;
+    g_OKGuardTimer = 0;
+    g_InputFrame = 0;
 }
 
 bool IsInputKey(InputKey key)
@@ -57,4 +68,9 @@ bool IsInputOKGuarded()
         return true;
     }
     return false;
+}
+
+int GetInputFrame()
+{
+    return g_InputFrame;
 }
