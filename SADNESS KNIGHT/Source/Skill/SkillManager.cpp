@@ -14,7 +14,7 @@ void SkillManager::AddSkill(const SkillData& data, PlayerData* player)
 {
     auto skill = std::make_shared<Skill>(data);
 
-    // ★Follow弾薬消費コールバック
+    // Follow弾薬消費コールバック
     skill->SetConsumeCallback(
         [this](int id)
         {
