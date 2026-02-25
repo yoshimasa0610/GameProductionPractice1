@@ -10,12 +10,13 @@
 // プレイヤーのパラメータ定数
 namespace
 {
-    const float MOVE_SPEED = 5.0f;          // 移動速度
-    const float JUMP_POWER = 15.0f;         // ジャンプ力
-    const float GRAVITY = 0.8f;             // 重力
-    const float MAX_FALL_SPEED = 20.0f;     // 最大落下速度
+    const float MOVE_SPEED = 3.5f;          // 移動速度
+    const float JUMP_POWER = 10.5f;         // ジャンプ力
+    const float GRAVITY = 0.3f;             // 重力
+    const float MAX_FALL_SPEED = 6.0f;      // 最大落下速度
     const int MAX_JUMP_COUNT = 2;           // 最大ジャンプ回数（二段ジャンプ）
     const float GROUND_Y = 700.0f;          // 地面のY座標（画面下に近い位置）
+    const float GROUND_EPSILON = 0.5f;      // 地面判定の許容誤差
     const float DODGE_DISTANCE = 80.0f;     // 回避ダッシュ距離
     const int DODGE_COOLDOWN = 30;          // 回避クールダウン（フレーム）
 }
@@ -55,6 +56,7 @@ namespace
     int currentMoveDir = 0;
 
     bool prevIsGrounded = false;
+    int lastJumpInputFrame = -1;
 }
 
 // 内部関数の宣言
@@ -141,12 +143,12 @@ void LoadPlayer()
     bool idleLoaded = LoadAnimationFromSheet(idleAnim, "Data/Player/Idle.png", 10, 46, 55, 8, AnimationMode::Loop);
     (void)idleLoaded;
 
-    bool runLoaded = LoadAnimationAuto(walkAnim, "Data/Player/Run.png", 65, 48, 6, AnimationMode::Loop);
+    bool runLoaded = LoadAnimationAuto(walkAnim, "Data/Player/Run.png", 65, 48, 8, AnimationMode::Loop);
     (void)runLoaded;
 
     if (FileExists("Data/Player/Run_Start.png"))
     {
-        bool runStartLoaded = LoadAnimationAuto(runStartAnim, "Data/Player/Run_Start.png", 59, 53, 6, AnimationMode::Once);
+        bool runStartLoaded = LoadAnimationAuto(runStartAnim, "Data/Player/Run_Start.png", 59, 53, 8, AnimationMode::Once);
         (void)runStartLoaded;
     }
     else
@@ -158,7 +160,7 @@ void LoadPlayer()
     {
         // 252x212 / 4x4 = 16コマ中、15コマだけ使用
         bool runStopLoaded = LoadAnimationFromSheetRange(runStopAnim, "Data/Player/Run_Stop.png",
-            16, 0, 15, 63, 53, 6, AnimationMode::Once);
+            16, 0, 15, 63, 53, 8, AnimationMode::Once);
         (void)runStopLoaded;
     }
     else
@@ -170,11 +172,11 @@ void LoadPlayer()
     if (FileExists("Data/Player/Jump.png"))
     {
         bool jumpLoaded = LoadAnimationFromSheetRange(jumpAnim, "Data/Player/Jump.png",
-            24, 0, 13, 64, 80, 3, AnimationMode::Once);
+            24, 0, 13, 64, 80, 4, AnimationMode::Once);
         bool fallLoaded = LoadAnimationFromSheetRange(fallAnim, "Data/Player/Jump.png",
-            24, 13, 7, 64, 80, 4, AnimationMode::Loop);
+            24, 13, 7, 64, 80, 5, AnimationMode::Loop);
         bool landLoaded = LoadAnimationFromSheetRange(landAnim, "Data/Player/Jump.png",
-            24, 20, 4, 64, 80, 3, AnimationMode::Once);
+            24, 20, 4, 64, 80, 4, AnimationMode::Once);
         
         // デバッグ: ロード結果を表示
         printfDx("Jump anim loaded: %d, frames=%d\n", jumpLoaded, jumpAnim.frameCount);
@@ -197,7 +199,7 @@ void LoadPlayer()
     if (FileExists("Data/Player/healing_merged.png"))
     {
         bool healLoaded = LoadAnimationAuto(healingAnim, "Data/Player/healing_merged.png",
-            97, 81, 6, AnimationMode::Once);
+            97, 81, 8, AnimationMode::Once);
         printfDx("Healing anim loaded: %d, frames=%d\n", healLoaded, healingAnim.frameCount);
         (void)healLoaded;
     }
@@ -213,7 +215,7 @@ void LoadPlayer()
         // 624 / 6 = 104px per frame, 100 / 2 = 50px per row
         // 上の6フレーム（インデックス0-5）のみ使用
         bool dodgeLoaded = LoadAnimationFromSheetRange(dodgeAnim, "Data/Player/aerial dash.png",
-            12, 0, 6, 104, 50, 3, AnimationMode::Once);
+            12, 0, 6, 104, 50, 4, AnimationMode::Once);
         printfDx("Dodge anim loaded: %d, frames=%d\n", dodgeLoaded, dodgeAnim.frameCount);
         (void)dodgeLoaded;
     }
@@ -248,6 +250,7 @@ void UpdatePlayer()
     {
         return;
     }
+
     // 前フレームの位置を保存（衝突処理などで必要）
     playerData.prevPosX = playerData.posX;
     playerData.prevPosY = playerData.posY;
@@ -264,7 +267,7 @@ void UpdatePlayer()
     if (playerData.showDashEffect)
     {
         UpdateAnimation(dashEffectAnim);
-        
+
         // エフェクトアニメーションが終了したら非表示にする
         if (IsAnimationFinished(dashEffectAnim))
         {
@@ -670,12 +673,31 @@ namespace
             return;
         }
 
-        // 回復中は移動入力を完全に無効化
+        // 回復中の処理
+        bool wasHealing = false;
         if (playerData.state == PlayerState::Healing)
         {
             playerData.velocityX = 0.0f;
             currentMoveDir = 0;  // 入力状態もクリア
-            return;
+
+            // 回復中にジャンプキーが押されたらキャンセル
+            if (IsTriggerKey(KEY_JUMP))
+            {
+                playerData.state = PlayerState::Idle;
+                playerData.healExecuted = false;
+                wasHealing = true;
+                // このまま処理を続行してジャンプを実行
+            }
+            else
+            {
+                return;  // ジャンプキー以外の入力は無視
+            }
+        }
+
+        if (std::fabs(playerData.velocityY) < 0.001f && playerData.posY >= GROUND_Y - GROUND_EPSILON)
+        {
+            playerData.isGrounded = true;
+            playerData.jumpCount = 0;
         }
 
         currentMoveDir = 0;
@@ -780,10 +802,11 @@ namespace
         // 衝突解決（ブロックなどと干渉していればここで押し出し等が行われる）
         ResolveCollisions();
 
-        if (playerData.posY >= GROUND_Y)
+        if (playerData.posY >= GROUND_Y - GROUND_EPSILON)
         {
             playerData.posY = GROUND_Y;
             playerData.velocityY = 0.0f;
+
             playerData.isGrounded = true;
             playerData.jumpCount = 0;
         }
@@ -846,25 +869,6 @@ namespace
         // 回復中の処理
         if (playerData.state == PlayerState::Healing)
         {
-            // ジャンプキーのトリガー入力があればキャンセルしてジャンプ
-            if (IsTriggerKey(KEY_JUMP))
-            {
-                printfDx("回復キャンセル: ジャンプ入力\n");
-                
-                // キャンセル時は入力をクリア
-                playerData.velocityX = 0.0f;
-                currentMoveDir = 0;
-                
-                playerData.state = PlayerState::Idle;
-                playerData.healExecuted = false;
-                
-                // 即座にジャンプ実行
-                ExecuteJump();
-                
-                prevIsGrounded = playerData.isGrounded;
-                return;
-            }
-            
             // 移動キーのトリガー入力（新しい入力）があればキャンセル
             if (IsTriggerKey(KEY_LEFT) || IsTriggerKey(KEY_RIGHT))
             {
@@ -1089,15 +1093,30 @@ namespace
     // ジャンプに関する処理
     void ExecuteJump()
     {
+        const int inputFrame = GetInputFrame();
+        if (lastJumpInputFrame == inputFrame)
+        {
+            return;
+        }
+
+        // 地上判定が微妙なときの保険（静止かつ地面付近なら地上扱い）
+        if (playerData.isGrounded ||
+            (std::fabs(playerData.velocityY) < 0.001f && playerData.posY >= GROUND_Y - GROUND_EPSILON))
+        {
+            playerData.jumpCount = 0;
+            playerData.isGrounded = true;
+        }
+
         // 二段ジャンプが解放されている場合はMAX_JUMP_COUNT、そうでない場合は1
         int maxJumps = playerData.hasDoubleJump ? MAX_JUMP_COUNT : 1;
-        
+
         if (playerData.jumpCount < maxJumps)
         {
             playerData.velocityY = -JUMP_POWER;
             playerData.isGrounded = false;
             playerData.jumpCount++;
-            
+            lastJumpInputFrame = inputFrame;
+
             // ジャンプアニメーションをリセット
             ResetAnimation(jumpAnim);
         }
