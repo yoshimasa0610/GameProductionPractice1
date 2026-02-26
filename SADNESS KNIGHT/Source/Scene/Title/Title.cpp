@@ -12,6 +12,7 @@
 #include "../../Sound/Sound.h"
 #include "../../Item/Item.h"
 #include "../../Overlay/Option/Option.h"
+#include "../../Animation/Animation.h"
 
 #define TITLE_POS_X 280
 #define TITLE_POS_Y 130
@@ -39,6 +40,8 @@ static bool g_SaveSlotExists[SAVE_SLOT_MAX];
 // âÊëú
 static int g_BGHandle = -1;
 static int g_TitleHandle = -1;
+
+static int g_FrameHandle = -1;
 
 // èâä˙âª
 const char* g_MenuItems[] =
@@ -279,9 +282,21 @@ void DrawTitleScene()
 		{
 			int y = MENU_POS_Y + i * MENU_INTERVAL;
 
-			int color = (i == g_SelectedMenu)? GetColor(255, 255, 0): GetColor(255, 255, 255);
+			const char* text = g_MenuItems[i];
 
-			DrawString(MENU_POS_X, y, g_MenuItems[i], color);
+			// èÌÇ…îíï∂éö
+			int color = GetColor(255, 255, 255);
+
+			int cornerHandle[4];
+
+			if (i == g_SelectedMenu)
+			{
+				DrawFormatString(MENU_POS_X,y,color,"[ %s ]",text);
+			}
+			else
+			{
+				DrawString(MENU_POS_X, y, text, color);
+			}
 		}
 	}
 
