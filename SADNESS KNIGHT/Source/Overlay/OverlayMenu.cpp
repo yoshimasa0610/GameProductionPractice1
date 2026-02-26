@@ -2,18 +2,18 @@
 #include "../Overlay/Equip/EquipMenu.h"
 #include "../Input/Input.h"
 #include "../Overlay/SkillMenu/SkillMenu.h"
+#include "../Scene/Play/Play.h"
 
 static OverlayTab g_CurrentTab = OverlayTab::Equip;
 static PlayerData* g_PlayerRef = nullptr;
-
-bool g_IsOverlayOpen = false;
+static bool g_IsOverlayOpen = false;
 
 void OpenOverlayMenu(PlayerData* player)
 {
     g_IsOverlayOpen = true;
     g_PlayerRef = player;
     g_CurrentTab = OverlayTab::Equip;
-
+    SetPaused(true);
     // Equipタブ開始
     SetEquipMenuPlayer(player);
 }
@@ -21,19 +21,46 @@ void OpenOverlayMenu(PlayerData* player)
 void CloseOverlayMenu()
 {
     g_IsOverlayOpen = false;
+    SetPaused(false);
 }
+
+static void OnTabChanged()
+{
+    switch (g_CurrentTab)
+    {
+    case OverlayTab::Equip:
+        OpenEquipMenu(g_PlayerRef);
+        break;
+
+    case OverlayTab::Skill:
+        OpenSkillMenu(g_PlayerRef);
+        break;
+    }
+}
+
 // 次のタブに移動
 void NextOverlayTab()
 {
-    if (g_CurrentTab == OverlayTab::Equip)
-        g_CurrentTab = OverlayTab::Skill;
-    else
-        g_CurrentTab = OverlayTab::Equip;
+    int index = (int)g_CurrentTab;
+    index++;
+    if (index >= (int)OverlayTab::Count)
+        index = 0;
+
+    g_CurrentTab = (OverlayTab)index;
+
+    OnTabChanged();
 }
-// 前のタブに移動（今回はタブが2つしかないのでNextと同じ）
+
 void PrevOverlayTab()
 {
-    NextOverlayTab();
+    int index = (int)g_CurrentTab;
+    index--;
+    if (index < 0)
+        index = (int)OverlayTab::Count - 1;
+
+    g_CurrentTab = (OverlayTab)index;
+
+    OnTabChanged();
 }
 // オーバーレイメニューの更新
 void UpdateOverlayMenu()
@@ -65,9 +92,33 @@ void UpdateOverlayMenu()
     }
 }
 
+static void DrawOverlayTabs()
+{
+    int x = 100;
+    int y = 40;
+
+    const char* names[] =
+    {
+        "Equip",
+        "Skill"
+    };
+
+    for (int i = 0; i < (int)OverlayTab::Count; i++)
+    {
+        int color =
+            (i == (int)g_CurrentTab)
+            ? GetColor(255, 255, 0)
+            : GetColor(180, 180, 180);
+
+        DrawString(x + i * 140, y, names[i], color);
+    }
+}
+
 void DrawOverlayMenu()
 {
     if (!g_IsOverlayOpen) return;
+
+    DrawOverlayTabs();
 
     switch (g_CurrentTab)
     {
@@ -79,4 +130,9 @@ void DrawOverlayMenu()
         DrawSkillMenuScene();
         break;
     }
+}
+
+bool IsOverlayOpen()
+{
+    return g_IsOverlayOpen;
 }

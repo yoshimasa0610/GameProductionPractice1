@@ -78,6 +78,17 @@ void SetEquipMenuPlayer(PlayerData* player)
     g_PlayerRef = player;
 }
 
+void OpenEquipMenu(PlayerData* player)
+{
+    g_PlayerRef = player;
+    g_SelectedIndex = 0;
+    g_MessageTimer = 0;
+    g_Message.clear();
+
+    SetEquipMode(true);
+}
+
+
 void LoadEquipMenuScene()
 {
     // リソース読み込み等があればここに
@@ -107,9 +118,6 @@ static void BuildOwnedIndexList(const std::vector<std::unique_ptr<Item>>& items,
 
 void UpdateEquipMenuScene()
 {
-    if (!g_IsOverlayOpen)
-        return;
-
     const auto& items = g_ItemManager.GetAllItems();
 
     if (items.empty())
@@ -122,12 +130,6 @@ void UpdateEquipMenuScene()
 
     if (ownedIndices.empty()) {
         g_SelectedIndex = 0;
-        // 閉じる入力だけは受け付ける
-        if (IsTriggerKey(KEY_CANCEL))
-        {
-            SetPaused(false);
-            //CloseEquipMenu();
-        }
         return;
         // 閉じるか表示だけにするかは実装次第。ここでは何もしない。
     }
@@ -141,14 +143,13 @@ void UpdateEquipMenuScene()
     // 範囲クランプ
     if (g_SelectedIndex < 0) g_SelectedIndex = 0;
     if ((size_t)g_SelectedIndex >= ownedIndices.size()) g_SelectedIndex = (int)ownedIndices.size() - 1;
-
+    /*
     // 閉じる（Esc / KEY_CANCEL）
     if (IsTriggerKey(KEY_CANCEL))
     {
-        SetPaused(false);
-        //CloseEquipMenu();
+        CloseOverlayMenu();
         return;
-    }
+    }*/
 
     // メッセージタイマー
     if (g_MessageTimer > 0) g_MessageTimer--;
@@ -217,9 +218,6 @@ void UpdateEquipMenuScene()
 
 void DrawEquipMenuScene()
 {
-    if (!g_IsOverlayOpen)
-        return;
-
     const auto& items = g_ItemManager.GetAllItems();
 
     for (size_t i = 0; i < items.size(); ++i)

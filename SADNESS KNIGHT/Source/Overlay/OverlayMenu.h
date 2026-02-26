@@ -6,9 +6,13 @@ enum class OverlayTab
 {
     Equip = 0,
     Skill,
-};
+    // «—ˆ—p
+    // Status,
+    // Map,
 
-extern bool g_IsOverlayOpen;
+    Count
+};
+bool IsOverlayOpen();
 
 // ŠJ•Â
 void OpenOverlayMenu(PlayerData* player);

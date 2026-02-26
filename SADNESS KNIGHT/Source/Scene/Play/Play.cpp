@@ -5,7 +5,6 @@
 #include "../../Camera/Camera.h"
 #include "../../Collision/Collision.h"
 #include "../../Input/Input.h"
-#include "../../Overlay/Equip/EquipMenu.h"
 #include "../../UIImage/UIImage.h"
 #include "../../Map/StageManager.h"
 #include "../../Map/Checkpoint/CheckpointManager.h"
@@ -97,6 +96,8 @@ void StepPlayScene()
 {
 	if (g_IsPaused) return; // ポーズ中は進行を止める
 
+	if (IsOverlayOpen()) return;
+
 	float deltaTime = 1.0f / 60.0f;
 	g_ElapsedTime += deltaTime;
 
@@ -179,7 +180,7 @@ void UpdatePlayScene()
 		return;
 	}
 
-	if (g_IsOverlayOpen)
+	if (IsOverlayOpen())
 	{
 		UpdateOverlayMenu();
 		return;
@@ -242,7 +243,7 @@ void DrawPlayScene()
 		DrawMenu();
 	}
 
-	if (g_IsOverlayOpen)
+	if (IsOverlayOpen())
 	{
 		DrawOverlayMenu();
 	}
