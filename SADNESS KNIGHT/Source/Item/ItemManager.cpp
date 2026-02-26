@@ -108,8 +108,6 @@ int ItemManager::GetUsedSlots() const
     return sum;
 }
 
-//Playerが進んでいないのでコメントアウト中
-
 int ItemManager::GetPlayerMaxSlots(const PlayerData* player) const
 {
     // player->baseSlot を参照して装備による addMaxSlot を加える

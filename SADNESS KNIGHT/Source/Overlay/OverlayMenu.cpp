@@ -6,7 +6,9 @@
 
 static OverlayTab g_CurrentTab = OverlayTab::Equip;
 static PlayerData* g_PlayerRef = nullptr;
-static bool g_IsOverlayOpen = false;
+bool g_IsOverlayOpen = false;
+// 前方宣言
+static void OnTabChanged();
 
 void OpenOverlayMenu(PlayerData* player)
 {
@@ -15,7 +17,7 @@ void OpenOverlayMenu(PlayerData* player)
     g_CurrentTab = OverlayTab::Equip;
     SetPaused(true);
     // Equipタブ開始
-    SetEquipMenuPlayer(player);
+    OnTabChanged();
 }
 
 void CloseOverlayMenu()
@@ -66,7 +68,6 @@ void PrevOverlayTab()
 void UpdateOverlayMenu()
 {
     if (!g_IsOverlayOpen) return;
-
         if (IsTriggerKey(KEY_CANCEL))
     {
         CloseOverlayMenu();
