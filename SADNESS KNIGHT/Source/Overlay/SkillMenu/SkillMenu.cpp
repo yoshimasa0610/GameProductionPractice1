@@ -19,7 +19,7 @@ static PlayerData* g_Player = nullptr;
 static int g_SelectedSlot = 0;
 static int g_SelectedSkillIndex = 0;
 static int g_EditSet = 0;
-
+// スキルメニューを開く
 void OpenSkillMenu(PlayerData* player)
 {
     g_Player = player;
@@ -28,14 +28,14 @@ void OpenSkillMenu(PlayerData* player)
     g_SelectedSkillIndex = 0;
     g_EditSet = g_SkillManager.GetCurrentSet();
 }
-
+// スキルIDのリストを作る
 static void BuildOwnedSkills(std::vector<int>& out)
 {
     out.clear();
     for (auto& s : g_SkillManager.GetSkills())
         out.push_back(s->GetID());
 }
-
+// スキルメニューの更新
 void UpdateSkillMenuScene()
 {
     if (!IsPlayerSitting()) return;

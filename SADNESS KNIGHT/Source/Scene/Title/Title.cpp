@@ -93,7 +93,7 @@ static void StartNewGame(int slot)
 
 	 data.maxHP = PLAYER_INIT_HP;
 
-	strcpy_s(data.stageName, "Forest_1");
+	strcpy_s(data.stageName, "forest_1");
 
 	SaveGame(&data, slot);
 

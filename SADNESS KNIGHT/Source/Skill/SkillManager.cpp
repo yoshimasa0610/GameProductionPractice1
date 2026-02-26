@@ -39,7 +39,7 @@ void SkillManager::AddSkill(const SkillData& data, PlayerData* player)
                 }
             }
         });
-
+	// スキルリストに追加
     m_ownedSkills.push_back(skill);
 
     int base = data.maxUseCount;
@@ -58,12 +58,12 @@ void SkillManager::EquipSkill(int setIndex, int slotIndex, int skillID)
 {
     m_equipSlots[setIndex][slotIndex] = skillID;
 }*/
-
+// セット切り替え
 void SkillManager::ChangeSet()
 {
     m_currentSet = 1 - m_currentSet;
 }
-
+// スキル使用
 void SkillManager::UseSkill(int slotIndex, PlayerData* player)
 {
     int skillID = m_equipSlots[m_currentSet][slotIndex];
@@ -107,10 +107,10 @@ void SkillManager::UseSkill(int slotIndex, PlayerData* player)
                     remain--;
             }
         }
-
+		// スキル発動
         skill->Activate(player);
 
-        // 
+		// 最後に使ったスキルID更新
         m_lastUsedSkillID = skillID;
 
         return;
@@ -143,17 +143,17 @@ void SkillManager::RecalculateUses(PlayerData* player)
         m_remainingUses[id] = (int)ceil(base * rate);
     }
 }
-
+// 装備スロットのスキルIDを取得
 int SkillManager::GetEquipSkill(int set, int slot) const
 {
     return m_equipSlots[set][slot];
 }
-
+// スキル外す
 void SkillManager::UnequipSkill(int set, int slot)
 {
     m_equipSlots[set][slot] = -1;
 }
-
+// スキル装備。重複チェックして古い方外す
 void SkillManager::EquipSkill(int setIndex, int slotIndex, int skillID)
 {
     // 同一セット内重複チェック

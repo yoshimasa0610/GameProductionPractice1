@@ -12,7 +12,7 @@ void SetEquipMenuPlayer(PlayerData* player);
 void InitEquipMenuScene();
 void LoadEquipMenuScene();
 void StartEquipMenuScene();
-void OpenEqipMenu(PlayerData* player);
+void OpenEquipMenu(PlayerData* player);
 void StepEquipMenuScene();
 void UpdateEquipMenuScene();
 void DrawEquipMenuScene();

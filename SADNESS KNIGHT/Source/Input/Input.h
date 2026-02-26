@@ -1,7 +1,7 @@
 #pragma once
 #include "DxLib.h"
 
-#define ACTION_MAX 15
+#define ACTION_MAX 20
 // 入力ボタン定義（ゲーム側はこれしか使わない）
 enum InputKey
 {
@@ -19,8 +19,12 @@ enum InputKey
     KEY_HEAL = (1 << 10), // 回復(残機回復)
     KEY_MENU = (1 << 11), // メニュー
     KEY_INVENTORY = (1 << 12), // インベントリ
-    KEY_OK = ((1 << 13)),//決定!!!!
-    KEY_CANCEL = ((1 << 14))//メニューなどの戻る
+    KEY_OK = ((1 << 13)),  //決定!!!!
+    KEY_CANCEL = ((1 << 14)),  //メニューなどの戻る
+    KEY_UI_LEFT = ((1 << 15)), //UI用のキーなぜか上記のKEY_LEFTと一緒にしたらクラッシュしたので
+    KEY_UI_RIGHT = ((1 << 16)),//こういう感じにしております
+    KEY_UI_UP = ((1 << 17)),
+    KEY_UI_DOWN = ((1 << 18)),
 };
 
 // プロトタイプ宣言
