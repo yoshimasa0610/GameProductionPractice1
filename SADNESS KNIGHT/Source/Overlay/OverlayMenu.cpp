@@ -116,8 +116,8 @@ static void DrawOverlayTabs()
 {
     OverlayArea area = GetOverlayContentArea();
 
-    int x = area.x + 20;
-    int y = area.y - 60;
+    int x = area.x + area.w / 2 - 160;
+    int y = area.y - 140;
 
     const char* names[] =
     {
@@ -167,15 +167,21 @@ OverlayArea GetOverlayContentArea()
     int w, h;
     GetScreenState(&w, &h, nullptr);
 
-    OverlayArea area;
+    const int panelW = 1200;
+    const int panelH = 700;
 
-    const int margin = 40;
     const int tabHeight = 80;
 
-    area.x = margin;
-    area.y = margin + tabHeight;
-    area.w = w - margin * 2;
-    area.h = h - area.y - margin;
+    OverlayArea area;
+
+    // 中央配置
+    int panelX = (w - panelW) / 2;
+    int panelY = (h - panelH) / 2;
+
+    area.x = panelX;
+    area.y = panelY + tabHeight;
+    area.w = panelW;
+    area.h = panelH - tabHeight;
 
     return area;
 }
@@ -186,7 +192,7 @@ static void DrawOverlayBackground()
     GetScreenState(&w, &h, nullptr);
 
     // 灰色半透明（Playが見える）
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 140);
+    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 220);
     DrawBox(0, 0, w, h, GetColor(40, 40, 40), TRUE);
     SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 }
