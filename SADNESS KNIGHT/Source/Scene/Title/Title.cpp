@@ -41,7 +41,7 @@ static bool g_SaveSlotExists[SAVE_SLOT_MAX];
 static int g_BGHandle = -1;
 static int g_TitleHandle = -1;
 
-static int g_FrameHandle = -1;
+static int g_SelectFrameHandle = -1;
 
 // 初期化
 const char* g_MenuItems[] =
@@ -49,7 +49,7 @@ const char* g_MenuItems[] =
 	"はじめから",
 	"つづきから",
 	"オプション",
-	"ゲームを終了する"
+	"ゲーム終了"
 };
 
 static const int g_MenuCount =
@@ -71,6 +71,8 @@ void LoadTitleScene()
 {
 	g_BGHandle = LoadGraph("Data/Title/TitleBG.png");
 	g_TitleHandle = LoadGraph("Data/Title/TitleText.png");
+
+	g_SelectFrameHandle = LoadGraph("Data/UI/UI_Elements01.png");
 }
 
 void StartTitleScene()
@@ -281,21 +283,51 @@ void DrawTitleScene()
 		for (int i = 0; i < g_MenuCount; i++)
 		{
 			int y = MENU_POS_Y + i * MENU_INTERVAL;
+			int x = MENU_POS_X;
 
-			const char* text = g_MenuItems[i];
-
-			// 常に白文字
-			int color = GetColor(255, 255, 255);
-
-			int cornerHandle[4];
+			DrawString(x, y, g_MenuItems[i], GetColor(255, 255, 255));
 
 			if (i == g_SelectedMenu)
 			{
-				DrawFormatString(MENU_POS_X,y,color,"[ %s ]",text);
-			}
-			else
-			{
-				DrawString(MENU_POS_X, y, text, color);
+				int textWidth = GetDrawStringWidth(
+					g_MenuItems[i],
+					strlen(g_MenuItems[i])
+				);
+
+				int paddingX = 40;
+				int paddingY = 20;
+
+				int textLeft = x - textWidth / 8;
+
+				int frameW = textWidth + paddingX * 2;
+
+				int frameX = textLeft - paddingX;
+
+				int frameY = y - paddingY;
+
+				int drawH = 60;
+
+				DrawRectExtendGraph(
+					frameX,
+					frameY,
+					frameX + 90,
+					frameY + drawH,
+					0, 95,
+					90, 85,
+					g_SelectFrameHandle,
+					TRUE
+				);
+
+				DrawRectExtendGraph(
+					frameX + frameW - 45,
+					frameY,
+					frameX + frameW,
+					frameY + drawH,
+					280, 95,
+					45, 85,
+					g_SelectFrameHandle,
+					TRUE
+				);
 			}
 		}
 	}
