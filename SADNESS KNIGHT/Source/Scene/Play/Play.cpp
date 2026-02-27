@@ -96,8 +96,6 @@ void StepPlayScene()
 {
 	if (g_IsPaused) return; // ポーズ中は進行を止める
 
-	if (IsOverlayOpen()) return;
-
 	float deltaTime = 1.0f / 60.0f;
 	g_ElapsedTime += deltaTime;
 
@@ -217,6 +215,9 @@ void UpdatePlayScene()
 
 void DrawPlayScene()
 {
+	DrawFormatString(10, 10, GetColor(255, 0, 0),
+		"Overlay=%d", IsOverlayOpen());
+
 	DrawBackgroundFar();
 	DrawBackgroundMid();
 

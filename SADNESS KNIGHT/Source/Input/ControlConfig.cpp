@@ -21,8 +21,8 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_RIGHT };
     m_Binds[KEY_UI_UP].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_UP };
     m_Binds[KEY_UI_DOWN].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_DOWN };
-    m_Binds[KEY_UI_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LEFT };
-    m_Binds[KEY_UI_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_RIGHT };
+    m_Binds[KEY_UI_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Q };
+    m_Binds[KEY_UI_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_E };
 
     m_Binds[KEY_JUMP].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_SPACE };
     m_Binds[KEY_OK].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_SPACE };

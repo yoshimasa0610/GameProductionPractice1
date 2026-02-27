@@ -7,6 +7,10 @@
 static OverlayTab g_CurrentTab = OverlayTab::Equip;
 static PlayerData* g_PlayerRef = nullptr;
 static bool g_IsOverlayOpen = false;
+// 前方宣言
+static void OnTabChanged();
+OverlayArea GetOverlayContentArea();
+static void DrawOverlayBackground();
 
 void OpenOverlayMenu(PlayerData* player)
 {
@@ -15,17 +19,34 @@ void OpenOverlayMenu(PlayerData* player)
     g_CurrentTab = OverlayTab::Equip;
     SetPaused(true);
     // Equipタブ開始
-    SetEquipMenuPlayer(player);
+    OnTabChanged();
+}
+
+static void CloseCurrentTab()
+{
+    switch (g_CurrentTab)
+    {
+    case OverlayTab::Equip:
+        CloseEquipMenu();
+        break;
+
+    case OverlayTab::Skill:
+        // CloseSkillMenu(); ←あとで作る
+        break;
+    }
 }
 
 void CloseOverlayMenu()
 {
+    CloseCurrentTab();
     g_IsOverlayOpen = false;
     SetPaused(false);
 }
 
 static void OnTabChanged()
 {
+    CloseCurrentTab();   // ★追加
+
     switch (g_CurrentTab)
     {
     case OverlayTab::Equip:
@@ -66,7 +87,6 @@ void PrevOverlayTab()
 void UpdateOverlayMenu()
 {
     if (!g_IsOverlayOpen) return;
-
         if (IsTriggerKey(KEY_CANCEL))
     {
         CloseOverlayMenu();
@@ -94,12 +114,14 @@ void UpdateOverlayMenu()
 
 static void DrawOverlayTabs()
 {
-    int x = 100;
-    int y = 40;
+    OverlayArea area = GetOverlayContentArea();
+
+    int x = area.x + 20;
+    int y = area.y - 60;
 
     const char* names[] =
     {
-        "Equip",
+        "Relic",
         "Skill"
     };
 
@@ -110,7 +132,7 @@ static void DrawOverlayTabs()
             ? GetColor(255, 255, 0)
             : GetColor(180, 180, 180);
 
-        DrawString(x + i * 140, y, names[i], color);
+        DrawString(x + i * 160, y, names[i], color);
     }
 }
 
@@ -118,16 +140,19 @@ void DrawOverlayMenu()
 {
     if (!g_IsOverlayOpen) return;
 
-    DrawOverlayTabs();
+    DrawOverlayBackground();   // 背景
+    DrawOverlayTabs();         // 共通タブ
+
+    OverlayArea area = GetOverlayContentArea(); // 子用領域
 
     switch (g_CurrentTab)
     {
     case OverlayTab::Equip:
-        DrawEquipMenuScene();
+        DrawEquipMenuScene(area);
         break;
 
     case OverlayTab::Skill:
-        DrawSkillMenuScene();
+        DrawSkillMenuScene(area);
         break;
     }
 }
@@ -135,4 +160,33 @@ void DrawOverlayMenu()
 bool IsOverlayOpen()
 {
     return g_IsOverlayOpen;
+}
+
+OverlayArea GetOverlayContentArea()
+{
+    int w, h;
+    GetScreenState(&w, &h, nullptr);
+
+    OverlayArea area;
+
+    const int margin = 40;
+    const int tabHeight = 80;
+
+    area.x = margin;
+    area.y = margin + tabHeight;
+    area.w = w - margin * 2;
+    area.h = h - area.y - margin;
+
+    return area;
+}
+
+static void DrawOverlayBackground()
+{
+    int w, h;
+    GetScreenState(&w, &h, nullptr);
+
+    // 灰色半透明（Playが見える）
+    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 140);
+    DrawBox(0, 0, w, h, GetColor(40, 40, 40), TRUE);
+    SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 }

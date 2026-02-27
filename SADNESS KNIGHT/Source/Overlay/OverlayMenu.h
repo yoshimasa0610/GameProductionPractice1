@@ -12,6 +12,16 @@ enum class OverlayTab
 
     Count
 };
+
+struct OverlayArea
+{
+    int x;
+    int y;
+    int w;
+    int h;
+};
+OverlayArea GetOverlayContentArea();
+
 bool IsOverlayOpen();
 
 // ŠJ•Â
