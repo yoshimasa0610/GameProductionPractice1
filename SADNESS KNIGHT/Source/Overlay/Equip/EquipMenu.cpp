@@ -222,89 +222,44 @@ void UpdateEquipMenuScene()
     }
 }
 
-void DrawEquipMenuScene()
+void DrawEquipMenuScene(const OverlayArea& area)
 {
-    DrawFormatString(300, 50, GetColor(255, 255, 0), "ENTER Equip Draw");
     const auto& items = g_ItemManager.GetAllItems();
 
-    for (size_t i = 0; i < items.size(); ++i)
-    {
-        DrawFormatString(
-            10, 200 + i * 16,
-            GetColor(255, 255, 0),
-            "item[%d] id=%d owned=%d equipped=%d",
-            (int)i,
-            items[i]->id,
-            items[i]->ownedCount,
-            items[i]->isEquipped
-        );
-    }
-    if (items.empty()) return;
+    // ===== 基準 =====
+    const float uiScale = 1.2f;
 
-    // 所持アイテムインデックス
-    std::vector<int> ownedIndices;
-    BuildOwnedIndexList(items, ownedIndices);
-    DrawFormatString(10, 62, GetColor(0, 200, 255), "ownedIndices=%d sel=%d sitting=%d",
-        (int)ownedIndices.size(), g_SelectedIndex, (int)IsPlayerSitting());
-
-    int screenW, screenH;
-    GetScreenState(&screenW, &screenH, nullptr);
-
-    int winW = screenW - 120;
-    int winH = screenH - 120;
-    int winX = (screenW - winW) / 2;
-    int winY = (screenH - winH) / 2;
-
-    // ===============================
-    // UI 基準 & スケール
-    // ===============================
-    const float uiScale = 1.5f;
-    const int baseX = winX;
-    const int baseY = winY;
-
-    //フォント
-    static int g_EquipFont = -1;
-    if (g_EquipFont < 0)
-    {
-        g_EquipFont = CreateFontToHandle(
-            "ＭＳ ゴシック",
-            int(16 * uiScale),   // ← 好きに調整可（20～26あたり）
-            3,
-            DX_FONTTYPE_ANTIALIASING
-        );
-    }
+    const int baseX = area.x;
+    const int baseY = area.y;
 
     auto SX = [&](int x) { return baseX + int(x * uiScale); };
     auto SY = [&](int y) { return baseY + int(y * uiScale); };
     auto SS = [&](int s) { return int(s * uiScale); };
 
-    // プレイヤーのスロット情報
-    int usedSlots = g_ItemManager.GetUsedSlots();
-    int maxSlots = g_ItemManager.GetPlayerMaxSlots(g_PlayerRef);
+    // フォント
+    static int g_EquipFont = -1;
+    if (g_EquipFont < 0)
+    {
+        g_EquipFont = CreateFontToHandle(
+            "ＭＳ ゴシック",
+            int(16 * uiScale),
+            3,
+            DX_FONTTYPE_ANTIALIASING
+        );
+    }
 
-    // ===============================
-    // 背景暗転
-    // ===============================
-    DrawBox(0, 0, screenW, screenH, GetColor(0, 0, 0), TRUE);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 160);
-    DrawBox(0, 0, screenW, screenH, GetColor(0, 0, 0), TRUE);
-    SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+    // =========================
+    // 左側：装備中
+    // =========================
 
-    // メインウィンドウ
-    DrawBox(winX, winY, winX + winW, winY + winH, GetColor(20, 20, 20), TRUE);
-    DrawBox(winX, winY, winX + winW, winY + winH, GetColor(160, 160, 160), FALSE);
+    DrawString(SX(20), SY(20), "チャーム装備", GetColor(255, 255, 255), g_EquipFont);
 
-    // タイトル
-    DrawString(SX(40), SY(20), "=== チャーム装備 ===", GetColor(255, 255, 255), g_EquipFont);
-
-    // 左上 装備中アイテムとスロット表示
-    DrawString(SX(40), SY(60), "装備中", GetColor(255, 255, 200));
-
-    int eqX = SX(40);
-    int eqY = SY(90);
-    int equippedCount = 0;
+    int eqX = SX(20);
+    int eqY = SY(60);
     int iconSize = SS(48);
     int iconStep = SS(52);
+
+    int equippedCount = 0;
 
     for (const auto& it : items)
     {
@@ -316,40 +271,31 @@ void DrawEquipMenuScene()
         if (it->iconSmallHandle > 0)
             DrawExtendGraph(x, y, x + iconSize, y + iconSize, it->iconSmallHandle, TRUE);
         else
-            DrawBox(x, y, x + iconSize, y + iconSize, GetColor(180, 180, 180), TRUE);
+            DrawBox(x, y, x + iconSize, y + iconSize, GetColor(150, 150, 150), TRUE);
 
         equippedCount++;
     }
 
-    // スロットバー
-    char slotBuf[64];
-    int sx = SX(40);
-    int sy = eqY + SS(70);
-    DrawString(sx, sy - SS(20), "スロット", GetColor(180, 220, 255));
-    for (int i = 0; i < maxSlots; ++i)
-    {
-        int cx = sx + i * SS(18);
-        if (i < usedSlots)
-            DrawBox(cx, sy, cx + SS(12), sy + SS(12), GetColor(255, 200, 50), TRUE);
-        else
-            DrawBox(cx, sy, cx + SS(12), sy + SS(12), GetColor(100, 100, 100), FALSE);
-    }
+    // =========================
+    // 所持リスト
+    // =========================
 
-    // 左下 所持アイテム一覧（画像のみ）
-    DrawString(SX(40), SY(200), "所持チャーム", GetColor(255, 255, 200), g_EquipFont);
-    int listX = SX(40);
-    int listY = SY(230);
-    int cols = 8;
-    int displayed = 0;
+    std::vector<int> ownedIndices;
+    BuildOwnedIndexList(items, ownedIndices);
+
+    int listX = SX(20);
+    int listY = SY(200);
+
+    DrawString(listX, SY(170), "所持チャーム", GetColor(255, 255, 200), g_EquipFont);
+
+    int cols = 6;
+
     if (ownedIndices.empty())
     {
-        DrawString(
-            listX,
-            listY,
+        DrawString(listX, listY,
             "所持しているチャームはありません",
             GetColor(180, 180, 180),
-            g_EquipFont
-        );
+            g_EquipFont);
     }
     else
     {
@@ -364,13 +310,11 @@ void DrawEquipMenuScene()
             int y = listY + row * iconStep;
 
             if (i == g_SelectedIndex)
-                DrawBox(x - SS(2), y - SS(2),
-                    x + iconSize + SS(2),
-                    y + iconSize + SS(2),
+                DrawBox(x - 2, y - 2, x + iconSize + 2, y + iconSize + 2,
                     GetColor(255, 255, 0), FALSE);
 
             DrawBox(x, y, x + iconSize, y + iconSize,
-                GetColor(180, 180, 180), TRUE);
+                GetColor(120, 120, 120), TRUE);
 
             if (it->isEquipped)
                 DrawBox(x, y, x + iconSize, y + iconSize,
@@ -378,88 +322,29 @@ void DrawEquipMenuScene()
         }
     }
 
-    // ===============================
-    // 右側 詳細ウィンドウ
-    // ===============================
-    int dx = winX + winW - SS(380);
-    int dy = SY(70);
+    // =========================
+    // 右側：詳細
+    // =========================
 
-    DrawBox(dx - SS(10), dy - SS(10), dx + SS(340), dy + SS(420), GetColor(30, 30, 30), TRUE);
-    DrawBox(dx - SS(10), dy - SS(10), dx + SS(340), dy + SS(420), GetColor(120, 120, 120), FALSE);
+    int detailX = area.x + area.w - SS(320);
+    int detailY = area.y + SS(40);
 
-    // 選択中アイテム参照
+    DrawBox(detailX - 10, detailY - 10,
+        detailX + SS(300), detailY + SS(400),
+        GetColor(50, 50, 50), TRUE);
+
+    DrawBox(detailX - 10, detailY - 10,
+        detailX + SS(300), detailY + SS(400),
+        GetColor(120, 120, 120), FALSE);
+
     if (!ownedIndices.empty())
     {
-        if (g_SelectedIndex < 0) g_SelectedIndex = 0;
-        if ((size_t)g_SelectedIndex >= ownedIndices.size())
-            g_SelectedIndex = (int)ownedIndices.size() - 1;
-
         const auto& sel = items[ownedIndices[g_SelectedIndex]];
-        DrawString(dx, dy, sel->name.c_str(), GetColor(255, 255, 255));
 
-        // 大アイコン
-        if (sel->iconLargeHandle > 0)
-            DrawExtendGraph(
-                dx + SS(20), dy + SS(30),
-                dx + SS(140), dy + SS(150),
-                sel->iconLargeHandle, TRUE
-            );
-
-        // 必要スロット
-        char buf[64];
-        sprintf_s(buf, "消費スロット: %d", sel->slotCost);
-        DrawString(dx, dy + SS(170), buf, GetColor(180, 220, 255));
-
-        // ===============================
-     // 効果説明（systemDesc）
-     // ===============================
-        int lineY = dy + SS(200);
-
-        DrawString(dx, lineY, "効果", GetColor(200, 220, 255));
-        lineY += SS(22);
-
-        for (const auto& line : sel->systemDesc)
-        {
-            DrawString(dx + SS(10), lineY, line.c_str(), GetColor(220, 220, 220));
-            lineY += SS(20);
-        }
-
-        // ===============================
-        // フレーバー説明（flavorDesc）
-        // ===============================
-        if (!sel->flavorDesc.empty())
-        {
-            lineY += SS(10);
-            DrawString(dx, lineY, "説明", GetColor(200, 220, 255));
-            lineY += SS(22);
-
-            for (const auto& line : sel->flavorDesc)
-            {
-                DrawString(dx + SS(10), lineY, line.c_str(), GetColor(180, 180, 180));
-                lineY += SS(20);
-            }
-        }
-    }
-
-    // 下部 ガイドと決定ボタン（座っている時のみ表示）
-    int guideY = winY + winH - SS(60);
-    if (IsPlayerSitting())
-        DrawString(SX(40), guideY, "[↑↓←→]選択  [SPACE]装備/解除  [Esc]閉じる", GetColor(255, 255, 255));
-    else
-    {
-        DrawString(SX(40), guideY, "[Esc]閉じる", GetColor(200, 200, 200));
-        DrawString(SX(400), guideY, "装備変更は休憩中のみ可能です。", GetColor(200, 200, 120));
-    }
-
-    // メッセージ表示
-    if (g_MessageTimer > 0)
-    {
-        DrawStringToHandle(
-            SX(40), SY(480),
-            g_Message.c_str(),
-            GetColor(255, 200, 100),
-            g_EquipFont
-        );
+        DrawString(detailX, detailY,
+            sel->name.c_str(),
+            GetColor(255, 255, 255),
+            g_EquipFont);
     }
 }
 
