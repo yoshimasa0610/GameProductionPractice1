@@ -327,6 +327,8 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
                 player->isGrounded = true;
                 player->jumpCount = 0;
             }
+            pc.left = player->posX - pc.width * 0.5f;
+            pc.top = player->posY - pc.height;
         }
     }
 }
@@ -335,6 +337,20 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
 void ResolveCollisions()
 {
     if (g_colliders.empty()) return;
+
+    for (auto& c : g_colliders)
+    {
+        if (!c.active) continue;
+
+        if (c.tag == ColliderTag::Player)
+        {
+            PlayerData* player = static_cast<PlayerData*>(c.owner);
+            if (player)
+            {
+                player->isGrounded = false;
+            }
+        }
+    }
 
     for (size_t i = 0; i < g_colliders.size(); ++i)
     {

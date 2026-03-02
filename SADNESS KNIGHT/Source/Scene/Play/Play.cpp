@@ -33,10 +33,11 @@ static float g_ElapsedTime = 0.0f;
 
 void InitPlayScene()
 {
+	InitCamera();
 	InitMoneyDrops();
 	InitMoneyPopup();
 	// プレイヤー初期化（画面中央、地面より少し上）
-	InitPlayer(400.0f, 500.0f);
+	InitPlayer(100.0f, 200.0f);
 }
 
 void LoadPlayScene()
@@ -48,7 +49,7 @@ void LoadPlayScene()
 	{
 		strcpy_s(g_SaveData.stageName, "forest_1");
 		g_SaveData.checkpointX = 100;
-		g_SaveData.checkpointY = 386;
+		g_SaveData.checkpointY = 286;
 	}
 	InitStage();
 	LoadStage(
@@ -132,40 +133,6 @@ static void RespawnFromCheckpoint();
 
 void UpdatePlayScene()
 {
-	/*
-	// ===== 死亡チェック =====
-	if (g_PlayerData.lifeState == PlayerLifeState::FadingOut &&
-		g_DeathState == PlayDeathState::None)
-	{
-		g_DeathState = PlayDeathState::WaitFadeOut;
-	}
-
-	if (g_DeathState == PlayDeathState::WaitFadeOut)
-	{
-		UpdateFade();
-
-		if (IsFadeOutFinished())
-		{
-			RespawnFromCheckpoint();
-
-			// フェードイン開始
-			StartFadeIn(60);
-			g_DeathState = PlayDeathState::FadeIn;
-		}
-		return;
-	}
-
-	if (g_DeathState == PlayDeathState::FadeIn)
-	{
-		UpdateFade();
-
-		if (IsFadeFinished())
-		{
-			g_DeathState = PlayDeathState::None;
-		}
-		return;
-	}
-	*/
 	if (IsOptionOpen())
 	{
 		UpdateOption();
@@ -210,14 +177,13 @@ void UpdatePlayScene()
 
 	// プレイヤー更新とか
 	UpdatePlayer();
+	UpdateCamera();
+	ResolveCollisions();
 	UpdateFade();
 }
 
 void DrawPlayScene()
 {
-	DrawFormatString(10, 10, GetColor(255, 0, 0),
-		"Overlay=%d", IsOverlayOpen());
-
 	DrawBackgroundFar();
 	DrawBackgroundMid();
 

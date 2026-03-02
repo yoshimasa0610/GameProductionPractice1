@@ -40,7 +40,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
         // “ü—ÍXV
         UpdateInput();
-
+        UpdateFPS();
         SceneManagerUpdate();
        
         /*
