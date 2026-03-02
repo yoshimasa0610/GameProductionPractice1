@@ -245,7 +245,7 @@ void UpdateTitleScene()
 			}
 			else
 			{
-				// NO → スロット選択に戻るんや
+				// NO → スロット選択に戻るんや。甚一君はな顔があかんわ
 				g_TitleState = TitleState::SelectSlot_New;
 			}
 		}
