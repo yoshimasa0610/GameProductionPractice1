@@ -119,7 +119,7 @@ void InitPlayer(float startX, float startY)
     playerData.maxHP = playerData.baseMaxHp;
     playerData.currentHP = playerData.maxHP;
     playerData.maxSlot = playerData.baseMaxSlot;
-
+    playerData.usedSlot = 0;
     // ===== 装備補正 =====
     playerData.healPowerBonus = 0;
     playerData.damageTakenRate = 0.0f;

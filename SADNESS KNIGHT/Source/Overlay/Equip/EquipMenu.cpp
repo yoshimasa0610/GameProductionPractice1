@@ -226,54 +226,66 @@ void DrawEquipMenuScene(const OverlayArea& area)
 {
     const auto& items = g_ItemManager.GetAllItems();
 
-    // ===== 基準 =====
-    const float uiScale = 1.2f;
-
-    const int baseX = area.x;
-    const int baseY = area.y;
-
-    auto SX = [&](int x) { return baseX + int(x * uiScale); };
-    auto SY = [&](int y) { return baseY + int(y * uiScale); };
-    auto SS = [&](int s) { return int(s * uiScale); };
-
-    // フォント
-    static int g_EquipFont = -1;
-    if (g_EquipFont < 0)
-    {
-        g_EquipFont = CreateFontToHandle(
-            "ＭＳ ゴシック",
-            int(16 * uiScale),
-            3,
-            DX_FONTTYPE_ANTIALIASING
-        );
-    }
-
     // =========================
-    // 左側：装備中
+    // レイアウト分割
     // =========================
 
-    DrawString(SX(20), SY(20), "チャーム装備", GetColor(255, 255, 255), g_EquipFont);
+    int leftW = int(area.w * 0.65f);
+    int rightW = area.w - leftW;
 
-    int eqX = SX(20);
-    int eqY = SY(60);
-    int iconSize = SS(48);
-    int iconStep = SS(52);
+    int leftX = area.x;
+    int rightX = area.x + leftW;
 
-    int equippedCount = 0;
+    int headerH = 60;
+    int equippedH = 140;
+
+    // =========================
+    // ヘッダー
+    // =========================
+
+    int maxSlot = g_PlayerRef ? g_PlayerRef->maxSlot : 0;
+    int usedSlot = g_PlayerRef ? g_PlayerRef->usedSlot : 0;
+
+    DrawString(leftX + 20, area.y + 20,
+        "装備中のレリック",
+        GetColor(255, 255, 255));
+
+    DrawFormatString(leftX + 260, area.y + 20,
+        GetColor(255, 255, 0),
+        "%d / %d",
+        usedSlot,
+        maxSlot);
+
+    // =========================
+    // 装備中グリッド（縦2 横7）
+    // =========================
+
+    int gridX = leftX + 20;
+    int gridY = area.y + headerH;
+
+    int cols = 7;
+    int rows = 2;
+    int iconSize = 48;
+    int step = 56;
+
+    int equippedIndex = 0;
 
     for (const auto& it : items)
     {
         if (!it->isEquipped) continue;
 
-        int x = eqX + (equippedCount % 6) * iconStep;
-        int y = eqY + (equippedCount / 6) * iconStep;
+        int col = equippedIndex % cols;
+        int row = equippedIndex / cols;
+
+        int x = gridX + col * step;
+        int y = gridY + row * step;
 
         if (it->iconSmallHandle > 0)
             DrawExtendGraph(x, y, x + iconSize, y + iconSize, it->iconSmallHandle, TRUE);
         else
-            DrawBox(x, y, x + iconSize, y + iconSize, GetColor(150, 150, 150), TRUE);
+            DrawBox(x, y, x + iconSize, y + iconSize, GetColor(120, 120, 120), TRUE);
 
-        equippedCount++;
+        equippedIndex++;
     }
 
     // =========================
@@ -283,71 +295,83 @@ void DrawEquipMenuScene(const OverlayArea& area)
     std::vector<int> ownedIndices;
     BuildOwnedIndexList(items, ownedIndices);
 
-    int listX = SX(20);
-    int listY = SY(200);
+    int listY = gridY + equippedH;
 
-    DrawString(listX, SY(170), "所持チャーム", GetColor(255, 255, 200), g_EquipFont);
+    DrawString(leftX + 20, listY - 30,
+        "所持しているレリック",
+        GetColor(255, 255, 200));
 
-    int cols = 6;
-
-    if (ownedIndices.empty())
+    for (int i = 0; i < (int)ownedIndices.size(); ++i)
     {
-        DrawString(listX, listY,
-            "所持しているチャームはありません",
-            GetColor(180, 180, 180),
-            g_EquipFont);
-    }
-    else
-    {
-        for (int i = 0; i < (int)ownedIndices.size(); ++i)
-        {
-            const auto& it = items[ownedIndices[i]];
+        int col = i % cols;
+        int row = i / cols;
 
-            int col = i % cols;
-            int row = i / cols;
+        int x = gridX + col * step;
+        int y = listY + row * step;
 
-            int x = listX + col * iconStep;
-            int y = listY + row * iconStep;
+        if (i == g_SelectedIndex)
+            DrawBox(x - 2, y - 2, x + iconSize + 2, y + iconSize + 2,
+                GetColor(255, 255, 0), FALSE);
 
-            if (i == g_SelectedIndex)
-                DrawBox(x - 2, y - 2, x + iconSize + 2, y + iconSize + 2,
-                    GetColor(255, 255, 0), FALSE);
-
-            DrawBox(x, y, x + iconSize, y + iconSize,
-                GetColor(120, 120, 120), TRUE);
-
-            if (it->isEquipped)
-                DrawBox(x, y, x + iconSize, y + iconSize,
-                    GetColor(0, 255, 0), FALSE);
-        }
+        DrawBox(x, y, x + iconSize, y + iconSize,
+            GetColor(90, 90, 90), TRUE);
     }
 
     // =========================
-    // 右側：詳細
+    // 右：詳細パネル
     // =========================
 
-    int detailX = area.x + area.w - SS(320);
-    int detailY = area.y + SS(40);
+    DrawBox(rightX + 20, area.y + 20,
+        rightX + rightW - 20,
+        area.y + area.h - 20,
+        GetColor(50, 60, 80), TRUE);
 
-    DrawBox(detailX - 10, detailY - 10,
-        detailX + SS(300), detailY + SS(400),
-        GetColor(50, 50, 50), TRUE);
-
-    DrawBox(detailX - 10, detailY - 10,
-        detailX + SS(300), detailY + SS(400),
-        GetColor(120, 120, 120), FALSE);
+    DrawBox(rightX + 20, area.y + 20,
+        rightX + rightW - 20,
+        area.y + area.h - 20,
+        GetColor(150, 150, 180), FALSE);
 
     if (!ownedIndices.empty())
     {
         const auto& sel = items[ownedIndices[g_SelectedIndex]];
 
-        DrawString(detailX, detailY,
+        DrawString(rightX + 40, area.y + 40,
             sel->name.c_str(),
-            GetColor(255, 255, 255),
-            g_EquipFont);
+            GetColor(255, 255, 255));
+
+        int textY = area.y + 100;
+
+        // --- システム説明 ---
+        for (const auto& line : sel->systemDesc)
+        {
+            textY = DrawWrappedString(
+                rightX + 40,
+                textY,
+                rightW - 80,
+                line,
+                GetColor(220, 220, 220),
+                22
+            );
+            textY += 4;
+        }
+
+        textY += 10;
+
+        // --- フレーバー ---
+        for (const auto& line : sel->flavorDesc)
+        {
+            textY = DrawWrappedString(
+                rightX + 40,
+                textY,
+                rightW - 80,
+                line,
+                GetColor(180, 180, 180),
+                22
+            );
+            textY += 4;
+        }
     }
 }
-
 //void FinEquipMenuScene()
 //{
 //    // Save current state
