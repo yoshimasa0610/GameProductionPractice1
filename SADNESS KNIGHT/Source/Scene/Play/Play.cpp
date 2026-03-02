@@ -33,10 +33,11 @@ static float g_ElapsedTime = 0.0f;
 
 void InitPlayScene()
 {
+	InitCamera();
 	InitMoneyDrops();
 	InitMoneyPopup();
 	// プレイヤー初期化（画面中央、地面より少し上）
-	InitPlayer(400.0f, 500.0f);
+	InitPlayer(100.0f, 200.0f);
 }
 
 void LoadPlayScene()
@@ -176,6 +177,8 @@ void UpdatePlayScene()
 
 	// プレイヤー更新とか
 	UpdatePlayer();
+	UpdateCamera();
+	ResolveCollisions();
 	UpdateFade();
 }
 
