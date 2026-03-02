@@ -48,7 +48,7 @@ void LoadPlayScene()
 	{
 		strcpy_s(g_SaveData.stageName, "forest_1");
 		g_SaveData.checkpointX = 100;
-		g_SaveData.checkpointY = 386;
+		g_SaveData.checkpointY = 286;
 	}
 	InitStage();
 	LoadStage(
@@ -132,40 +132,6 @@ static void RespawnFromCheckpoint();
 
 void UpdatePlayScene()
 {
-	/*
-	// ===== 死亡チェック =====
-	if (g_PlayerData.lifeState == PlayerLifeState::FadingOut &&
-		g_DeathState == PlayDeathState::None)
-	{
-		g_DeathState = PlayDeathState::WaitFadeOut;
-	}
-
-	if (g_DeathState == PlayDeathState::WaitFadeOut)
-	{
-		UpdateFade();
-
-		if (IsFadeOutFinished())
-		{
-			RespawnFromCheckpoint();
-
-			// フェードイン開始
-			StartFadeIn(60);
-			g_DeathState = PlayDeathState::FadeIn;
-		}
-		return;
-	}
-
-	if (g_DeathState == PlayDeathState::FadeIn)
-	{
-		UpdateFade();
-
-		if (IsFadeFinished())
-		{
-			g_DeathState = PlayDeathState::None;
-		}
-		return;
-	}
-	*/
 	if (IsOptionOpen())
 	{
 		UpdateOption();
@@ -215,9 +181,6 @@ void UpdatePlayScene()
 
 void DrawPlayScene()
 {
-	DrawFormatString(10, 10, GetColor(255, 0, 0),
-		"Overlay=%d", IsOverlayOpen());
-
 	DrawBackgroundFar();
 	DrawBackgroundMid();
 
