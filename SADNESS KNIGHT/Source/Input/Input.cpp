@@ -27,7 +27,11 @@ void UpdateInput()
     if (g_OKGuardTimer > 0)
         g_OKGuardTimer--;
 
+<<<<<<< HEAD
     // ‘S InputKey ‚ð‘“–‚½‚è‚ÅŽæ“¾
+=======
+    // ‘S InputKey ‚ð‘–¸‚µ‚ÄŽæ“¾
+>>>>>>> 02c70f631e38ea4031a2b77b9d360495524527ee
     for (int i = 0; i < ACTION_MAX; i++)
     {
         InputKey key = static_cast<InputKey>(1 << i);
