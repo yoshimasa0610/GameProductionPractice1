@@ -50,7 +50,7 @@ struct PlayerData
 
     // 現在ステータス（装備補正込み）
     int maxSlot;
-
+    int usedSlot = 0;   // 現在使用しているスロット数
     // 装備補正値
     int healPowerBonus; //回復量の増加
 

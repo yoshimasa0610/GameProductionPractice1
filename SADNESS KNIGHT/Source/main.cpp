@@ -5,6 +5,8 @@
 #include "Scene/SceneManager.h"
 #include "Scene/Title/Title.h"
 #include "FPS/FPS.h"
+#include "Item/ItemManager.h"
+#include "Item/ItemData.h"
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
@@ -23,11 +25,17 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
     // 描画先を裏画面に設定
     SetDrawScreen(DX_SCREEN_BACK);
 
+    // 透過色設定
+    SetTransColor(TRANS_COLOR_R, TRANS_COLOR_G, TRANS_COLOR_B);
+
+
+    // 裏画面を描画先に設定
+    SetDrawScreen(DX_SCREEN_BACK);
 
     // 入力システム初期化
     InitInput();
-
-
+    InitAllItems();
+    g_ItemManager.LoadItemIcons();
 
     // メインループ
     while (ProcessMessage() == 0)
@@ -42,6 +50,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
         UpdateInput();
         UpdateFPS();
         SceneManagerUpdate();
+
+        FPSWait();
        
         /*
         // テスト用: Uキーで二段ジャンプを解放

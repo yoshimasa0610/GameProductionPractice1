@@ -70,7 +70,7 @@ void DrawBlock()
 
 	float cameraScale = camera.scale;
 
-	const float DRAW_TILE_SIZE = 52.0f;     // Å© ï`âÊÇæÇØ52px
+	const float DRAW_TILE_SIZE = 32.0f;     // Å© ï`âÊÇæÇØ52px
 	float imageScale = DRAW_TILE_SIZE / 512.0f;
 
 	BlockData* block = g_Blocks;

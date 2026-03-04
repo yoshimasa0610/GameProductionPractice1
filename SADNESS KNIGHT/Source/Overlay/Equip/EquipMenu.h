@@ -5,6 +5,12 @@ struct PlayerData;
 struct OverlayArea;
 extern bool g_IsEquipMenuOpen;
 
+enum class EquipUIMode
+{
+    SlotView,    // ‘•”õ’†ˆê——‚ğ‘€ì
+    ItemSelect   // Šˆê——‚ğ‘€ì
+};
+
 void CloseEquipMenu();
 void SetEquipMode(bool enable);
 void SetEquipMenuPlayer(PlayerData* player);

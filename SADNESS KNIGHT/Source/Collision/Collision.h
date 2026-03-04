@@ -63,3 +63,5 @@ bool PlayerHitNormalBlockY(const MapChipData& mc);
 // --- マップ管理向けラッパー（MapManager から使う想定） ---
 ColliderId CreateBlockCollider(float left, float top, float width, float height);
 void RemoveBlockCollider(ColliderId id);
+
+bool SnapPlayerToGround(PlayerData* player, float maxDistance);

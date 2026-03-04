@@ -36,8 +36,8 @@ void InitPlayScene()
 	InitCamera();
 	InitMoneyDrops();
 	InitMoneyPopup();
-	// プレイヤー初期化（画面中央、地面より少し上）
-	InitPlayer(100.0f, 200.0f);
+	// プレイヤー初期化（地面に配置）
+	InitPlayer(544.0f, 384.0f);  // startY=0で自動的にGROUND_Yに配置
 }
 
 void LoadPlayScene()
@@ -48,8 +48,8 @@ void LoadPlayScene()
 	if (g_SaveData.stageName[0] == '\0')
 	{
 		strcpy_s(g_SaveData.stageName, "forest_1");
-		g_SaveData.checkpointX = 100;
-		g_SaveData.checkpointY = 286;
+		g_SaveData.checkpointX = 544.0f;
+		g_SaveData.checkpointY = 384.0f;
 	}
 	InitStage();
 	LoadStage(
@@ -178,7 +178,6 @@ void UpdatePlayScene()
 	// プレイヤー更新とか
 	UpdatePlayer();
 	UpdateCamera();
-	ResolveCollisions();
 	UpdateFade();
 }
 
