@@ -104,36 +104,16 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	StartMap();
 	LoadExitInfo(stageName);
 	//OnStageLoaded();
-	/*
-	// 敵スポーンCSVを読み込む
-	char csvPath[256];
-	sprintf_s(csvPath, "Data/EnemySpawn/%s_Spawn.csv", GetCurrentStageName());
-	// ログ：実際に開くパスを出す（画面上）
-	{
-		char dbg[256];
-		sprintf_s(dbg, "[SpawnCSV] Attempting load: %s", csvPath);
-		AddDebugLog(dbg);
-	}
+	
+	// プレイヤーのスポーン位置を反映
+	PlayerData& player = GetPlayerData();
+	player.posX = playerSpawnX;
+	player.posY = playerSpawnY;
+	player.velocityX = 0.0f;
+	player.velocityY = 0.0f;
+	player.isGrounded = false;
+	player.jumpCount = 0;
 
-	if (!g_EnemySpawnSystem.LoadSpawnCSV(csvPath))
-	{
-		char buf[256];
-		sprintf_s(buf, "[SpawnCSV] LOAD FAILED : %s", csvPath);
-		AddDebugLog(buf);
-	}
-	else
-	{
-		char buf[256];
-		sprintf_s(buf, "[SpawnCSV] LOAD SUCCESS : %s", csvPath);
-		AddDebugLog(buf);
-	}*/
-
-	// <-- ステージ切替が発生したのでスポーンシステムの経過時間をリセット
-	//     （EnemySpawnSystem はグローバル実体 g_EnemySpawnSystem を提供している前提）
-	//g_EnemySpawnSystem.ResetElapsed();
-
-
-	//SetPlayerPosition(playerSpawnX, playerSpawnY);
 	StartFadeInEx(FadeType::Stage);
 
 	s_loading = false; // ロード終了（ガード解除）
