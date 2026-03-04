@@ -135,4 +135,21 @@ void InitAllItems()
 
         g_ItemManager.AddItem(std::move(item));
     }
+
+    {
+        auto item = std::make_unique<Item>();
+
+        item->id = 12;
+        item->name = "‘Ì—Í‚Ìƒ`ƒƒ[ƒ€";
+        item->type = ItemType::Equip;
+        item->slotCost = 2;
+
+        item->buff.addMaxHp = 1.05f;
+
+        item->systemDesc = {
+            "Å‘å‘Ì—Í‚ª5%‘‰Á‚·‚é"
+        };
+
+        g_ItemManager.AddItem(std::move(item));
+    }
 }

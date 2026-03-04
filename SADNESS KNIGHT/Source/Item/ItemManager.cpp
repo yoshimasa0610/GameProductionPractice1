@@ -302,3 +302,4 @@ void ItemManager::LoadItemIcons()
         }
     }
 }
+

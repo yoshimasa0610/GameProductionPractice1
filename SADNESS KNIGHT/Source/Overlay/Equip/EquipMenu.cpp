@@ -21,6 +21,7 @@ static int g_MessageTimer = 0;
 static std::string g_Message;
 bool g_IsEquipMenuOpen = false;
 
+
 // 装備説明などの説明文の折り返し用ヘルパー関数
 static int DrawWrappedString(
     int x,
@@ -243,8 +244,8 @@ void DrawEquipMenuScene(const OverlayArea& area)
     // ヘッダー
     // =========================
 
-    int maxSlot = g_PlayerRef ? g_PlayerRef->maxSlot : 0;
-    int usedSlot = g_PlayerRef ? g_PlayerRef->usedSlot : 0;
+    int maxSlot = g_PlayerRef ? g_ItemManager.GetPlayerMaxSlots(g_PlayerRef) : 0;
+    int usedSlot = g_ItemManager.GetUsedSlots();
 
     DrawString(leftX + 20, area.y + 20,
         "装備中のレリック",
