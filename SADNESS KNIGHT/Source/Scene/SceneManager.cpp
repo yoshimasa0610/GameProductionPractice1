@@ -47,9 +47,6 @@ void SceneManagerUpdate()
 		break;
 
 	case SCENE_STATE_LOOP:	// ループ（ステップ→更新→描画）
-		DrawFormatString(10, 500, GetColor(255, 255, 0),
-			"Scene=%d State=%d IsLoopEnd=%d",
-			g_NowScene, g_SceneState, g_IsLoopEnd);
 		StepScene();
 		UpdateScene();
 		DrawScene();
