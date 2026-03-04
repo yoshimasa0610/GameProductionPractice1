@@ -28,7 +28,7 @@ void UpdateInput()
         g_OKGuardTimer--;
 
     // ‘S InputKey ‚ğ‘“–‚½‚è‚Åæ“¾
-    for (int i = 0; i < 15; i++)
+    for (int i = 0; i < ACTION_MAX; i++)
     {
         InputKey key = static_cast<InputKey>(1 << i);
         if (ControlConfig::IsPressed(key))

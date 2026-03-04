@@ -23,8 +23,6 @@ enum InputKey
     KEY_CANCEL = ((1 << 14)),  //メニューなどの戻る
     KEY_UI_LEFT = ((1 << 15)), //UI用のキーなぜか上記のKEY_LEFTと一緒にしたらクラッシュしたので
     KEY_UI_RIGHT = ((1 << 16)),//こういう感じにしております
-    KEY_UI_UP = ((1 << 17)),
-    KEY_UI_DOWN = ((1 << 18)),
 };
 
 // プロトタイプ宣言
