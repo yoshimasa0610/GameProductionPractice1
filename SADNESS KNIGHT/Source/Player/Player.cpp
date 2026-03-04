@@ -6,6 +6,8 @@
 #include <string.h>
 #include <cmath>
 #include "../Collision/Collision.h" // 追加
+#include "../Map/MapManager.h"
+#include "../Camera/Camera.h"
 
 // プレイヤーのパラメータ定数
 namespace
@@ -15,8 +17,7 @@ namespace
     const float GRAVITY = 0.3f;             // 重力
     const float MAX_FALL_SPEED = 6.0f;      // 最大落下速度
     const int MAX_JUMP_COUNT = 2;           // 最大ジャンプ回数（二段ジャンプ）
-    const float GROUND_Y = 700.0f;          // 地面のY座標（画面下に近い位置）
-    const float GROUND_EPSILON = 0.5f;      // 地面判定の許容誤差
+    const float SPAWN_RAISE_OFFSET = 16.0f; // スポーン時に少し上げる量
     const float DODGE_DISTANCE = 80.0f;     // 回避ダッシュ距離
     const int DODGE_COOLDOWN = 30;          // 回避クールダウン（フレーム）
 }
@@ -57,6 +58,7 @@ namespace
 
     bool prevIsGrounded = false;
     int lastJumpInputFrame = -1;
+    bool g_PendingCenterSpawn = false;
 }
 
 // 内部関数の宣言
@@ -71,6 +73,7 @@ namespace
     void ExecuteJump();
     bool FileExists(const char* path);
     void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip); // 追加
+    bool PlacePlayerAtMapCenter();
 }
 
 // プレイヤーの初期化
@@ -81,12 +84,14 @@ void InitPlayer(float startX, float startY)
     playerData.posY = startY;
     playerData.velocityX = 0.0f;
     playerData.velocityY = 0.0f;
-    
+
     // 状態
     playerData.state = PlayerState::Idle;
     playerData.isFacingRight = true;
     playerData.isGrounded = false;
     playerData.jumpCount = 0;
+
+    g_PendingCenterSpawn = true;
 
     runAnimState = RunAnimState::None;
     prevFacingRight = playerData.isFacingRight;
@@ -251,11 +256,23 @@ void UpdatePlayer()
         return;
     }
 
+    if (g_PendingCenterSpawn)
+    {
+        if (PlacePlayerAtMapCenter())
+        {
+            g_PendingCenterSpawn = false;
+            playerData.state = PlayerState::Idle;
+            playerData.isInvincible = false;
+            runAnimState = RunAnimState::None;
+        }
+    }
+
     // 前フレームの位置を保存（衝突処理などで必要）
     playerData.prevPosX = playerData.posX;
     playerData.prevPosY = playerData.posY;
 
     ProcessInput();
+
     UpdatePhysics();
 
     skillManager.Update(&playerData);
@@ -279,8 +296,10 @@ void UpdatePlayer()
 // プレイヤーの描画
 void DrawPlayer()
 {
-    int baseX = static_cast<int>(playerData.posX);
-    int baseY = static_cast<int>(playerData.posY);
+    CameraData camera = GetCamera();
+
+    int baseX = static_cast<int>(std::round((playerData.posX - camera.posX) * camera.scale));
+    int baseY = static_cast<int>(std::round((playerData.posY - camera.posY) * camera.scale));
     bool flip = playerData.isFacingRight;
 
     bool hasAnimation = (idleAnim.frames != nullptr && idleAnim.frameCount > 0);
@@ -288,35 +307,30 @@ void DrawPlayer()
     // ダッシュエフェクトの描画（プレイヤーの後ろに描画）
     if (playerData.showDashEffect && dashEffectAnim.frames != nullptr)
     {
-        int effectX = static_cast<int>(playerData.dashEffectX);
-        int effectY = static_cast<int>(playerData.dashEffectY);
-        
+        int effectX = static_cast<int>(std::round((playerData.dashEffectX - camera.posX) * camera.scale));
+        int effectY = static_cast<int>(std::round((playerData.dashEffectY - camera.posY) * camera.scale));
+
         int frameHandle = GetCurrentAnimationFrame(dashEffectAnim);
         if (frameHandle != -1)
         {
             int w = 0;
             int h = 0;
             GetGraphSize(frameHandle, &w, &h);
-            
+
             // エフェクトをプレイヤーサイズの1.3倍に縮小
-            // 元のサイズ: 60x157 → プレイヤーの高さ(55)の約1.3倍 = 70前後
             float scale = (PLAYER_HEIGHT * 1.3f) / h;
             int scaledW = static_cast<int>(w * scale);
             int scaledH = static_cast<int>(h * scale);
-            
-            // プレイヤーの中心に配置（スケール適用後）
+
             int drawX = effectX - (scaledW / 2);
             int drawY = effectY - scaledH;
-            
-            // 両方向とも DrawExtendGraph を使用して統一
+
             if (playerData.dashEffectFacingRight)
             {
-                // 右向き: 通常描画
                 DrawExtendGraph(drawX, drawY, drawX + scaledW, drawY + scaledH, frameHandle, TRUE);
             }
             else
             {
-                // 左向き: X座標を反転
                 DrawExtendGraph(drawX + scaledW, drawY, drawX, drawY + scaledH, frameHandle, TRUE);
             }
         }
@@ -694,12 +708,6 @@ namespace
             }
         }
 
-        if (std::fabs(playerData.velocityY) < 0.001f && playerData.posY >= GROUND_Y - GROUND_EPSILON)
-        {
-            playerData.isGrounded = true;
-            playerData.jumpCount = 0;
-        }
-
         currentMoveDir = 0;
 
         if (IsInputKey(KEY_LEFT))  currentMoveDir -= 1;
@@ -729,8 +737,7 @@ namespace
     // スキル処理
     void ProcessSkills()
     {
-        // 回避中でも回避キーは処理する（クールダウンでガード済み）
-        // ただし他のスキルは無効化
+        // 回避中でも回避キーは処理する（クールダウンでガード済み）         // ただし他のスキルは無効化
         if (playerData.state == PlayerState::Dodging)
         {
             // 回避キー入力だけは処理
@@ -802,21 +809,33 @@ namespace
         // 衝突解決（ブロックなどと干渉していればここで押し出し等が行われる）
         ResolveCollisions();
 
-        if (playerData.posY >= GROUND_Y - GROUND_EPSILON)
+        // 接地中は縦速度を確実に止める
+        if (playerData.isGrounded && playerData.velocityY > 0.0f)
         {
-            playerData.posY = GROUND_Y;
             playerData.velocityY = 0.0f;
-
-            playerData.isGrounded = true;
-            playerData.jumpCount = 0;
         }
-        else
+
+        // マップ下に落ちすぎた場合だけ保護（床判定は衝突側に任せる）
+        const int mapW = GetMapWidth();
+        const int mapH = GetMapHeight();
+        if (mapH > 0)
         {
-            playerData.isGrounded = false;
+            const float bottomLimit = static_cast<float>(mapH);
+            if (playerData.posY > bottomLimit)
+            {
+                playerData.posY = bottomLimit;
+                playerData.velocityY = 0.0f;
+                playerData.isGrounded = true;
+                playerData.jumpCount = 0;
+            }
         }
 
         if (playerData.posX < 0.0f) playerData.posX = 0.0f;
-        if (playerData.posX > 1600.0f) playerData.posX = 1600.0f;
+        if (mapW > 0)
+        {
+            const float xMax = static_cast<float>(mapW);
+            if (playerData.posX > xMax) playerData.posX = xMax;
+        }
 
         // すり抜けタイマー更新
         if (playerData.dropTimer > 0)
@@ -924,38 +943,19 @@ namespace
 
         PlayerState newState;
 
-        // 回避中は地上/空中判定に関わらず回避状態を維持
-        if (playerData.state == PlayerState::Dodging)
-        {
-            // UpdateState()の先頭で処理されるので、ここには来ないはず
-            newState = PlayerState::Dodging;
-        }
-        else if (!playerData.isGrounded)
+        if (!playerData.isGrounded)
         {
             newState = (playerData.velocityY < 0.0f) ? PlayerState::Jump : PlayerState::Fall;
         }
         else
         {
-            // 着地中でも入力があるなら Walk を優先
+            // 接地時はWalk/Idleのみ（Landへの再遷移でアニメが揺れるのを防ぐ）
             bool hasMoveInput = std::fabs(playerData.velocityX) > 0.01f;
-
-            if (!prevIsGrounded && playerData.state == PlayerState::Fall)
-            {
-                newState = PlayerState::Land;
-            }
-            else if (playerData.state == PlayerState::Land && !IsAnimationFinished(landAnim) && !hasMoveInput)
-            {
-                newState = PlayerState::Land;
-            }
-            else
-            {
-                newState = hasMoveInput ? PlayerState::Walk : PlayerState::Idle;
-            }
+            newState = hasMoveInput ? PlayerState::Walk : PlayerState::Idle;
         }
 
         if (newState != playerData.state)
         {
-            // 回避中は状態変更を防ぐ
             if (playerData.state == PlayerState::Dodging)
             {
                 prevIsGrounded = playerData.isGrounded;
@@ -972,10 +972,6 @@ namespace
             else if (playerData.state == PlayerState::Fall)
             {
                 ResetAnimation(fallAnim);
-            }
-            else if (playerData.state == PlayerState::Land)
-            {
-                ResetAnimation(landAnim);
             }
         }
 
@@ -1099,12 +1095,9 @@ namespace
             return;
         }
 
-        // 地上判定が微妙なときの保険（静止かつ地面付近なら地上扱い）
-        if (playerData.isGrounded ||
-            (std::fabs(playerData.velocityY) < 0.001f && playerData.posY >= GROUND_Y - GROUND_EPSILON))
+        if (playerData.isGrounded)
         {
             playerData.jumpCount = 0;
-            playerData.isGrounded = true;
         }
 
         // 二段ジャンプが解放されている場合はMAX_JUMP_COUNT、そうでない場合は1
@@ -1157,5 +1150,58 @@ namespace
         {
             DrawGraph(drawX, drawY, frameHandle, TRUE);
         }
+    }
+
+    bool PlacePlayerAtMapCenter()
+    {
+        const int mapW = GetMapWidth();
+        const int mapH = GetMapHeight();
+        if (mapW <= 0 || mapH <= 0)
+        {
+            return false;
+        }
+
+        const float centerX = mapW * 0.5f;
+        const float searchStep = 32.0f;
+        const int maxTry = (mapW / 32) + 2;
+
+        for (int i = 0; i < maxTry; ++i)
+        {
+            float tryX = centerX;
+            if (i > 0)
+            {
+                const int ring = (i + 1) / 2;
+                const float offset = ring * searchStep;
+                tryX += (i % 2 == 1) ? offset : -offset;
+            }
+
+            if (tryX < (PLAYER_WIDTH * 0.5f) || tryX > (mapW - PLAYER_WIDTH * 0.5f))
+            {
+                continue;
+            }
+
+            playerData.posX = tryX;
+            playerData.posY = 0.0f;
+            playerData.velocityX = 0.0f;
+            playerData.velocityY = 0.0f;
+            playerData.isGrounded = false;
+            playerData.jumpCount = 0;
+
+            if (SnapPlayerToGround(&playerData, static_cast<float>(mapH)))
+            {
+                playerData.posY -= SPAWN_RAISE_OFFSET;
+                playerData.isGrounded = false;
+
+                if (g_playerColliderId != -1)
+                {
+                    float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
+                    float top = playerData.posY - PLAYER_HEIGHT;
+                    UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+                }
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -182,10 +182,12 @@ bool AABBIntersect(float aLeft, float aTop, float aW, float aH,
     float bRight = bLeft + bW;
     float bBottom = bTop + bH;
 
-    if (aRight <= bLeft) return false;
-    if (aLeft >= bRight) return false;
-    if (aBottom <= bTop) return false;
-    if (aTop >= bBottom) return false;
+    // 辺がちょうど接している場合は「接触あり」として扱う
+    // （接地の1フレーム抜けによる Jump/Fall のちらつきを防ぐ）
+    if (aRight < bLeft) return false;
+    if (aLeft > bRight) return false;
+    if (aBottom < bTop) return false;
+    if (aTop > bBottom) return false;
     return true;
 }
 
@@ -276,6 +278,50 @@ bool PlayerHitNormalBlockY(PlayerData* player, float newPosY)
     return false;
 }
 
+bool SnapPlayerToGround(PlayerData* player, float maxDistance)
+{
+    if (player == nullptr) return false;
+
+    const float w = static_cast<float>(PLAYER_WIDTH);
+    float pLeft = player->posX - (w * 0.5f);
+    float pRight = pLeft + w;
+
+    bool found = false;
+    float bestTop = 0.0f;
+
+    for (const auto& c : g_colliders)
+    {
+        if (!c.active) continue;
+        if (c.tag != ColliderTag::Block && c.tag != ColliderTag::SemiSolid) continue;
+
+        float bLeft = c.left;
+        float bRight = c.left + c.width;
+
+        if (pRight <= bLeft || pLeft >= bRight) continue;
+
+        // プレイヤーより下にある床だけ対象
+        if (c.top < player->posY) continue;
+
+        float dist = c.top - player->posY;
+        if (dist > maxDistance) continue;
+
+        // もっとも下側（Yが大きい）床を優先
+        if (!found || c.top > bestTop)
+        {
+            found = true;
+            bestTop = c.top;
+        }
+    }
+
+    if (!found) return false;
+
+    player->posY = bestTop;
+    player->velocityY = 0.0f;
+    player->isGrounded = true;
+    player->jumpCount = 0;
+    return true;
+}
+
 // 内部：プレイヤーとブロックの押し出し / 着地判定（player の owner は PlayerData* を想定）
 static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collider& pc)
 {
@@ -303,7 +349,7 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
     float overlapX = (pW * 0.5f + bW * 0.5f) - std::fabs(dx);
     float overlapY = (pH * 0.5f + bH * 0.5f) - std::fabs(dy);
 
-    if (overlapX > 0.0f && overlapY > 0.0f)
+    if (overlapX >= 0.0f && overlapY >= 0.0f)
     {
         if (overlapX < overlapY)
         {
