@@ -19,12 +19,10 @@ enum InputKey
     KEY_HEAL = (1 << 10), // 回復(残機?)
     KEY_MENU = (1 << 11), // メニュー
     KEY_INVENTORY = (1 << 12), // インベントリ
-<<<<<<< HEAD
     KEY_OK = ((1 << 13)),  //決定!!!!
     KEY_CANCEL = ((1 << 14)),  //メニューなどの戻る
     KEY_UI_LEFT = ((1 << 15)), //UI用のキーなぜか上記のKEY_LEFTと一緒にしたらクラッシュしたので
     KEY_UI_RIGHT = ((1 << 16)),//こういう感じにしております
-=======
     KEY_OK = ((1 << 13)),
     KEY_CANCEL = ((1 << 14)),
     KEY_UI_LEFT = ((1 << 15)),
@@ -32,7 +30,6 @@ enum InputKey
     KEY_UI_UP = ((1 << 17)),
     KEY_UI_DOWN = ((1 << 18)),
     KEY_DIVE_ATTACK = ((1 << 19)),
->>>>>>> 02c70f631e38ea4031a2b77b9d360495524527ee
 };
 
 // プロトタイプ宣言
