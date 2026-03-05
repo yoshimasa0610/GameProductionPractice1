@@ -7,6 +7,7 @@
 #include "FPS/FPS.h"
 #include "Item/ItemManager.h"
 #include "Item/ItemData.h"
+#include "Skill/SkillData.h"
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
@@ -34,7 +35,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
     // 入力システム初期化
     InitInput();
+    // アイテムのデータを読み込む
     InitAllItems();
+
+    // スキルのデータを読み込む
+    RegisterSkills();
     g_ItemManager.LoadItemIcons();
 
     // メインループ

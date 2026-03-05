@@ -42,3 +42,5 @@ public:
     void SetCurrentSet(int s) { m_currentSet = s; }
     void UnequipSkill(int set, int slot);
 };
+
+extern SkillManager g_SkillManager;

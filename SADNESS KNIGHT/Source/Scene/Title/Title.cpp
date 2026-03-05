@@ -400,7 +400,7 @@ void DrawTitleScene()
 	if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
 	{
 		const char* guide1 = "SPACE : 決定";
-		const char* guide2 = "A   : 戻る";
+		const char* guide2 = "ESC   : 戻る";
 
 		int colorKey = GetColor(255, 255, 255);
 		int colorText = GetColor(150, 150, 150);

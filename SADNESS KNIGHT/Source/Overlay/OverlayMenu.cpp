@@ -31,7 +31,7 @@ static void CloseCurrentTab()
         break;
 
     case OverlayTab::Skill:
-        // CloseSkillMenu(); Å©Ç†Ç∆Ç≈çÏÇÈ
+         CloseSkillMenu();
         break;
     }
 }

@@ -77,15 +77,19 @@ void RegisterSkills()
     };
 
     g_SkillDatabase.push_back(std::move(shadow));
-
-
-
-
-
-
-
-
-
-
-
 }
+
+const SkillData& GetSkillData(int skillID)
+{
+    for (auto& s : g_SkillDatabase)
+    {
+        if (s->id == skillID)
+        {
+            return *s;
+        }
+    }
+
+    static SkillData dummy{};
+    return dummy;
+}
+
