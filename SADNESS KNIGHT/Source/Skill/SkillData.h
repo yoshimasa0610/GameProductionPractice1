@@ -51,4 +51,6 @@ struct SkillData
 
     // 将来的にエフェクトや画像ハンドル追加可能
 };
+
+void RegisterSkills();
 const SkillData& GetSkillData(int skillID);

@@ -20,6 +20,8 @@
 #include "../../Item/ItemField.h"
 #include "../../Money/MoneyManager.h"
 #include "../../Overlay/OverlayMenu.h"
+#include "../../Skill/SkillData.h"
+#include "../../Skill/SkillManager.h"
 
 static ItemField g_ItemField;
 PlayerData& player = GetPlayerData();
@@ -73,7 +75,10 @@ void LoadPlayScene()
 	ItemManager_AddItem(10);
 	ItemManager_AddItem(11);
 	ItemManager_AddItem(12);
-
+	g_SkillManager.AddSkill(GetSkillData(1), &player);
+	g_SkillManager.AddSkill(GetSkillData(2), &player);
+	g_SkillManager.EquipSkill(0, 0, 1);
+	g_SkillManager.EquipSkill(0, 1, 2);
 	// ÉoÉtçƒåvéZ
 	g_ItemManager.ApplyBuffsToPlayer(&player);
 
