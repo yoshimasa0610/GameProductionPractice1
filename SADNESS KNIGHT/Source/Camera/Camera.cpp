@@ -2,6 +2,7 @@
 #include "DxLib.h"
 #include "../Player/Player.h"
 #include "../GameSetting/GameSetting.h"
+#include "../Map/MapManager.h"
 
 static CameraData camera;
 
@@ -21,19 +22,44 @@ void StepCamera()
 
 void UpdateCamera()
 {
-	PlayerData& player = GetPlayerData();
+    PlayerData& player = GetPlayerData();
 
-	float targetX = player.posX - SCREEN_WIDTH / 2;
-	float targetY = player.posY - SCREEN_HEIGHT / 2;
+    float playerCenterX = player.posX + player.width / 2;
+    float playerCenterY = player.posY + player.height / 2;
 
-	camera.posX += (targetX - camera.posX) * CAMERA_SPEED;
-	camera.posY += (targetY - camera.posY) * CAMERA_SPEED;
+    float targetX = playerCenterX - SCREEN_WIDTH / 2;
+    float targetY = playerCenterY - SCREEN_HEIGHT / 2;
 
+    camera.posX += (targetX - camera.posX) * CAMERA_SPEED;
+    camera.posY += (targetY - camera.posY) * CAMERA_SPEED;
+
+    float mapWidth = (float)GetMapWidth();
+    float mapHeight = (float)GetMapHeight();
+
+    if (mapWidth <= SCREEN_WIDTH)
+    {
+        camera.posX = -(SCREEN_WIDTH - mapWidth) * 0.5f;
+    }
+    else
+    {
+        float maxX = mapWidth - SCREEN_WIDTH;
+        camera.posX = max(0.0f, min(camera.posX, maxX));
+    }
+
+    if (mapHeight <= SCREEN_HEIGHT)
+    {
+        camera.posY = -(SCREEN_HEIGHT - mapHeight) * 0.5f;
+    }
+    else
+    {
+        float maxY = mapHeight - SCREEN_HEIGHT;
+        camera.posY = max(0.0f, min(camera.posY, maxY));
+    }
 }
 
 void DrawCamera()
 {
-	SetDrawArea((int)camera.posX,(int)camera.posY,(int)(camera.posX + SCREEN_WIDTH),(int)(camera.posY + SCREEN_HEIGHT));
+	//SetDrawArea((int)camera.posX,(int)camera.posY,(int)(camera.posX + SCREEN_WIDTH),(int)(camera.posY + SCREEN_HEIGHT));
 }
 
 void FinalCamera()

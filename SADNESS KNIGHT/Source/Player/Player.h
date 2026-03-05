@@ -23,6 +23,8 @@ struct PlayerData
     // 位置情報
     float posX;
     float posY;
+    float width;
+    float height;
     float velocityX;
     float velocityY;
 	float prevPosX;// 前フレームの位置（衝突処理などで必要）
