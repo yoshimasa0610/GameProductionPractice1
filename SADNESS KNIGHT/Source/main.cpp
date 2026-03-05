@@ -52,7 +52,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
         SceneManagerUpdate();
 
         FPSWait();
-       
+        // 裏画面を表画面に反映
+        ScreenFlip();
         /*
         // テスト用: Uキーで二段ジャンプを解放
         if (CheckHitKey(KEY_INPUT_U) == 1)
@@ -105,15 +106,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
         {
             DrawFormatString(10, 410, GetColor(255, 255, 0), "INVINCIBLE!");
         }
-        */
-        // 裏画面を表画面に反映
-        ScreenFlip();
+        
 
         // ESCキーで終了
         if (CheckHitKey(KEY_INPUT_ESCAPE))
         {
             break;
         }
+        */
     }
 
     // リソース解放

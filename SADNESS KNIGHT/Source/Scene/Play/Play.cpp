@@ -64,6 +64,20 @@ void LoadPlayScene()
 
 	// セーブ復元後にバフ再計算
 	g_ItemManager.ApplyBuffsToPlayer(&player);
+
+	// =========================
+//  デバッグ：Equipアイテム強制所持
+// =========================
+#ifdef _DEBUG
+
+	ItemManager_AddItem(10);
+	ItemManager_AddItem(11);
+	ItemManager_AddItem(12);
+
+	// バフ再計算
+	g_ItemManager.ApplyBuffsToPlayer(&player);
+
+#endif
 }
 
 static BGMType GetStageBGM(const char* stageName)

@@ -20,6 +20,20 @@ namespace
     const float SPAWN_RAISE_OFFSET = 16.0f; // スポーン時に少し上げる量
     const float DODGE_DISTANCE = 80.0f;     // 回避ダッシュ距離
     const int DODGE_COOLDOWN = 30;          // 回避クールダウン（フレーム）
+
+    const float DIVE_ATTACK_SPEED = 12.0f;     // 落下攻撃の速度
+    const int DIVE_ATTACK_DAMAGE = 150;        // 落下攻撃のダメージ
+    const float DIVE_ATTACK_WIDTH = 120.0f;    // 当たり判定の幅（横は広め）
+    const float DIVE_ATTACK_UP_HEIGHT = 3.0f; // 上方向の当たり判定
+    const float DIVE_ATTACK_DOWN_HEIGHT = 3.0f;// 下方向の当たり判定（薄く）
+    const int DIVE_ATTACK_MIN_ACTIVE_FRAMES = 8;
+    const int DIVE_ATTACK_AIR_END_FRAME = 5;       // 13〜18コマ
+    const int DIVE_ATTACK_LAND_START_FRAME = 6;    // 19コマ目開始
+    const int DIVE_ATTACK_RECOVERY_FRAMES = 5;     // 使用後硬直
+    const int DIVE_ATTACK_DRAW_OFFSET_X = 0;
+    const int DIVE_ATTACK_DRAW_OFFSET_Y = 0;
+    const int DIVE_ATTACK_LANDED_EXTRA_OFFSET_Y = 70;
+    const bool DEBUG_UNLOCK_DIVE_ATTACK = true;
 }
 
 // プレイヤーデータとアニメーション
@@ -37,6 +51,7 @@ namespace
     AnimationData healingAnim;  // 回復アニメーション
     AnimationData dodgeAnim;     // 回避アニメーション
     AnimationData dashEffectAnim;// ダッシュエフェクトアニメーション
+    AnimationData diveAttackAnim; // 落下攻撃アニメーション
 
     SkillManager skillManager;
 
@@ -59,6 +74,13 @@ namespace
     bool prevIsGrounded = false;
     int lastJumpInputFrame = -1;
     bool g_PendingCenterSpawn = false;
+    int g_DiveAttackLockFrames = 0;
+    int g_DiveAttackRecoveryFrames = -1;
+    bool g_DiveAttackLanded = false;
+    bool g_DiveAttackColliderRestored = false;
+    int g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
+    int g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
+    PlayerState g_PrevLoggedState = PlayerState::Idle;
 }
 
 // 内部関数の宣言
@@ -73,7 +95,43 @@ namespace
     void ExecuteJump();
     bool FileExists(const char* path);
     void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip); // 追加
+    void DrawAnimationAlignedOffset(const AnimationData& anim, int baseX, int baseY, bool flip, int offsetX, int offsetY);
     bool PlacePlayerAtMapCenter();
+
+    bool TryLoadDiveAttackAnimation(const char* path)
+    {
+        // 縦7 × 横6 スプライトシート
+        // 1218x1883 -> 1コマ約203x269
+        // 使用範囲: 13〜37コマ（0始まり: start=12, count=25）
+        const int frameWidth = 203;
+        const int frameHeight = 269;
+
+        if (LoadAnimationFromSheetRange(
+            diveAttackAnim,
+            path,
+            42,
+            12,
+            25,
+            frameWidth,
+            frameHeight,
+            6,
+            AnimationMode::Once))
+        {
+            return true;
+        }
+
+        // 失敗時は別アニメにフォールバック
+        if (FileExists("Data/Player/aerial dash.png"))
+        {
+            if (LoadAnimationFromSheetRange(diveAttackAnim, "Data/Player/aerial dash.png", 12, 0, 6, 104, 50, 4, AnimationMode::Loop))
+            {
+                return true;
+            }
+        }
+
+        InitAnimation(diveAttackAnim);
+        return false;
+    }
 }
 
 // プレイヤーの初期化
@@ -135,6 +193,25 @@ void InitPlayer(float startX, float startY)
     // ひつように応じてろりろり
     playerData.attackPower = 100;
     playerData.money = 0;
+
+    // 落下攻撃初期化
+    playerData.hasDiveAttack = false;
+    playerData.isDiveAttacking = false;
+    playerData.diveAttackSpeed = DIVE_ATTACK_SPEED;
+    playerData.diveAttackDamage = DIVE_ATTACK_DAMAGE;
+    g_DiveAttackLockFrames = 0;
+    g_DiveAttackRecoveryFrames = -1;
+    g_DiveAttackLanded = false;
+    g_DiveAttackColliderRestored = false;
+    g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
+    g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
+    g_PrevLoggedState = playerData.state;
+
+    if (DEBUG_UNLOCK_DIVE_ATTACK)
+    {
+        UnlockDiveAttack();
+        printfDx("【デバッグ】落下攻撃を解放しました\n");
+    }
 
     // プレイヤーのコライダーを作成（左上座標で渡す）
     float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
@@ -245,6 +322,45 @@ void LoadPlayer()
         InitAnimation(dashEffectAnim);
         printfDx("aerial dash_smoke.png not found!\n");
     }
+
+    // 落下攻撃アニメーション (1218×1883 / 37コマ, 13-37コマを使用)
+    const char* diveAnimPath = nullptr;
+    if (FileExists("Data/Player/dodge atk 3x_merged.png"))
+    {
+        diveAnimPath = "Data/Player/dodge atk 3x_merged.png";
+    }
+    else if (FileExists("Data/Player/DiveAttack.png"))
+    {
+        diveAnimPath = "Data/Player/DiveAttack.png";
+    }
+    else if (FileExists("Data/Player/diveattack.png"))
+    {
+        diveAnimPath = "Data/Player/diveattack.png";
+    }
+    else if (FileExists("Data/Player/Dive Attack.png"))
+    {
+        diveAnimPath = "Data/Player/Dive Attack.png";
+    }
+
+    if (diveAnimPath != nullptr)
+    {
+        bool diveLoaded = TryLoadDiveAttackAnimation(diveAnimPath);
+        printfDx("Dive attack anim loaded: %d, frames=%d, path=%s\n", diveLoaded ? 1 : 0, diveAttackAnim.frameCount, diveAnimPath);
+    }
+    else
+    {
+        bool diveLoaded = false;
+        if (FileExists("Data/Player/aerial dash.png"))
+        {
+            diveLoaded = LoadAnimationFromSheetRange(diveAttackAnim, "Data/Player/aerial dash.png", 12, 0, 6, 104, 50, 4, AnimationMode::Loop);
+        }
+
+        if (!diveLoaded)
+        {
+            InitAnimation(diveAttackAnim);
+            printfDx("DiveAttack image not found!\n");
+        }
+    }
 }
 
 // プレイヤーの更新
@@ -279,18 +395,6 @@ void UpdatePlayer()
 
     UpdateState();
     UpdatePlayerAnimation();
-
-    // ダッシュエフェクトの更新
-    if (playerData.showDashEffect)
-    {
-        UpdateAnimation(dashEffectAnim);
-
-        // エフェクトアニメーションが終了したら非表示にする
-        if (IsAnimationFinished(dashEffectAnim))
-        {
-            playerData.showDashEffect = false;
-        }
-    }
 }
 
 // プレイヤーの描画
@@ -338,7 +442,9 @@ void DrawPlayer()
 
     if (hasAnimation)
     {
-        if (playerData.isGrounded && runAnimState == RunAnimState::Stop && runStopAnim.frames != nullptr && !IsAnimationFinished(runStopAnim))
+        if ((playerData.state == PlayerState::Idle || playerData.state == PlayerState::Walk) &&
+            playerData.isGrounded && runAnimState == RunAnimState::Stop &&
+            runStopAnim.frames != nullptr && !IsAnimationFinished(runStopAnim))
         {
             if (GetCurrentAnimationFrame(runStopAnim) != -1)
             {
@@ -395,11 +501,39 @@ void DrawPlayer()
             else
                 DrawAnimationAligned(idleAnim, baseX, baseY, flip);
             break;
+        case PlayerState::DiveAttack:
+            if (diveAttackAnim.frames != nullptr && diveAttackAnim.frameCount > 0)
+            {
+                int drawOffsetY = g_DiveAttackDrawOffsetY;
+                if (g_DiveAttackLanded)
+                {
+                    drawOffsetY += DIVE_ATTACK_LANDED_EXTRA_OFFSET_Y;
+                }
+                DrawAnimationAlignedOffset(diveAttackAnim, baseX, baseY, flip, g_DiveAttackDrawOffsetX, drawOffsetY);
+            }
+            else if (fallAnim.frames != nullptr)
+                DrawAnimationAligned(fallAnim, baseX, baseY, flip);
+            else
+                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+            break;
         }
     }
     else
     {
         // 既存の簡易描画はそのまま
+    }
+
+    // 落下攻撃の当たり判定可視化（デバッグ用）
+    if (playerData.state == PlayerState::DiveAttack)
+    {
+        const float attackHeight = DIVE_ATTACK_UP_HEIGHT + DIVE_ATTACK_DOWN_HEIGHT;
+        int hitboxLeft = static_cast<int>((playerData.posX - DIVE_ATTACK_WIDTH / 2.0f - camera.posX) * camera.scale);
+        int hitboxTop = static_cast<int>((playerData.posY - attackHeight - camera.posY) * camera.scale);
+        int hitboxWidth = static_cast<int>(DIVE_ATTACK_WIDTH * camera.scale);
+        int hitboxHeight = static_cast<int>(attackHeight * camera.scale);
+
+        DrawBox(hitboxLeft, hitboxTop, hitboxLeft + hitboxWidth, hitboxTop + hitboxHeight,
+                GetColor(255, 0, 0), FALSE);
     }
 
     // 既存のデバッグ表示はそのまま
@@ -418,7 +552,8 @@ void UnloadPlayer()
     UnloadAnimation(healingAnim);
     UnloadAnimation(dodgeAnim);
     UnloadAnimation(dashEffectAnim);  // 追加
-
+    UnloadAnimation(diveAttackAnim);
+    
     if (g_playerColliderId != -1)
     {
         DestroyCollider(g_playerColliderId);
@@ -573,6 +708,24 @@ bool HasDoubleJump()
     return playerData.hasDoubleJump;
 }
 
+// 落下攻撃解放関数
+void UnlockDiveAttack()
+{
+    playerData.hasDiveAttack = true;
+    printfDx("パッシブアビリティ解放: 落下攻撃\n");
+}
+
+bool HasDiveAttack()
+{
+    return playerData.hasDiveAttack;
+}
+
+void OnCatCombatDefeated()
+{
+    UnlockDiveAttack();
+    printfDx("キャットコンバット撃破: 落下攻撃を解放\n");
+}
+
 // ===== 回復関連関数の実装 =====
 
 // 回復を試みる（キー入力時）
@@ -686,6 +839,12 @@ namespace
             // 回避中の速度は維持（ダッシュ移動）
             return;
         }
+        
+        // 落下攻撃中は入力を無効化
+        if (playerData.state == PlayerState::DiveAttack)
+        {
+            return;
+        }
 
         // 回復中の処理
         bool wasHealing = false;
@@ -732,11 +891,35 @@ namespace
                 ExecuteJump();
             }
         }
+
+        // 落下攻撃の発動（空中 + 下入力 + Qキー）
+        if (playerData.hasDiveAttack && !playerData.isGrounded &&
+            IsInputKey(KEY_DOWN) && IsTriggerKey(KEY_DIVE_ATTACK))
+        {
+            playerData.state = PlayerState::DiveAttack;
+            playerData.isDiveAttacking = true;
+            playerData.velocityX = 0.0f;
+            playerData.velocityY = playerData.diveAttackSpeed;
+            g_DiveAttackLockFrames = DIVE_ATTACK_MIN_ACTIVE_FRAMES;
+            g_DiveAttackRecoveryFrames = -1;
+            g_DiveAttackLanded = false;
+            g_DiveAttackColliderRestored = false;
+            runAnimState = RunAnimState::None;
+            ResetAnimation(diveAttackAnim);
+            SetAnimationFrame(diveAttackAnim, 0);
+            return;
+        }
     }
 
     // スキル処理
     void ProcessSkills()
     {
+        // 落下攻撃中は他アクションを受け付けない
+        if (playerData.state == PlayerState::DiveAttack)
+        {
+            return;
+        }
+
         // 回避中でも回避キーは処理する（クールダウンでガード済み）         // ただし他のスキルは無効化
         if (playerData.state == PlayerState::Dodging)
         {
@@ -789,6 +972,64 @@ namespace
     // 物理演算更新
     void UpdatePhysics()
     {
+        // 落下攻撃中は専用の物理処理
+        if (playerData.state == PlayerState::DiveAttack)
+        {
+            if (g_DiveAttackLockFrames > 0)
+            {
+                g_DiveAttackLockFrames--;
+            }
+
+            if (!g_DiveAttackLanded)
+            {
+                playerData.velocityY = playerData.diveAttackSpeed;
+                playerData.posX += playerData.velocityX;
+                playerData.posY += playerData.velocityY;
+            }
+            else
+            {
+                playerData.velocityX = 0.0f;
+                playerData.velocityY = 0.0f;
+            }
+
+            // コライダー位置更新
+            if (g_playerColliderId != -1)
+            {
+                if (!g_DiveAttackLanded)
+                {
+                    const float attackHeight = DIVE_ATTACK_UP_HEIGHT + DIVE_ATTACK_DOWN_HEIGHT;
+                    float left = playerData.posX - (DIVE_ATTACK_WIDTH / 2.0f);
+                    float top = playerData.posY - attackHeight;
+                    UpdateCollider(g_playerColliderId, left, top, DIVE_ATTACK_WIDTH, attackHeight);
+                }
+                else if (!g_DiveAttackColliderRestored)
+                {
+                    float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
+                    float top = playerData.posY - PLAYER_HEIGHT;
+                    UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+                    g_DiveAttackColliderRestored = true;
+                }
+            }
+
+            ResolveCollisions();
+
+            // 着地で衝撃波区間へ移行（着地前には出さない）
+            if (!g_DiveAttackLanded && playerData.isGrounded && g_DiveAttackLockFrames <= 0)
+            {
+                g_DiveAttackLanded = true;
+                playerData.velocityY = 0.0f;
+
+                if (diveAttackAnim.frames != nullptr && diveAttackAnim.frameCount > DIVE_ATTACK_LAND_START_FRAME)
+                {
+                    if (diveAttackAnim.currentFrame < DIVE_ATTACK_LAND_START_FRAME)
+                    {
+                        SetAnimationFrame(diveAttackAnim, DIVE_ATTACK_LAND_START_FRAME);
+                    }
+                }
+            }
+            return;
+        }
+
         if (!playerData.isGrounded)
         {
             playerData.velocityY += GRAVITY;
@@ -857,6 +1098,45 @@ namespace
     // 状態更新
     void UpdateState()
     {
+        // 落下攻撃中の処理
+        if (playerData.state == PlayerState::DiveAttack)
+        {
+            if (!g_DiveAttackLanded)
+            {
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
+            const bool hasDiveAnim = (diveAttackAnim.frameCount > 0 && diveAttackAnim.frames != nullptr);
+            const bool diveAnimEnded = hasDiveAnim ? IsAnimationFinished(diveAttackAnim) : true;
+
+            if (diveAnimEnded)
+            {
+                if (g_DiveAttackRecoveryFrames < 0)
+                {
+                    g_DiveAttackRecoveryFrames = DIVE_ATTACK_RECOVERY_FRAMES;
+                }
+
+                if (g_DiveAttackRecoveryFrames > 0)
+                {
+                    g_DiveAttackRecoveryFrames--;
+                    prevIsGrounded = playerData.isGrounded;
+                    return;
+                }
+
+                // ダイブアタック側に復帰モーション(34〜37)が含まれるため
+                // Land ではなく Idle に戻す
+                playerData.state = PlayerState::Idle;
+                playerData.isDiveAttacking = false;
+                g_DiveAttackRecoveryFrames = -1;
+                prevIsGrounded = playerData.isGrounded;
+                return;
+            }
+
+            prevIsGrounded = playerData.isGrounded;
+            return;
+        }
+
         // 回避中の処理
         if (playerData.state == PlayerState::Dodging)
         {
@@ -949,9 +1229,23 @@ namespace
         }
         else
         {
-            // 接地時はWalk/Idleのみ（Landへの再遷移でアニメが揺れるのを防ぐ）
+            // 着地中でも入力があるなら Walk を優先
             bool hasMoveInput = std::fabs(playerData.velocityX) > 0.01f;
-            newState = hasMoveInput ? PlayerState::Walk : PlayerState::Idle;
+
+            // 前フレームが空中で今フレームが接地 → Land
+            if (!prevIsGrounded && playerData.state == PlayerState::Fall)
+            {
+                newState = PlayerState::Land;
+            }
+            // Landアニメ再生中は完了まで維持（移動入力がなければ）
+            else if (playerData.state == PlayerState::Land && !IsAnimationFinished(landAnim) && !hasMoveInput)
+            {
+                newState = PlayerState::Land;
+            }
+            else
+            {
+                newState = hasMoveInput ? PlayerState::Walk : PlayerState::Idle;
+            }
         }
 
         if (newState != playerData.state)
@@ -973,6 +1267,10 @@ namespace
             {
                 ResetAnimation(fallAnim);
             }
+            else if (playerData.state == PlayerState::Land)
+            {
+                ResetAnimation(landAnim);
+            }
         }
 
         prevIsGrounded = playerData.isGrounded;
@@ -984,6 +1282,24 @@ namespace
         float absVelX = std::fabs(playerData.velocityX);
         bool wasMoving = prevAbsVelX > 0.01f;
         bool isMoving = absVelX > 0.01f;
+
+        // 落下攻撃中は落下攻撃アニメーションを優先
+        if (playerData.state == PlayerState::DiveAttack)
+        {
+            if (diveAttackAnim.frames != nullptr && diveAttackAnim.frameCount > 0)
+            {
+                UpdateAnimation(diveAttackAnim);
+
+                // 着地までは13〜18コマ区間で停止
+                if (!g_DiveAttackLanded && diveAttackAnim.currentFrame > DIVE_ATTACK_AIR_END_FRAME)
+                {
+                    SetAnimationFrame(diveAttackAnim, DIVE_ATTACK_AIR_END_FRAME);
+                }
+            }
+            prevFacingRight = playerData.isFacingRight;
+            prevAbsVelX = absVelX;
+            return;
+        }
 
         // 回避中は回避アニメーションを優先
         if (playerData.state == PlayerState::Dodging)
@@ -1141,6 +1457,32 @@ namespace
         // 固定枠(PLAYER_WIDTH/HEIGHT)の中で中央寄せ + 足元揃え
         int drawX = baseX - (PLAYER_WIDTH / 2) + (PLAYER_WIDTH - w) / 2;
         int drawY = baseY - PLAYER_HEIGHT + (PLAYER_HEIGHT - h);
+
+        if (flip)
+        {
+            DrawTurnGraph(drawX, drawY, frameHandle, TRUE);
+        }
+        else
+        {
+            DrawGraph(drawX, drawY, frameHandle, TRUE);
+        }
+    }
+
+    void DrawAnimationAlignedOffset(const AnimationData& anim, int baseX, int baseY, bool flip, int offsetX, int offsetY)
+    {
+        int frameHandle = GetCurrentAnimationFrame(anim);
+        if (frameHandle == -1)
+        {
+            return;
+        }
+
+        int w = 0;
+        int h = 0;
+        GetGraphSize(frameHandle, &w, &h);
+
+        // 落下攻撃はフレーム自体の底辺中央をプレイヤー足元に合わせる
+        int drawX = baseX - (w / 2) + offsetX;
+        int drawY = baseY - h + offsetY;
 
         if (flip)
         {

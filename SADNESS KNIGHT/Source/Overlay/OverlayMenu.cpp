@@ -94,10 +94,10 @@ void UpdateOverlayMenu()
     }
 
     // LRì¸óÕÅiâºÅj
-    if (IsTriggerKey(KEY_LEFT))
+    if (IsTriggerKey(KEY_UI_LEFT))
         PrevOverlayTab();
 
-    if (IsTriggerKey(KEY_RIGHT))
+    if (IsTriggerKey(KEY_UI_RIGHT))
         NextOverlayTab();
 
     switch (g_CurrentTab)

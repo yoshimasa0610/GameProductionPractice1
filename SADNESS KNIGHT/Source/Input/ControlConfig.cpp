@@ -19,10 +19,8 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_DOWN].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_DOWN };
     m_Binds[KEY_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LEFT };
     m_Binds[KEY_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_RIGHT };
-    m_Binds[KEY_UI_UP].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_UP };
-    m_Binds[KEY_UI_DOWN].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_DOWN };
-    m_Binds[KEY_UI_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Q };
-    m_Binds[KEY_UI_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_E };
+    m_Binds[KEY_UI_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_A };
+    m_Binds[KEY_UI_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_D };
 
     m_Binds[KEY_JUMP].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_SPACE };
     m_Binds[KEY_OK].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_SPACE };
@@ -30,10 +28,11 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_SKILL2].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Z };
     m_Binds[KEY_SKILL3].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_D };
     m_Binds[KEY_CHANGE].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_C };
-    m_Binds[KEY_DODGE].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LSHIFT };  // SHIFTÉLÅ[Ç…ïœçX
+    m_Binds[KEY_DODGE].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LSHIFT };
+    m_Binds[KEY_DIVE_ATTACK].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Q };
     m_Binds[KEY_HEAL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_TAB };
     m_Binds[KEY_MENU].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_ESCAPE };
-    m_Binds[KEY_CANCEL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_A };
+    m_Binds[KEY_CANCEL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_ESCAPE };
     m_Binds[KEY_INVENTORY].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_S };
 
 
@@ -51,6 +50,7 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_SKILL3].pad = { DEVICE_PAD, PAD_INPUT_B };
     m_Binds[KEY_CHANGE].pad = { DEVICE_PAD, PAD_INPUT_B };
     m_Binds[KEY_DODGE].pad = { DEVICE_PAD, PAD_INPUT_R };
+    m_Binds[KEY_DIVE_ATTACK].pad = { DEVICE_PAD, PAD_INPUT_W };
     m_Binds[KEY_OK].pad = { DEVICE_PAD, PAD_INPUT_A };
     m_Binds[KEY_CANCEL].pad = { DEVICE_PAD, PAD_INPUT_B };
     m_Binds[KEY_MENU].pad = { DEVICE_PAD, PAD_INPUT_START };

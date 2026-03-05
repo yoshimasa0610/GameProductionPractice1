@@ -20,7 +20,7 @@ static PlayerData* g_PlayerRef = nullptr; // プレイヤーデータ参照（SetEquipMenuP
 static int g_MessageTimer = 0;
 static std::string g_Message;
 bool g_IsEquipMenuOpen = false;
-
+static EquipUIMode g_UIMode = EquipUIMode::ItemSelect;
 
 // 装備説明などの説明文の折り返し用ヘルパー関数
 static int DrawWrappedString(
@@ -48,14 +48,12 @@ static int DrawWrappedString(
 
         if (width > maxWidth)
         {
-            // 直前までを描画
             line.pop_back();
-            DrawStringToHandle(x, drawY, line.c_str(), color, fontHandle);
+            DrawString(x, drawY, line.c_str(), color);
 
             drawY += lineHeight;
             line.clear();
 
-            // はみ出した文字を次行に
             line.push_back(text[i]);
         }
     }
@@ -63,7 +61,7 @@ static int DrawWrappedString(
     // 残りを描画
     if (!line.empty())
     {
-        DrawStringToHandle(x, drawY, line.c_str(), color, fontHandle);
+        DrawString(x, drawY, line.c_str(), color);
         drawY += lineHeight;
     }
 
@@ -89,6 +87,7 @@ void OpenEquipMenu(PlayerData* player)
     g_Message.clear();
 
     SetEquipMode(true);
+    g_UIMode = EquipUIMode::ItemSelect;
 }
 
 void CloseEquipMenu()
@@ -142,10 +141,17 @@ void UpdateEquipMenuScene()
     }
 
     // 入力処理（表示リスト上で移動）
-    if (IsTriggerKey(KEY_UP))    g_SelectedIndex--;
-    if (IsTriggerKey(KEY_DOWN))  g_SelectedIndex++;
-    if (IsTriggerKey(KEY_LEFT))  g_SelectedIndex -= 6; // ページ移動（行数に合わせて調整）
-    if (IsTriggerKey(KEY_RIGHT)) g_SelectedIndex += 6;
+    if (g_UIMode == EquipUIMode::ItemSelect)
+    {
+        if (IsTriggerKey(KEY_UP))    g_SelectedIndex -= 7;
+        if (IsTriggerKey(KEY_DOWN))  g_SelectedIndex += 7;
+        if (IsTriggerKey(KEY_LEFT))  g_SelectedIndex--;
+        if (IsTriggerKey(KEY_RIGHT)) g_SelectedIndex++;
+    }
+    else if (g_UIMode == EquipUIMode::SlotView)
+    {
+        // 将来：スロット選択用カーソル処理
+    }
 
     // 範囲クランプ
     if (g_SelectedIndex < 0) g_SelectedIndex = 0;
@@ -296,6 +302,17 @@ void DrawEquipMenuScene(const OverlayArea& area)
     std::vector<int> ownedIndices;
     BuildOwnedIndexList(items, ownedIndices);
 
+    // ===== 区切り線 =====
+    int separatorY = gridY + equippedH - 50;
+
+    DrawLine(
+        leftX + 20,
+        separatorY,
+        leftX + leftW - 300,//横に長く線を引きたいなら300の値を減らしてください
+        separatorY,
+        GetColor(160, 160, 160)
+    );
+
     int listY = gridY + equippedH;
 
     DrawString(leftX + 20, listY - 30,
@@ -316,6 +333,25 @@ void DrawEquipMenuScene(const OverlayArea& area)
 
         DrawBox(x, y, x + iconSize, y + iconSize,
             GetColor(90, 90, 90), TRUE);
+
+        const auto& item = items[ownedIndices[i]];
+        if (item->isEquipped)
+        {
+            DrawString(
+                x + 4,
+                y + 2,
+                "E",
+                GetColor(0, 255, 0)
+            );
+        }
+        //or
+        /*
+        if (item->isEquipped)
+        {
+            DrawBox(x + 28, y, x + 48, y + 18, GetColor(0, 150, 0), TRUE);
+            DrawString(x + 32, y + 2, "E", GetColor(255, 255, 255));
+        }
+        */
     }
 
     // =========================
@@ -340,7 +376,44 @@ void DrawEquipMenuScene(const OverlayArea& area)
             sel->name.c_str(),
             GetColor(255, 255, 255));
 
-        int textY = area.y + 100;
+        DrawFormatString(
+            rightX + 40,
+            area.y + 60,
+            GetColor(255, 200, 0),
+            "使用スロット\n %d",
+            sel->slotCost
+        );
+
+        // ===== 大型アイコン表示 =====
+        int iconSize = 96;
+        int iconX = rightX + 136;
+        int iconY = area.y + 70;
+
+        if (sel->iconLargeHandle > 0)
+        {
+            DrawExtendGraph(
+                iconX,
+                iconY,
+                iconX + iconSize,
+                iconY + iconSize,
+                sel->iconLargeHandle,
+                TRUE
+            );
+        }
+        else
+        {
+            DrawBox(
+                iconX,
+                iconY,
+                iconX + iconSize,
+                iconY + iconSize,
+                GetColor(120, 120, 120),
+                TRUE
+            );
+        }
+
+        // テキスト開始位置を下にずらす
+        int textY = iconY + iconSize + 20;
 
         // --- システム説明 ---
         for (const auto& line : sel->systemDesc)
