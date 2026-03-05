@@ -49,6 +49,17 @@ void ResolveCollisions();
 bool AABBIntersect(float aLeft, float aTop, float aW, float aH,
                    float bLeft, float bTop, float bW, float bH);
 
+// ===== プレイヤーコライダー管理 =====
+
+// プレイヤーコライダーを作成（中心座標から）
+ColliderId CreatePlayerCollider(float centerX, float centerY, float width, float height, void* owner);
+
+// プレイヤーコライダーを通常サイズで更新
+void UpdatePlayerColliderNormal(ColliderId id, float centerX, float centerY, float width, float height);
+
+// プレイヤーコライダーを落下攻撃サイズで更新
+void UpdatePlayerColliderDiveAttack(ColliderId id, float centerX, float centerY, float width, float upHeight, float downHeight);
+
 // --- プレイヤー用便利判定 / 補正関数 ---
 // MapManager 等の既存呼び出し形式に合わせたオーバーロードを提供します。
 // - PlayerHitNormalBlockX/Y(PlayerData*, newPos) : PlayerData を明示的に渡す版

@@ -5,7 +5,7 @@
 #include "DxLib.h"
 #include <string.h>
 #include <cmath>
-#include "../Collision/Collision.h" // 追加
+#include "../Collision/Collision.h"
 #include "../Map/MapManager.h"
 #include "../Camera/Camera.h"
 
@@ -41,17 +41,7 @@ namespace
 {
     PlayerData playerData;
 
-    AnimationData idleAnim;
-    AnimationData walkAnim;
-    AnimationData runStartAnim;
-    AnimationData runStopAnim;
-    AnimationData jumpAnim;
-    AnimationData fallAnim;
-    AnimationData landAnim;
-    AnimationData healingAnim;  // 回復アニメーション
-    AnimationData dodgeAnim;     // 回避アニメーション
-    AnimationData dashEffectAnim;// ダッシュエフェクトアニメーション
-    AnimationData diveAttackAnim; // 落下攻撃アニメーション
+    PlayerAnimations playerAnims;
 
     SkillManager skillManager;
 
@@ -80,7 +70,6 @@ namespace
     bool g_DiveAttackColliderRestored = false;
     int g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
     int g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
-    PlayerState g_PrevLoggedState = PlayerState::Idle;
 }
 
 // 内部関数の宣言
@@ -93,45 +82,7 @@ namespace
     void UpdateState();
     void UpdatePlayerAnimation();
     void ExecuteJump();
-    bool FileExists(const char* path);
-    void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip); // 追加
-    void DrawAnimationAlignedOffset(const AnimationData& anim, int baseX, int baseY, bool flip, int offsetX, int offsetY);
     bool PlacePlayerAtMapCenter();
-
-    bool TryLoadDiveAttackAnimation(const char* path)
-    {
-        // 縦7 × 横6 スプライトシート
-        // 1218x1883 -> 1コマ約203x269
-        // 使用範囲: 13〜37コマ（0始まり: start=12, count=25）
-        const int frameWidth = 203;
-        const int frameHeight = 269;
-
-        if (LoadAnimationFromSheetRange(
-            diveAttackAnim,
-            path,
-            42,
-            12,
-            25,
-            frameWidth,
-            frameHeight,
-            6,
-            AnimationMode::Once))
-        {
-            return true;
-        }
-
-        // 失敗時は別アニメにフォールバック
-        if (FileExists("Data/Player/aerial dash.png"))
-        {
-            if (LoadAnimationFromSheetRange(diveAttackAnim, "Data/Player/aerial dash.png", 12, 0, 6, 104, 50, 4, AnimationMode::Loop))
-            {
-                return true;
-            }
-        }
-
-        InitAnimation(diveAttackAnim);
-        return false;
-    }
 }
 
 // プレイヤーの初期化
@@ -205,7 +156,6 @@ void InitPlayer(float startX, float startY)
     g_DiveAttackColliderRestored = false;
     g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
     g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
-    g_PrevLoggedState = playerData.state;
 
     if (DEBUG_UNLOCK_DIVE_ATTACK)
     {
@@ -213,154 +163,14 @@ void InitPlayer(float startX, float startY)
         printfDx("【デバッグ】落下攻撃を解放しました\n");
     }
 
-    // プレイヤーのコライダーを作成（左上座標で渡す）
-    float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
-    float top = playerData.posY - PLAYER_HEIGHT;
-    g_playerColliderId = CreateCollider(ColliderTag::Player, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
+    // プレイヤーのコライダーを作成
+    g_playerColliderId = CreatePlayerCollider(playerData.posX, playerData.posY, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
 }
 
 // プレイヤーのリソース読み込み
 void LoadPlayer()
 {
-    bool idleLoaded = LoadAnimationFromSheet(idleAnim, "Data/Player/Idle.png", 10, 46, 55, 8, AnimationMode::Loop);
-    (void)idleLoaded;
-
-    bool runLoaded = LoadAnimationAuto(walkAnim, "Data/Player/Run.png", 65, 48, 8, AnimationMode::Loop);
-    (void)runLoaded;
-
-    if (FileExists("Data/Player/Run_Start.png"))
-    {
-        bool runStartLoaded = LoadAnimationAuto(runStartAnim, "Data/Player/Run_Start.png", 59, 53, 8, AnimationMode::Once);
-        (void)runStartLoaded;
-    }
-    else
-    {
-        InitAnimation(runStartAnim);
-    }
-
-    if (FileExists("Data/Player/Run_Stop.png"))
-    {
-        // 252x212 / 4x4 = 16コマ中、15コマだけ使用
-        bool runStopLoaded = LoadAnimationFromSheetRange(runStopAnim, "Data/Player/Run_Stop.png",
-            16, 0, 15, 63, 53, 8, AnimationMode::Once);
-        (void)runStopLoaded;
-    }
-    else
-    {
-        InitAnimation(runStopAnim);
-    }
-
-    // Jump.png（256x480 / 4x6 = 24フレーム）
-    if (FileExists("Data/Player/Jump.png"))
-    {
-        bool jumpLoaded = LoadAnimationFromSheetRange(jumpAnim, "Data/Player/Jump.png",
-            24, 0, 13, 64, 80, 4, AnimationMode::Once);
-        bool fallLoaded = LoadAnimationFromSheetRange(fallAnim, "Data/Player/Jump.png",
-            24, 13, 7, 64, 80, 5, AnimationMode::Loop);
-        bool landLoaded = LoadAnimationFromSheetRange(landAnim, "Data/Player/Jump.png",
-            24, 20, 4, 64, 80, 4, AnimationMode::Once);
-        
-        // デバッグ: ロード結果を表示
-        printfDx("Jump anim loaded: %d, frames=%d\n", jumpLoaded, jumpAnim.frameCount);
-        printfDx("Fall anim loaded: %d, frames=%d\n", fallLoaded, fallAnim.frameCount);
-        printfDx("Land anim loaded: %d, frames=%d\n", landLoaded, landAnim.frameCount);
-        
-        (void)jumpLoaded;
-        (void)fallLoaded;
-        (void)landLoaded;
-    }
-    else
-    {
-        InitAnimation(jumpAnim);
-        InitAnimation(fallAnim);
-        InitAnimation(landAnim);
-        printfDx("Jump.png not found!\n");
-    }
-
-    // healing_merged.png（291x486 / 3x6 = 18フレーム）
-    if (FileExists("Data/Player/healing_merged.png"))
-    {
-        bool healLoaded = LoadAnimationAuto(healingAnim, "Data/Player/healing_merged.png",
-            97, 81, 8, AnimationMode::Once);
-        printfDx("Healing anim loaded: %d, frames=%d\n", healLoaded, healingAnim.frameCount);
-        (void)healLoaded;
-    }
-    else
-    {
-        InitAnimation(healingAnim);
-        printfDx("healing_merged.png not found!\n");
-    }
-
-    // aerial dash.png（624x100 / 6x2 = 12フレーム、上の6フレームのみ使用）
-    if (FileExists("Data/Player/aerial dash.png"))
-    {
-        // 624 / 6 = 104px per frame, 100 / 2 = 50px per row
-        // 上の6フレーム（インデックス0-5）のみ使用
-        bool dodgeLoaded = LoadAnimationFromSheetRange(dodgeAnim, "Data/Player/aerial dash.png",
-            12, 0, 6, 104, 50, 4, AnimationMode::Once);
-        printfDx("Dodge anim loaded: %d, frames=%d\n", dodgeLoaded, dodgeAnim.frameCount);
-        (void)dodgeLoaded;
-    }
-    else
-    {
-        InitAnimation(dodgeAnim);
-        printfDx("aerial dash.png not found!\n");
-    }
-
-    // aerial dash_smoke.png（240x314 / 4x2 = 8フレーム、上の4フレーム+下の2フレーム = 6フレーム使用）
-    if (FileExists("Data/Player/aerial dash_smoke.png"))
-    {
-        // 240 / 4 = 60px per frame, 314 / 2 = 157px per row
-        // 6フレーム使用（0-3の4フレーム + 4-5の2フレーム）
-        bool dashEffectLoaded = LoadAnimationFromSheetRange(dashEffectAnim, "Data/Player/aerial dash_smoke.png",
-            8, 0, 6, 60, 157, 2, AnimationMode::Once);
-        printfDx("Dash effect anim loaded: %d, frames=%d\n", dashEffectLoaded, dashEffectAnim.frameCount);
-        (void)dashEffectLoaded;
-    }
-    else
-    {
-        InitAnimation(dashEffectAnim);
-        printfDx("aerial dash_smoke.png not found!\n");
-    }
-
-    // 落下攻撃アニメーション (1218×1883 / 37コマ, 13-37コマを使用)
-    const char* diveAnimPath = nullptr;
-    if (FileExists("Data/Player/dodge atk 3x_merged.png"))
-    {
-        diveAnimPath = "Data/Player/dodge atk 3x_merged.png";
-    }
-    else if (FileExists("Data/Player/DiveAttack.png"))
-    {
-        diveAnimPath = "Data/Player/DiveAttack.png";
-    }
-    else if (FileExists("Data/Player/diveattack.png"))
-    {
-        diveAnimPath = "Data/Player/diveattack.png";
-    }
-    else if (FileExists("Data/Player/Dive Attack.png"))
-    {
-        diveAnimPath = "Data/Player/Dive Attack.png";
-    }
-
-    if (diveAnimPath != nullptr)
-    {
-        bool diveLoaded = TryLoadDiveAttackAnimation(diveAnimPath);
-        printfDx("Dive attack anim loaded: %d, frames=%d, path=%s\n", diveLoaded ? 1 : 0, diveAttackAnim.frameCount, diveAnimPath);
-    }
-    else
-    {
-        bool diveLoaded = false;
-        if (FileExists("Data/Player/aerial dash.png"))
-        {
-            diveLoaded = LoadAnimationFromSheetRange(diveAttackAnim, "Data/Player/aerial dash.png", 12, 0, 6, 104, 50, 4, AnimationMode::Loop);
-        }
-
-        if (!diveLoaded)
-        {
-            InitAnimation(diveAttackAnim);
-            printfDx("DiveAttack image not found!\n");
-        }
-    }
+    LoadPlayerAnimations(playerAnims);
 }
 
 // プレイヤーの更新
@@ -395,6 +205,19 @@ void UpdatePlayer()
 
     UpdateState();
     UpdatePlayerAnimation();
+
+    // ダッシュエフェクトの更新
+    if (playerData.showDashEffect)
+    {
+        UpdateAnimation(playerAnims.dashEffect);
+
+        // エフェクトアニメーションが終了したら非表示にする
+        if (IsAnimationFinished(playerAnims.dashEffect))
+        {
+            playerData.showDashEffect = false;
+            ResetAnimation(playerAnims.dashEffect);
+        }
+    }
 }
 
 // プレイヤーの描画
@@ -406,15 +229,15 @@ void DrawPlayer()
     int baseY = static_cast<int>(std::round((playerData.posY - camera.posY) * camera.scale));
     bool flip = playerData.isFacingRight;
 
-    bool hasAnimation = (idleAnim.frames != nullptr && idleAnim.frameCount > 0);
+    bool hasAnimation = (playerAnims.idle.frames != nullptr && playerAnims.idle.frameCount > 0);
 
     // ダッシュエフェクトの描画（プレイヤーの後ろに描画）
-    if (playerData.showDashEffect && dashEffectAnim.frames != nullptr)
+    if (playerData.showDashEffect && playerAnims.dashEffect.frames != nullptr)
     {
         int effectX = static_cast<int>(std::round((playerData.dashEffectX - camera.posX) * camera.scale));
         int effectY = static_cast<int>(std::round((playerData.dashEffectY - camera.posY) * camera.scale));
 
-        int frameHandle = GetCurrentAnimationFrame(dashEffectAnim);
+        int frameHandle = GetCurrentAnimationFrame(playerAnims.dashEffect);
         if (frameHandle != -1)
         {
             int w = 0;
@@ -444,11 +267,11 @@ void DrawPlayer()
     {
         if ((playerData.state == PlayerState::Idle || playerData.state == PlayerState::Walk) &&
             playerData.isGrounded && runAnimState == RunAnimState::Stop &&
-            runStopAnim.frames != nullptr && !IsAnimationFinished(runStopAnim))
+            playerAnims.runStop.frames != nullptr && !IsAnimationFinished(playerAnims.runStop))
         {
-            if (GetCurrentAnimationFrame(runStopAnim) != -1)
+            if (GetCurrentAnimationFrame(playerAnims.runStop) != -1)
             {
-                DrawAnimationAligned(runStopAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.runStop, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
                 return;
             }
         }
@@ -456,65 +279,65 @@ void DrawPlayer()
         switch (playerData.state)
         {
         case PlayerState::Idle:
-            DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+            DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::Walk:
-            if (runAnimState == RunAnimState::Start && runStartAnim.frames != nullptr)
+            if (runAnimState == RunAnimState::Start && playerAnims.runStart.frames != nullptr)
             {
-                DrawAnimationAligned(runStartAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.runStart, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             }
             else
             {
-                DrawAnimationAligned(walkAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.walk, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             }
             break;
         case PlayerState::Jump:
-            if (jumpAnim.frames != nullptr)
-                DrawAnimationAligned(jumpAnim, baseX, baseY, flip);
+            if (playerAnims.jump.frames != nullptr)
+                DrawAnimationAligned(playerAnims.jump, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
-                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::Fall:
-            if (fallAnim.frames != nullptr)
-                DrawAnimationAligned(fallAnim, baseX, baseY, flip);
+            if (playerAnims.fall.frames != nullptr)
+                DrawAnimationAligned(playerAnims.fall, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
-                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::UsingSkill:
-            DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+            DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::Land:
-            if (landAnim.frames != nullptr)
-                DrawAnimationAligned(landAnim, baseX, baseY, flip);
+            if (playerAnims.land.frames != nullptr)
+                DrawAnimationAligned(playerAnims.land, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
-                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::Healing:
-            if (healingAnim.frames != nullptr)
-                DrawAnimationAligned(healingAnim, baseX, baseY, flip);
+            if (playerAnims.healing.frames != nullptr)
+                DrawAnimationAligned(playerAnims.healing, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
-                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::Dodging:
-            if (dodgeAnim.frames != nullptr)
-                DrawAnimationAligned(dodgeAnim, baseX, baseY, flip);
+            if (playerAnims.dodge.frames != nullptr)
+                DrawAnimationAligned(playerAnims.dodge, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
-                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::DiveAttack:
-            if (diveAttackAnim.frames != nullptr && diveAttackAnim.frameCount > 0)
+            if (playerAnims.diveAttack.frames != nullptr && playerAnims.diveAttack.frameCount > 0)
             {
                 int drawOffsetY = g_DiveAttackDrawOffsetY;
                 if (g_DiveAttackLanded)
                 {
                     drawOffsetY += DIVE_ATTACK_LANDED_EXTRA_OFFSET_Y;
                 }
-                DrawAnimationAlignedOffset(diveAttackAnim, baseX, baseY, flip, g_DiveAttackDrawOffsetX, drawOffsetY);
+                DrawAnimationAlignedOffset(playerAnims.diveAttack, baseX, baseY, flip, g_DiveAttackDrawOffsetX, drawOffsetY);
             }
-            else if (fallAnim.frames != nullptr)
-                DrawAnimationAligned(fallAnim, baseX, baseY, flip);
+            else if (playerAnims.fall.frames != nullptr)
+                DrawAnimationAligned(playerAnims.fall, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
-                DrawAnimationAligned(idleAnim, baseX, baseY, flip);
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         }
     }
@@ -542,17 +365,7 @@ void DrawPlayer()
 // プレイヤーのリソース解放
 void UnloadPlayer()
 {
-    UnloadAnimation(idleAnim);
-    UnloadAnimation(walkAnim);
-    UnloadAnimation(runStartAnim);
-    UnloadAnimation(runStopAnim);
-    UnloadAnimation(jumpAnim);
-    UnloadAnimation(fallAnim);
-    UnloadAnimation(landAnim);
-    UnloadAnimation(healingAnim);
-    UnloadAnimation(dodgeAnim);
-    UnloadAnimation(dashEffectAnim);  // 追加
-    UnloadAnimation(diveAttackAnim);
+    UnloadPlayerAnimations(playerAnims);
     
     if (g_playerColliderId != -1)
     {
@@ -750,7 +563,7 @@ void TryHeal()
         
         playerData.state = PlayerState::Healing;
         playerData.healExecuted = false;  // 回復未実行状態にリセット
-        ResetAnimation(healingAnim);
+        ResetAnimation(playerAnims.healing);
         printfDx("回復モーション開始！残り回復回数: %d\n", playerData.healCount);
     }
     else
@@ -789,7 +602,7 @@ void TryDodge()
     playerData.state = PlayerState::Dodging;
     
     // アニメーションをリセット
-    ResetAnimation(dodgeAnim);
+    ResetAnimation(playerAnims.dodge);
     
     // 1フレーム目から無敵付与
     playerData.isInvincible = true;
@@ -809,9 +622,9 @@ void TryDodge()
     playerData.dashEffectX = playerData.posX;
     playerData.dashEffectY = playerData.posY;
     playerData.dashEffectFacingRight = playerData.isFacingRight;
-    ResetAnimation(dashEffectAnim);
+    ResetAnimation(playerAnims.dashEffect);
     
-    printfDx("回避開始！velocity=%f, frameCount=%d\n", playerData.velocityX, dodgeAnim.frameCount);
+    printfDx("回避開始！velocity=%f, frameCount=%d\n", playerData.velocityX, playerAnims.dodge.frameCount);
 }
 
 // 無敵状態かどうかを取得
@@ -905,8 +718,8 @@ namespace
             g_DiveAttackLanded = false;
             g_DiveAttackColliderRestored = false;
             runAnimState = RunAnimState::None;
-            ResetAnimation(diveAttackAnim);
-            SetAnimationFrame(diveAttackAnim, 0);
+            ResetAnimation(playerAnims.diveAttack);
+            SetAnimationFrame(playerAnims.diveAttack, 0);
             return;
         }
     }
@@ -997,16 +810,13 @@ namespace
             {
                 if (!g_DiveAttackLanded)
                 {
-                    const float attackHeight = DIVE_ATTACK_UP_HEIGHT + DIVE_ATTACK_DOWN_HEIGHT;
-                    float left = playerData.posX - (DIVE_ATTACK_WIDTH / 2.0f);
-                    float top = playerData.posY - attackHeight;
-                    UpdateCollider(g_playerColliderId, left, top, DIVE_ATTACK_WIDTH, attackHeight);
+                    UpdatePlayerColliderDiveAttack(g_playerColliderId, playerData.posX, playerData.posY, 
+                                                   DIVE_ATTACK_WIDTH, DIVE_ATTACK_UP_HEIGHT, DIVE_ATTACK_DOWN_HEIGHT);
                 }
                 else if (!g_DiveAttackColliderRestored)
                 {
-                    float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
-                    float top = playerData.posY - PLAYER_HEIGHT;
-                    UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+                    UpdatePlayerColliderNormal(g_playerColliderId, playerData.posX, playerData.posY, 
+                                               (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
                     g_DiveAttackColliderRestored = true;
                 }
             }
@@ -1019,11 +829,11 @@ namespace
                 g_DiveAttackLanded = true;
                 playerData.velocityY = 0.0f;
 
-                if (diveAttackAnim.frames != nullptr && diveAttackAnim.frameCount > DIVE_ATTACK_LAND_START_FRAME)
+                if (playerAnims.diveAttack.frames != nullptr && playerAnims.diveAttack.frameCount > DIVE_ATTACK_LAND_START_FRAME)
                 {
-                    if (diveAttackAnim.currentFrame < DIVE_ATTACK_LAND_START_FRAME)
+                    if (playerAnims.diveAttack.currentFrame < DIVE_ATTACK_LAND_START_FRAME)
                     {
-                        SetAnimationFrame(diveAttackAnim, DIVE_ATTACK_LAND_START_FRAME);
+                        SetAnimationFrame(playerAnims.diveAttack, DIVE_ATTACK_LAND_START_FRAME);
                     }
                 }
             }
@@ -1039,12 +849,11 @@ namespace
         playerData.posX += playerData.velocityX;
         playerData.posY += playerData.velocityY;
 
-        // コライダー位置更新（左上で渡す）
+        // コライダー位置更新
         if (g_playerColliderId != -1)
         {
-            float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
-            float top = playerData.posY - PLAYER_HEIGHT;
-            UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+            UpdatePlayerColliderNormal(g_playerColliderId, playerData.posX, playerData.posY, 
+                                       (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
         }
 
         // 衝突解決（ブロックなどと干渉していればここで押し出し等が行われる）
@@ -1107,8 +916,8 @@ namespace
                 return;
             }
 
-            const bool hasDiveAnim = (diveAttackAnim.frameCount > 0 && diveAttackAnim.frames != nullptr);
-            const bool diveAnimEnded = hasDiveAnim ? IsAnimationFinished(diveAttackAnim) : true;
+            const bool hasDiveAnim = (playerAnims.diveAttack.frameCount > 0 && playerAnims.diveAttack.frames != nullptr);
+            const bool diveAnimEnded = hasDiveAnim ? IsAnimationFinished(playerAnims.diveAttack) : true;
 
             if (diveAnimEnded)
             {
@@ -1141,7 +950,7 @@ namespace
         if (playerData.state == PlayerState::Dodging)
         {
             // アニメーションがロードされていない場合は即座に終了
-            if (dodgeAnim.frameCount == 0 || dodgeAnim.frames == nullptr)
+            if (playerAnims.dodge.frameCount == 0 || playerAnims.dodge.frames == nullptr)
             {
                 printfDx("Dodge animation not loaded! Ending dodge.\n");
                 playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
@@ -1152,7 +961,7 @@ namespace
             }
 
             // アニメーションが終了したらIdleに戻る
-            if (IsAnimationFinished(dodgeAnim))
+            if (IsAnimationFinished(playerAnims.dodge))
             {
                 playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
                 playerData.isInvincible = false;
@@ -1185,7 +994,7 @@ namespace
             }
 
             // アニメーションが終了したら Idle に戻る
-            if (IsAnimationFinished(healingAnim))
+            if (IsAnimationFinished(playerAnims.healing))
             {
                 playerData.state = PlayerState::Idle;
                 playerData.healExecuted = false;
@@ -1194,7 +1003,7 @@ namespace
             }
 
             // 14フレーム目（インデックス13）で回復実行
-            if (!playerData.healExecuted && healingAnim.currentFrame == 13)
+            if (!playerData.healExecuted && playerAnims.healing.currentFrame == 13)
             {
                 // 体力が最大値の場合は回復処理をスキップ
                 if (playerData.currentHP >= playerData.maxHP)
@@ -1238,7 +1047,7 @@ namespace
                 newState = PlayerState::Land;
             }
             // Landアニメ再生中は完了まで維持（移動入力がなければ）
-            else if (playerData.state == PlayerState::Land && !IsAnimationFinished(landAnim) && !hasMoveInput)
+            else if (playerData.state == PlayerState::Land && !IsAnimationFinished(playerAnims.land) && !hasMoveInput)
             {
                 newState = PlayerState::Land;
             }
@@ -1261,15 +1070,15 @@ namespace
 
             if (playerData.state == PlayerState::Jump)
             {
-                ResetAnimation(jumpAnim);
+                ResetAnimation(playerAnims.jump);
             }
             else if (playerData.state == PlayerState::Fall)
             {
-                ResetAnimation(fallAnim);
+                ResetAnimation(playerAnims.fall);
             }
             else if (playerData.state == PlayerState::Land)
             {
-                ResetAnimation(landAnim);
+                ResetAnimation(playerAnims.land);
             }
         }
 
@@ -1286,14 +1095,14 @@ namespace
         // 落下攻撃中は落下攻撃アニメーションを優先
         if (playerData.state == PlayerState::DiveAttack)
         {
-            if (diveAttackAnim.frames != nullptr && diveAttackAnim.frameCount > 0)
+            if (playerAnims.diveAttack.frames != nullptr && playerAnims.diveAttack.frameCount > 0)
             {
-                UpdateAnimation(diveAttackAnim);
+                UpdateAnimation(playerAnims.diveAttack);
 
                 // 着地までは13〜18コマ区間で停止
-                if (!g_DiveAttackLanded && diveAttackAnim.currentFrame > DIVE_ATTACK_AIR_END_FRAME)
+                if (!g_DiveAttackLanded && playerAnims.diveAttack.currentFrame > DIVE_ATTACK_AIR_END_FRAME)
                 {
-                    SetAnimationFrame(diveAttackAnim, DIVE_ATTACK_AIR_END_FRAME);
+                    SetAnimationFrame(playerAnims.diveAttack, DIVE_ATTACK_AIR_END_FRAME);
                 }
             }
             prevFacingRight = playerData.isFacingRight;
@@ -1304,7 +1113,7 @@ namespace
         // 回避中は回避アニメーションを優先
         if (playerData.state == PlayerState::Dodging)
         {
-            UpdateAnimation(dodgeAnim);
+            UpdateAnimation(playerAnims.dodge);
             prevFacingRight = playerData.isFacingRight;
             prevAbsVelX = absVelX;
             return;
@@ -1313,7 +1122,7 @@ namespace
         // 回復中は回復アニメーションを優先
         if (playerData.state == PlayerState::Healing)
         {
-            UpdateAnimation(healingAnim);
+            UpdateAnimation(playerAnims.healing);
             prevFacingRight = playerData.isFacingRight;
             prevAbsVelX = absVelX;
             return;
@@ -1322,32 +1131,32 @@ namespace
         // 空中状態（Jump/Fall/Land）は優先的に処理
         if (playerData.state == PlayerState::Jump)
         {
-            UpdateAnimation(jumpAnim);
+            UpdateAnimation(playerAnims.jump);
         }
         else if (playerData.state == PlayerState::Fall)
         {
-            UpdateAnimation(fallAnim);
+            UpdateAnimation(playerAnims.fall);
         }
         else if (playerData.state == PlayerState::Land)
         {
-            UpdateAnimation(landAnim);
+            UpdateAnimation(playerAnims.land);
         }
         else if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
         {
             // 走り始め（停止→移動）
-            if (!wasMoving && runStartAnim.frames != nullptr)
+            if (!wasMoving && playerAnims.runStart.frames != nullptr)
             {
                 runAnimState = RunAnimState::Start;
-                ResetAnimation(runStartAnim);
+                ResetAnimation(playerAnims.runStart);
             }
 
-            if (runAnimState == RunAnimState::Start && runStartAnim.frames != nullptr)
+            if (runAnimState == RunAnimState::Start && playerAnims.runStart.frames != nullptr)
             {
-                UpdateAnimation(runStartAnim);
-                if (IsAnimationFinished(runStartAnim))
+                UpdateAnimation(playerAnims.runStart);
+                if (IsAnimationFinished(playerAnims.runStart))
                 {
                     runAnimState = RunAnimState::Run;
-                    ResetAnimation(walkAnim);
+                    ResetAnimation(playerAnims.walk);
                 }
             }
             else
@@ -1357,34 +1166,34 @@ namespace
                 int speed = (int)(10.0f - (absVelX / MOVE_SPEED) * 8.0f);
                 if (speed < 2) speed = 2;
                 if (speed > 10) speed = 10;
-                SetAnimationSpeed(walkAnim, speed);
+                SetAnimationSpeed(playerAnims.walk, speed);
 
-                UpdateAnimation(walkAnim);
+                UpdateAnimation(playerAnims.walk);
             }
         }
         else
         {
             // 停止モーション（移動→停止）
-            if (playerData.isGrounded && wasMoving && runStopAnim.frames != nullptr)
+            if (playerData.isGrounded && wasMoving && playerAnims.runStop.frames != nullptr)
             {
                 runAnimState = RunAnimState::Stop;
-                ResetAnimation(runStopAnim);
+                ResetAnimation(playerAnims.runStop);
             }
 
-            if (runAnimState == RunAnimState::Stop && runStopAnim.frames != nullptr)
+            if (runAnimState == RunAnimState::Stop && playerAnims.runStop.frames != nullptr)
             {
-                UpdateAnimation(runStopAnim);
-                if (IsAnimationFinished(runStopAnim))
+                UpdateAnimation(playerAnims.runStop);
+                if (IsAnimationFinished(playerAnims.runStop))
                 {
                     runAnimState = RunAnimState::None;
 
                     if (playerData.state == PlayerState::Idle)
                     {
-                        ResetAnimation(idleAnim);
+                        ResetAnimation(playerAnims.idle);
                     }
                     else if (playerData.state == PlayerState::Walk)
                     {
-                        ResetAnimation(walkAnim);
+                        ResetAnimation(playerAnims.walk);
                     }
                 }
             }
@@ -1393,7 +1202,7 @@ namespace
                 // Idle または UsingSkill 状態
                 if (playerData.state == PlayerState::Idle || playerData.state == PlayerState::UsingSkill)
                 {
-                    UpdateAnimation(idleAnim);
+                    UpdateAnimation(playerAnims.idle);
                 }
             }
         }
@@ -1427,70 +1236,7 @@ namespace
             lastJumpInputFrame = inputFrame;
 
             // ジャンプアニメーションをリセット
-            ResetAnimation(jumpAnim);
-        }
-    }
-
-    bool FileExists(const char* path)
-    {
-        int handle = FileRead_open(path);
-        if (handle == 0)
-        {
-            return false;
-        }
-        FileRead_close(handle);
-        return true;
-    }
-
-    void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip)
-    {
-        int frameHandle = GetCurrentAnimationFrame(anim);
-        if (frameHandle == -1)
-        {
-            return;
-        }
-
-        int w = 0;
-        int h = 0;
-        GetGraphSize(frameHandle, &w, &h);
-
-        // 固定枠(PLAYER_WIDTH/HEIGHT)の中で中央寄せ + 足元揃え
-        int drawX = baseX - (PLAYER_WIDTH / 2) + (PLAYER_WIDTH - w) / 2;
-        int drawY = baseY - PLAYER_HEIGHT + (PLAYER_HEIGHT - h);
-
-        if (flip)
-        {
-            DrawTurnGraph(drawX, drawY, frameHandle, TRUE);
-        }
-        else
-        {
-            DrawGraph(drawX, drawY, frameHandle, TRUE);
-        }
-    }
-
-    void DrawAnimationAlignedOffset(const AnimationData& anim, int baseX, int baseY, bool flip, int offsetX, int offsetY)
-    {
-        int frameHandle = GetCurrentAnimationFrame(anim);
-        if (frameHandle == -1)
-        {
-            return;
-        }
-
-        int w = 0;
-        int h = 0;
-        GetGraphSize(frameHandle, &w, &h);
-
-        // 落下攻撃はフレーム自体の底辺中央をプレイヤー足元に合わせる
-        int drawX = baseX - (w / 2) + offsetX;
-        int drawY = baseY - h + offsetY;
-
-        if (flip)
-        {
-            DrawTurnGraph(drawX, drawY, frameHandle, TRUE);
-        }
-        else
-        {
-            DrawGraph(drawX, drawY, frameHandle, TRUE);
+            ResetAnimation(playerAnims.jump);
         }
     }
 
@@ -1536,9 +1282,8 @@ namespace
 
                 if (g_playerColliderId != -1)
                 {
-                    float left = playerData.posX - (PLAYER_WIDTH / 2.0f);
-                    float top = playerData.posY - PLAYER_HEIGHT;
-                    UpdateCollider(g_playerColliderId, left, top, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+                    UpdatePlayerColliderNormal(g_playerColliderId, playerData.posX, playerData.posY, 
+                                               (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
                 }
                 return true;
             }

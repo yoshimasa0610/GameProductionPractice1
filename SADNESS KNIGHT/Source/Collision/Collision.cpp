@@ -483,3 +483,27 @@ void ResolveCollisions()
         }
     }
 }
+
+// ===== プレイヤーコライダー管理 =====
+
+ColliderId CreatePlayerCollider(float centerX, float centerY, float width, float height, void* owner)
+{
+    float left = centerX - (width / 2.0f);
+    float top = centerY - height;
+    return CreateCollider(ColliderTag::Player, left, top, width, height, owner);
+}
+
+void UpdatePlayerColliderNormal(ColliderId id, float centerX, float centerY, float width, float height)
+{
+    float left = centerX - (width / 2.0f);
+    float top = centerY - height;
+    UpdateCollider(id, left, top, width, height);
+}
+
+void UpdatePlayerColliderDiveAttack(ColliderId id, float centerX, float centerY, float width, float upHeight, float downHeight)
+{
+    float totalHeight = upHeight + downHeight;
+    float left = centerX - (width / 2.0f);
+    float top = centerY - totalHeight;
+    UpdateCollider(id, left, top, width, totalHeight);
+}
