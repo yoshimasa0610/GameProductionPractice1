@@ -24,6 +24,8 @@ struct PlayerData
     // ˆÊ’uî•ñ
     float posX;
     float posY;
+    float width;
+    float height;
     float velocityX;
     float velocityY;
     float prevPosX;
