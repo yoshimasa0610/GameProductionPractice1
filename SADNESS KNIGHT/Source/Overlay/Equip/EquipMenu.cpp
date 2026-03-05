@@ -378,15 +378,15 @@ void DrawEquipMenuScene(const OverlayArea& area)
 
         DrawFormatString(
             rightX + 40,
-            area.y + 60,
+            area.y + 90,
             GetColor(255, 200, 0),
-            "使用スロット\n %d",
+            "使用スロット\n     %d",
             sel->slotCost
         );
 
         // ===== 大型アイコン表示 =====
         int iconSize = 96;
-        int iconX = rightX + 136;
+        int iconX = rightX + 165;
         int iconY = area.y + 70;
 
         if (sel->iconLargeHandle > 0)
