@@ -58,7 +58,7 @@ void UpdateSkillMenuScene()
         return;
     }
     */
-    if (!IsPlayerSitting()) return;
+    //if (!IsPlayerSitting()) return;
 
     if (g_Mode == SkillMenuMode::SlotSelect)
     {
@@ -87,7 +87,14 @@ void UpdateSkillMenuScene()
         std::vector<int> list;
         BuildOwnedSkills(list);
 
-        if (list.empty()) return;
+        DrawFormatString(50, 50, GetColor(255, 255, 255),
+            "SkillCount:%d",
+            list.size());
+
+        if (list.empty())
+        {
+            //DrawString(SX(40), SY(140), "No Skills", GetColor(200, 200, 200));
+        }
 
         if (IsTriggerKey(KEY_UP))    g_SelectedSkillIndex -= 6;
         if (IsTriggerKey(KEY_DOWN))  g_SelectedSkillIndex += 6;
