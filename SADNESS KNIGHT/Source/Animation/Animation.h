@@ -43,8 +43,13 @@ bool LoadJumpFallAnimations(AnimationData& jumpAnim, AnimationData& fallAnim,
                             const char* filePath, int totalFrames, int jumpFrameCount,
                             int frameWidth, int frameHeight);
 
+// 個別ファイルからアニメーションを読み込む（連番ファイル用）
+bool LoadAnimationFromFiles(AnimationData& anim, const char* basePath, const char* prefix,
+                           int frameCount, int animSpeed, AnimationMode mode = AnimationMode::Loop);
+
 // アニメーション画像を解放
 void UnloadAnimation(AnimationData& anim);
+
 
 // ===== 更新・制御 =====
 

@@ -22,8 +22,11 @@
 #include "../../Overlay/OverlayMenu.h"
 #include "../../Skill/SkillData.h"
 #include "../../Skill/SkillManager.h"
+#include "../../Enemy/EnemyBase.h"
+#include "../../Enemy/Slime/Slime.h"
 
 static ItemField g_ItemField;
+
 PlayerData& player = GetPlayerData();
 extern SaveData  g_SaveData;
 
@@ -32,8 +35,12 @@ static char g_SpawnLoadDebug[256] = { 0 };
 
 //時間
 static float g_ElapsedTime = 0.0f;
+static bool g_IsPaused = false;
+static bool g_EnemySpawned = false;
 
 void InitPlayScene()
+
+
 {
 	InitCamera();
 	InitMoneyDrops();
@@ -97,12 +104,14 @@ void StartPlayScene()
 
 	BGMType bgm = GetStageBGM(GetCurrentStageName());
 	PlayBGM(bgm);
+	
+	g_EnemySpawned = false;
 }
 
-// --- ポーズ制御フラグ ---
-static bool g_IsPaused = false;
 
 void SetPaused(bool paused)
+
+
 {
 	g_IsPaused = paused;
 }
@@ -114,12 +123,26 @@ bool IsPaused()
 
 void StepPlayScene()
 {
-	if (g_IsPaused) return; // ポーズ中は進行を止める
+	if (g_IsPaused) return;
+
+	if (!g_EnemySpawned && IsPlayerAlive())
+	{
+		float playerX = GetPlayerPosX();
+		float playerY = GetPlayerPosY();
+		bool facingRight = IsPlayerFacingRight();
+		float spawnX = playerX + (facingRight ? 150.0f : -150.0f);
+		float spawnY = playerY;
+		SpawnSlime(spawnX, spawnY);
+		g_EnemySpawned = true;
+	}
 
 	float deltaTime = 1.0f / 60.0f;
 	g_ElapsedTime += deltaTime;
 
+	UpdateEnemies();
+
 	// お金更新（吸い寄せ & 回収）
+
 	UpdateMoneyDrops(
 		player.posX,
 		player.posY

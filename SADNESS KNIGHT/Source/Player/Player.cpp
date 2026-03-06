@@ -1,4 +1,8 @@
-﻿#include "Player.h"
+﻿
+
+
+
+#include "Player.h"
 #include "../Input/Input.h"
 #include "../Animation/Animation.h"
 #include "../Skill/SkillManager.h"
@@ -88,68 +92,32 @@ namespace
 // プレイヤーの初期化
 void InitPlayer(float startX, float startY)
 {
-    // 位置情報
+    playerData = {};
     playerData.posX = startX;
     playerData.posY = startY;
-    playerData.velocityX = 0.0f;
-    playerData.velocityY = 0.0f;
-
-    // 状態
     playerData.state = PlayerState::Idle;
     playerData.isFacingRight = true;
-    playerData.isGrounded = false;
-    playerData.jumpCount = 0;
-
-    g_PendingCenterSpawn = true;
-
-    runAnimState = RunAnimState::None;
-    prevFacingRight = playerData.isFacingRight;
-    prevIsGrounded = playerData.isGrounded; // 追加
-
-    // ===== パッシブアビリティ =====
-    playerData.hasDoubleJump = false;  // 初期状態では二段ジャンプは未解放
-
-    // ===== 回復関連 =====
+    
+    playerData.hasDoubleJump = false;
     playerData.healCount = 3;
     playerData.maxHealCount = 3;
-    playerData.healExecuted = false;
-
-    // ===== 回避関連 =====
-    playerData.isInvincible = false;
-    playerData.dodgeCooldown = 0;
-
-    // ===== ダッシュエフェクト関連 =====
-    playerData.showDashEffect = false;
-    playerData.dashEffectX = 0.0f;
-    playerData.dashEffectY = 0.0f;
-    playerData.dashEffectFacingRight = true;
     
-    // ===== 基礎ステータス =====
     playerData.baseMaxHp = 150;
-    playerData.baseMaxSlot = 5;       // 仮に5スロット
+    playerData.baseMaxSlot = 5;
     playerData.basehealPower = 90;
-
-    // ===== 現在値（初期は基礎値と同じ） =====
-    playerData.maxHP = playerData.baseMaxHp;
-    playerData.currentHP = playerData.maxHP;
-    playerData.maxSlot = playerData.baseMaxSlot;
-    playerData.usedSlot = 0;
-    // ===== 装備補正 =====
-    playerData.healPowerBonus = 0;
-    playerData.damageTakenRate = 0.0f;
-    playerData.skillCountRate = 0.0f;
-    playerData.skillCooldownRate = 0.0f;
-    playerData.healCountBonus = 0;
-
-    // ひつように応じてろりろり
+    playerData.maxHP = 150;
+    playerData.currentHP = 150;
+    playerData.maxSlot = 5;
     playerData.attackPower = 100;
-    playerData.money = 0;
-
-    // 落下攻撃初期化
-    playerData.hasDiveAttack = false;
-    playerData.isDiveAttacking = false;
+    
     playerData.diveAttackSpeed = DIVE_ATTACK_SPEED;
     playerData.diveAttackDamage = DIVE_ATTACK_DAMAGE;
+
+    g_PendingCenterSpawn = true;
+    runAnimState = RunAnimState::None;
+    prevFacingRight = true;
+    prevIsGrounded = false;
+    
     g_DiveAttackLockFrames = 0;
     g_DiveAttackRecoveryFrames = -1;
     g_DiveAttackLanded = false;
@@ -157,14 +125,9 @@ void InitPlayer(float startX, float startY)
     g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
     g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
 
-    if (DEBUG_UNLOCK_DIVE_ATTACK)
-    {
-        UnlockDiveAttack();
-        printfDx("【デバッグ】落下攻撃を解放しました\n");
-    }
+    if (DEBUG_UNLOCK_DIVE_ATTACK) UnlockDiveAttack();
 
-    // プレイヤーのコライダーを作成
-    g_playerColliderId = CreatePlayerCollider(playerData.posX, playerData.posY, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
+    g_playerColliderId = CreatePlayerCollider(startX, startY, (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT, &playerData);
 }
 
 // プレイヤーのリソース読み込み
@@ -176,42 +139,28 @@ void LoadPlayer()
 // プレイヤーの更新
 void UpdatePlayer()
 {
-    // プレイヤーが生きている場合のみ更新
-    if (playerData.currentHP <= 0)
+    if (playerData.currentHP <= 0) return;
+
+    if (g_PendingCenterSpawn && PlacePlayerAtMapCenter())
     {
-        return;
+        g_PendingCenterSpawn = false;
+        playerData.state = PlayerState::Idle;
+        playerData.isInvincible = false;
+        runAnimState = RunAnimState::None;
     }
 
-    if (g_PendingCenterSpawn)
-    {
-        if (PlacePlayerAtMapCenter())
-        {
-            g_PendingCenterSpawn = false;
-            playerData.state = PlayerState::Idle;
-            playerData.isInvincible = false;
-            runAnimState = RunAnimState::None;
-        }
-    }
-
-    // 前フレームの位置を保存（衝突処理などで必要）
     playerData.prevPosX = playerData.posX;
     playerData.prevPosY = playerData.posY;
 
     ProcessInput();
-
     UpdatePhysics();
-
     skillManager.Update(&playerData);
-
     UpdateState();
     UpdatePlayerAnimation();
 
-    // ダッシュエフェクトの更新
     if (playerData.showDashEffect)
     {
         UpdateAnimation(playerAnims.dashEffect);
-
-        // エフェクトアニメーションが終了したら非表示にする
         if (IsAnimationFinished(playerAnims.dashEffect))
         {
             playerData.showDashEffect = false;
@@ -374,323 +323,147 @@ void UnloadPlayer()
     }
 }
 
-// ===== データ取得関数の実装 =====
+// ===== データ取得 =====
 
-// プレイヤーデータ全体を取得
-PlayerData& GetPlayerData()
-{
-    return playerData;
-}
+PlayerData& GetPlayerData() { return playerData; }
+float GetPlayerPosX() { return playerData.posX; }
+float GetPlayerPosY() { return playerData.posY; }
+void GetPlayerPos(float& outX, float& outY) { outX = playerData.posX; outY = playerData.posY; }
+float GetPlayerVelocityX() { return playerData.velocityX; }
+float GetPlayerVelocityY() { return playerData.velocityY; }
+PlayerState GetPlayerState() { return playerData.state; }
+bool IsPlayerFacingRight() { return playerData.isFacingRight; }
+bool IsPlayerGrounded() { return playerData.isGrounded; }
+bool IsPlayerAlive() { return playerData.currentHP > 0; }
+int GetPlayerHP() { return playerData.currentHP; }
+int GetPlayerMaxHP() { return playerData.maxHP; }
+int GetPlayerAttack() { return playerData.attackPower; }
 
-// 位置情報取得
-// プレイヤーのX座標を取得
-float GetPlayerPosX()
-{
-    return playerData.posX;
-}
-
-// プレイヤーのY座標を取得
-float GetPlayerPosY()
-{
-    return playerData.posY;
-}
-
-// プレイヤーの座標を取得
-void GetPlayerPos(float& outX, float& outY)
-{
-    outX = playerData.posX;
-    outY = playerData.posY;
-}
-
-// プレイヤーの速度Xを取得
-float GetPlayerVelocityX()
-{
-    return playerData.velocityX;
-}
-
-// プレイヤーの速度Yを取得
-float GetPlayerVelocityY()
-{
-    return playerData.velocityY;
-}
-
-// 状態取得
-// プレイヤーの状態を取得
-PlayerState GetPlayerState()
-{
-    return playerData.state;
-}
-
-// プレイヤーが右を向いているか
-bool IsPlayerFacingRight()
-{
-    return playerData.isFacingRight;
-}
-
-// プレイヤーが地面にいるか
-bool IsPlayerGrounded()
-{
-    return playerData.isGrounded;
-}
-
-// プレイヤーが生きているか
-bool IsPlayerAlive()
-{
-    return playerData.currentHP > 0;
-}
-
-// ステータス取得
-// 現在のHPを取得
-int GetPlayerHP()
-{
-    return playerData.currentHP;
-}
-
-// 最大HPを取得
-int GetPlayerMaxHP()
-{
-    return playerData.maxHP;
-}
-
-// 攻撃力を取得
-int GetPlayerAttack()
-{
-    return playerData.attackPower;
-}
-
-// ===== データ操作関数の実装 =====
+// ===== データ操作 =====
 
 // HPにダメージを与える
 void DamagePlayerHP(int damage)
 {
-    // 無敵中はダメージを受けない
     if (playerData.isInvincible)
     {
-        printfDx("無敵中！ダメージ無効\n");
         return;
     }
 
-    // 回復中の場合はキャンセル
     if (playerData.state == PlayerState::Healing)
     {
-        printfDx("回復キャンセル: ダメージを受けた\n");
         playerData.state = PlayerState::Idle;
         playerData.healExecuted = false;
     }
 
-    // 装備によるダメージ減少の補正を加えました
     int finalDamage = (int)floor(damage * (1.0f + playerData.damageTakenRate));
     if (finalDamage < 1) finalDamage = 1;
 
     playerData.currentHP -= finalDamage;
     if (playerData.currentHP < 0) playerData.currentHP = 0;
-    printfDx("Player damaged! HP: %d / %d\n", playerData.currentHP, playerData.maxHP);
 }
 
 // HPを回復する
 void HealPlayerHP(int healAmount)
 {
-    int finalHeal = healAmount;
-
-    // 回復力補正を適用 
-    finalHeal += playerData.healPowerBonus;
+    int finalHeal = healAmount + playerData.healPowerBonus;
 
     playerData.currentHP += finalHeal;
-
     if (playerData.currentHP > playerData.maxHP)
         playerData.currentHP = playerData.maxHP;
-
-    printfDx("Player healed! +%d HP: %d / %d\n",
-        finalHeal,
-        playerData.currentHP,
-        playerData.maxHP);
 }
 
-// ===== パッシブアビリティ関数の実装 =====
+// ===== パッシブアビリティ =====
 
-// 二段ジャンプを解放する
-void UnlockDoubleJump()
-{
-    playerData.hasDoubleJump = true;
-    printfDx("パッシブアビリティ解放: 二段ジャンプ\n");
-}
+void UnlockDoubleJump() { playerData.hasDoubleJump = true; }
+bool HasDoubleJump() { return playerData.hasDoubleJump; }
+void UnlockDiveAttack() { playerData.hasDiveAttack = true; }
+bool HasDiveAttack() { return playerData.hasDiveAttack; }
+void OnCatCombatDefeated() { UnlockDiveAttack(); }
 
-// 二段ジャンプが解放されているか
-bool HasDoubleJump()
-{
-    return playerData.hasDoubleJump;
-}
+// ===== 回復関連 ===== GetHealCount() { return playerData.healCount; }
+int GetMaxHealCount() { return playerData.maxHealCount; }
 
-// 落下攻撃解放関数
-void UnlockDiveAttack()
-{
-    playerData.hasDiveAttack = true;
-    printfDx("パッシブアビリティ解放: 落下攻撃\n");
-}
-
-bool HasDiveAttack()
-{
-    return playerData.hasDiveAttack;
-}
-
-void OnCatCombatDefeated()
-{
-    UnlockDiveAttack();
-    printfDx("キャットコンバット撃破: 落下攻撃を解放\n");
-}
-
-// ===== 回復関連関数の実装 =====
-
-// 回復を試みる（キー入力時）
+// ===== 回避関連 =====
 void TryHeal()
 {
-    // デバッグ: 条件をチェック
-    printfDx("TryHeal called! healCount=%d, isGrounded=%d, state=%d\n", 
-             playerData.healCount, playerData.isGrounded, (int)playerData.state);
-
-    // 回復回数が残っており、地上にいて、回復中でない場合のみ実行
     if (playerData.healCount > 0 && 
         playerData.isGrounded && 
         playerData.state != PlayerState::Healing &&
         playerData.state != PlayerState::UsingSkill)
     {
-        // 回復開始時に移動を強制停止
         playerData.velocityX = 0.0f;
-        currentMoveDir = 0;  // 移動入力をクリア
-        
-        // 走行アニメーション状態をリセット
+        currentMoveDir = 0;
         runAnimState = RunAnimState::None;
-        
         playerData.state = PlayerState::Healing;
-        playerData.healExecuted = false;  // 回復未実行状態にリセット
+        playerData.healExecuted = false;
         ResetAnimation(playerAnims.healing);
-        printfDx("回復モーション開始！残り回復回数: %d\n", playerData.healCount);
-    }
-    else
-    {
-        printfDx("回復条件を満たしていません\n");
     }
 }
 
-// 残り回復回数を取得
-int GetHealCount()
-{
-    return playerData.healCount;
-}
+// ===== 回避関連 =====
 
-// 最大回復回数を取得
-int GetMaxHealCount()
-{
-    return playerData.maxHealCount;
-}
+bool IsPlayerInvincible() { return playerData.isInvincible; }
 
-// ===== 回避関連関数の実装 =====
-
-// 回避を試みる（キー入力時）
 void TryDodge()
 {
-    // クールダウン中、回復中、スキル使用中は回避できない
     if (playerData.dodgeCooldown > 0 ||
         playerData.state == PlayerState::Healing ||
         playerData.state == PlayerState::UsingSkill ||
-        playerData.state == PlayerState::Dodging)  // 回避中は再発動できない
+        playerData.state == PlayerState::Dodging)
     {
         return;
     }
 
-    // 回避状態に移行
     playerData.state = PlayerState::Dodging;
-    
-    // アニメーションをリセット
     ResetAnimation(playerAnims.dodge);
-    
-    // 1フレーム目から無敵付与
     playerData.isInvincible = true;
     
-    // 前方にダッシュ（向いている方向に移動）
     float dashDirection = playerData.isFacingRight ? 1.0f : -1.0f;
-    playerData.velocityX = dashDirection * (DODGE_DISTANCE / 6.0f);  // 6フレームで移動
-    
-    // クールダウン設定
+    playerData.velocityX = dashDirection * (DODGE_DISTANCE / 6.0f);
     playerData.dodgeCooldown = DODGE_COOLDOWN;
-    
-    // 走行アニメーション状態をリセット
     runAnimState = RunAnimState::None;
     
-    // ダッシュエフェクトを開始
     playerData.showDashEffect = true;
     playerData.dashEffectX = playerData.posX;
     playerData.dashEffectY = playerData.posY;
     playerData.dashEffectFacingRight = playerData.isFacingRight;
     ResetAnimation(playerAnims.dashEffect);
-    
-    printfDx("回避開始！velocity=%f, frameCount=%d\n", playerData.velocityX, playerAnims.dodge.frameCount);
 }
 
-// 無敵状態かどうかを取得
-bool IsPlayerInvincible()
-{
-    return playerData.isInvincible;
-}
-
-// 内部関数の実装
+// ===== 内部関数 =====
 namespace
 {
-    // 入力処理
     void ProcessInput()
     {
         ProcessMovement();
         ProcessSkills();
     }
 
-    // 移動処理
     void ProcessMovement()
     {
-        // 回避中は移動入力を完全に無効化
-        if (playerData.state == PlayerState::Dodging)
-        {
-            // 回避中の速度は維持（ダッシュ移動）
+        if (playerData.state == PlayerState::Dodging || playerData.state == PlayerState::DiveAttack)
             return;
-        }
-        
-        // 落下攻撃中は入力を無効化
-        if (playerData.state == PlayerState::DiveAttack)
-        {
-            return;
-        }
 
-        // 回復中の処理
-        bool wasHealing = false;
         if (playerData.state == PlayerState::Healing)
         {
             playerData.velocityX = 0.0f;
-            currentMoveDir = 0;  // 入力状態もクリア
-
-            // 回復中にジャンプキーが押されたらキャンセル
+            currentMoveDir = 0;
             if (IsTriggerKey(KEY_JUMP))
             {
                 playerData.state = PlayerState::Idle;
                 playerData.healExecuted = false;
-                wasHealing = true;
-                // このまま処理を続行してジャンプを実行
             }
-            else
-            {
-                return;  // ジャンプキー以外の入力は無視
-            }
+            else return;
         }
 
         currentMoveDir = 0;
-
         if (IsInputKey(KEY_LEFT))  currentMoveDir -= 1;
         if (IsInputKey(KEY_RIGHT)) currentMoveDir += 1;
 
-        float horizontal = (float)currentMoveDir;
+        playerData.velocityX = currentMoveDir * MOVE_SPEED;
 
-        playerData.velocityX = horizontal * MOVE_SPEED;
-
-        if (horizontal > 0.0f) playerData.isFacingRight = true;
-        else if (horizontal < 0.0f) playerData.isFacingRight = false;
+        if (currentMoveDir > 0) playerData.isFacingRight = true;
+        else if (currentMoveDir < 0) playerData.isFacingRight = false;
 
         if (IsTriggerKey(KEY_JUMP))
         {
@@ -699,15 +472,10 @@ namespace
                 playerData.dropThrough = true;
                 playerData.dropTimer = 15;
             }
-            else
-            {
-                ExecuteJump();
-            }
+            else ExecuteJump();
         }
 
-        // 落下攻撃の発動（空中 + 下入力 + Qキー）
-        if (playerData.hasDiveAttack && !playerData.isGrounded &&
-            IsInputKey(KEY_DOWN) && IsTriggerKey(KEY_DIVE_ATTACK))
+        if (playerData.hasDiveAttack && !playerData.isGrounded && IsInputKey(KEY_DOWN) && IsTriggerKey(KEY_DIVE_ATTACK))
         {
             playerData.state = PlayerState::DiveAttack;
             playerData.isDiveAttacking = true;
@@ -720,72 +488,37 @@ namespace
             runAnimState = RunAnimState::None;
             ResetAnimation(playerAnims.diveAttack);
             SetAnimationFrame(playerAnims.diveAttack, 0);
-            return;
         }
     }
 
-    // スキル処理
     void ProcessSkills()
     {
-        // 落下攻撃中は他アクションを受け付けない
-        if (playerData.state == PlayerState::DiveAttack)
-        {
+        if (playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Dodging)
             return;
-        }
-
-        // 回避中でも回避キーは処理する（クールダウンでガード済み）         // ただし他のスキルは無効化
-        if (playerData.state == PlayerState::Dodging)
-        {
-            // 回避キー入力だけは処理
-            if (IsTriggerKey(KEY_DODGE))
-            {
-                printfDx("KEY_DODGE pressed!\n");
-                TryDodge();
-            }
-            return;
-        }
 
         if (IsTriggerKey(KEY_SKILL1))
         {
             skillManager.UseSkill(0, &playerData);
             playerData.state = PlayerState::UsingSkill;
         }
-
-        if (IsTriggerKey(KEY_SKILL2))
+        else if (IsTriggerKey(KEY_SKILL2))
         {
             skillManager.UseSkill(1, &playerData);
             playerData.state = PlayerState::UsingSkill;
         }
-
-        if (IsTriggerKey(KEY_SKILL3))
+        else if (IsTriggerKey(KEY_SKILL3))
         {
             skillManager.UseSkill(2, &playerData);
             playerData.state = PlayerState::UsingSkill;
         }
 
-        if (IsTriggerKey(KEY_CHANGE))
-        {
-            skillManager.ChangeSet();
-        }
-
-        // 回復キー入力処理
-        if (IsTriggerKey(KEY_HEAL))
-        {
-            printfDx("KEY_HEAL pressed!\n");
-            TryHeal();
-        }
-
-        // 回避キー入力処理
-        if (IsTriggerKey(KEY_DODGE))
-        {
-            TryDodge();
-        }
+        if (IsTriggerKey(KEY_CHANGE)) skillManager.ChangeSet();
+        if (IsTriggerKey(KEY_HEAL)) TryHeal();
+        if (IsTriggerKey(KEY_DODGE)) TryDodge();
     }
 
-    // 物理演算更新
     void UpdatePhysics()
     {
-        // 落下攻撃中は専用の物理処理
         if (playerData.state == PlayerState::DiveAttack)
         {
             if (g_DiveAttackLockFrames > 0)
@@ -859,55 +592,31 @@ namespace
         // 衝突解決（ブロックなどと干渉していればここで押し出し等が行われる）
         ResolveCollisions();
 
-        // 接地中は縦速度を確実に止める
         if (playerData.isGrounded && playerData.velocityY > 0.0f)
-        {
             playerData.velocityY = 0.0f;
-        }
 
-        // マップ下に落ちすぎた場合だけ保護（床判定は衝突側に任せる）
         const int mapW = GetMapWidth();
         const int mapH = GetMapHeight();
-        if (mapH > 0)
+        
+        if (mapH > 0 && playerData.posY > mapH)
         {
-            const float bottomLimit = static_cast<float>(mapH);
-            if (playerData.posY > bottomLimit)
-            {
-                playerData.posY = bottomLimit;
-                playerData.velocityY = 0.0f;
-                playerData.isGrounded = true;
-                playerData.jumpCount = 0;
-            }
+            playerData.posY = (float)mapH;
+            playerData.velocityY = 0.0f;
+            playerData.isGrounded = true;
+            playerData.jumpCount = 0;
         }
 
         if (playerData.posX < 0.0f) playerData.posX = 0.0f;
-        if (mapW > 0)
-        {
-            const float xMax = static_cast<float>(mapW);
-            if (playerData.posX > xMax) playerData.posX = xMax;
-        }
+        if (mapW > 0 && playerData.posX > mapW) playerData.posX = (float)mapW;
 
-        // すり抜けタイマー更新
-        if (playerData.dropTimer > 0)
-        {
-            playerData.dropTimer--;
-        }
-        else
-		{// タイマーが切れたらすり抜け状態を解除
-            playerData.dropThrough = false;
-        }
+        if (playerData.dropTimer > 0) playerData.dropTimer--;
+        else playerData.dropThrough = false;
 
-        // 回避クールダウン更新
-        if (playerData.dodgeCooldown > 0)
-        {
-            playerData.dodgeCooldown--;
-        }
+        if (playerData.dodgeCooldown > 0) playerData.dodgeCooldown--;
     }
 
-    // 状態更新
     void UpdateState()
     {
-        // 落下攻撃中の処理
         if (playerData.state == PlayerState::DiveAttack)
         {
             if (!g_DiveAttackLanded)
@@ -946,13 +655,10 @@ namespace
             return;
         }
 
-        // 回避中の処理
         if (playerData.state == PlayerState::Dodging)
         {
-            // アニメーションがロードされていない場合は即座に終了
             if (playerAnims.dodge.frameCount == 0 || playerAnims.dodge.frames == nullptr)
             {
-                printfDx("Dodge animation not loaded! Ending dodge.\n");
                 playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
                 playerData.isInvincible = false;
                 playerData.velocityX = 0.0f;
@@ -960,7 +666,6 @@ namespace
                 return;
             }
 
-            // アニメーションが終了したらIdleに戻る
             if (IsAnimationFinished(playerAnims.dodge))
             {
                 playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
@@ -974,26 +679,18 @@ namespace
             return;
         }
 
-        // 回復中の処理
         if (playerData.state == PlayerState::Healing)
         {
-            // 移動キーのトリガー入力（新しい入力）があればキャンセル
             if (IsTriggerKey(KEY_LEFT) || IsTriggerKey(KEY_RIGHT))
             {
-                printfDx("回復キャンセル: 移動入力\n");
-                
-                // キャンセル時は入力をクリアしてIdleに戻る
-                // 次のフレームで新しい入力を待つ
                 playerData.velocityX = 0.0f;
                 currentMoveDir = 0;
-                
                 playerData.state = PlayerState::Idle;
                 playerData.healExecuted = false;
                 prevIsGrounded = playerData.isGrounded;
                 return;
             }
 
-            // アニメーションが終了したら Idle に戻る
             if (IsAnimationFinished(playerAnims.healing))
             {
                 playerData.state = PlayerState::Idle;
@@ -1002,23 +699,14 @@ namespace
                 return;
             }
 
-            // 14フレーム目（インデックス13）で回復実行
             if (!playerData.healExecuted && playerAnims.healing.currentFrame == 13)
             {
-                // 体力が最大値の場合は回復処理をスキップ
-                if (playerData.currentHP >= playerData.maxHP)
+                if (playerData.currentHP < playerData.maxHP)
                 {
-                    printfDx("体力が最大値のため回復をスキップ（回数消費なし）\n");
-                    playerData.healExecuted = true;  // フラグは立てて重複実行を防ぐ
-                }
-                else
-                {
-                    // 回復処理を実行
                     HealPlayerHP(playerData.basehealPower);
                     playerData.healCount--;
-                    playerData.healExecuted = true;
-                    printfDx("回復実行！残り回復回数: %d\n", playerData.healCount);
                 }
+                playerData.healExecuted = true;
             }
 
             prevIsGrounded = playerData.isGrounded;
@@ -1085,21 +773,17 @@ namespace
         prevIsGrounded = playerData.isGrounded;
     }
 
-    // アニメーション更新
     void UpdatePlayerAnimation()
     {
         float absVelX = std::fabs(playerData.velocityX);
         bool wasMoving = prevAbsVelX > 0.01f;
-        bool isMoving = absVelX > 0.01f;
 
-        // 落下攻撃中は落下攻撃アニメーションを優先
         if (playerData.state == PlayerState::DiveAttack)
         {
             if (playerAnims.diveAttack.frames != nullptr && playerAnims.diveAttack.frameCount > 0)
             {
                 UpdateAnimation(playerAnims.diveAttack);
 
-                // 着地までは13〜18コマ区間で停止
                 if (!g_DiveAttackLanded && playerAnims.diveAttack.currentFrame > DIVE_ATTACK_AIR_END_FRAME)
                 {
                     SetAnimationFrame(playerAnims.diveAttack, DIVE_ATTACK_AIR_END_FRAME);
@@ -1110,7 +794,6 @@ namespace
             return;
         }
 
-        // 回避中は回避アニメーションを優先
         if (playerData.state == PlayerState::Dodging)
         {
             UpdateAnimation(playerAnims.dodge);
@@ -1119,7 +802,6 @@ namespace
             return;
         }
 
-        // 回復中は回復アニメーションを優先
         if (playerData.state == PlayerState::Healing)
         {
             UpdateAnimation(playerAnims.healing);
@@ -1128,7 +810,6 @@ namespace
             return;
         }
 
-        // 空中状態（Jump/Fall/Land）は優先的に処理
         if (playerData.state == PlayerState::Jump)
         {
             UpdateAnimation(playerAnims.jump);
@@ -1143,7 +824,6 @@ namespace
         }
         else if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
         {
-            // 走り始め（停止→移動）
             if (!wasMoving && playerAnims.runStart.frames != nullptr)
             {
                 runAnimState = RunAnimState::Start;
@@ -1173,7 +853,6 @@ namespace
         }
         else
         {
-            // 停止モーション（移動→停止）
             if (playerData.isGrounded && wasMoving && playerAnims.runStop.frames != nullptr)
             {
                 runAnimState = RunAnimState::Stop;
@@ -1199,7 +878,6 @@ namespace
             }
             else
             {
-                // Idle または UsingSkill 状態
                 if (playerData.state == PlayerState::Idle || playerData.state == PlayerState::UsingSkill)
                 {
                     UpdateAnimation(playerAnims.idle);
@@ -1211,7 +889,6 @@ namespace
         prevAbsVelX = absVelX;
     }
 
-    // ジャンプに関する処理
     void ExecuteJump()
     {
         const int inputFrame = GetInputFrame();
@@ -1225,7 +902,6 @@ namespace
             playerData.jumpCount = 0;
         }
 
-        // 二段ジャンプが解放されている場合はMAX_JUMP_COUNT、そうでない場合は1
         int maxJumps = playerData.hasDoubleJump ? MAX_JUMP_COUNT : 1;
 
         if (playerData.jumpCount < maxJumps)
@@ -1234,8 +910,6 @@ namespace
             playerData.isGrounded = false;
             playerData.jumpCount++;
             lastJumpInputFrame = inputFrame;
-
-            // ジャンプアニメーションをリセット
             ResetAnimation(playerAnims.jump);
         }
     }
