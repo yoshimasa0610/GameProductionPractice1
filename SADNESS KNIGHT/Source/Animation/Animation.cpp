@@ -207,7 +207,42 @@ void UnloadAnimation(AnimationData& anim)
     InitAnimation(anim);
 }
 
+// 個別ファイルからアニメーションを読み込む
+bool LoadAnimationFromFiles(AnimationData& anim, const char* basePath, const char* prefix,
+                           int frameCount, int animSpeed, AnimationMode mode)
+{
+    InitAnimation(anim);
+    
+    anim.frames = new int[frameCount];
+    anim.frameCount = frameCount;
+    anim.animationSpeed = animSpeed;
+    anim.mode = mode;
+    
+    char filePath[256];
+    for (int i = 0; i < frameCount; i++)
+    {
+        sprintf_s(filePath, sizeof(filePath), "%s%s-%d.png", basePath, prefix, i);
+        anim.frames[i] = LoadGraph(filePath);
+        
+        if (anim.frames[i] == -1)
+        {
+            for (int j = 0; j < i; j++)
+            {
+                if (anim.frames[j] != -1)
+                    DeleteGraph(anim.frames[j]);
+            }
+            delete[] anim.frames;
+            anim.frames = nullptr;
+            anim.frameCount = 0;
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // アニメーションを更新
+
 void UpdateAnimation(AnimationData& anim)
 {
     // 再生中でない、またはフレームがない場合は何もしない
@@ -339,7 +374,41 @@ bool IsAnimationPlaying(const AnimationData& anim)
     return anim.isPlaying;
 }
 
+//============================================================
+// 描画関数
+//============================================================
+
+void DrawAnimation(const AnimationData& anim, int x, int y, bool turnFlag)
+{
+    int frameHandle = GetCurrentAnimationFrame(anim);
+    if (frameHandle == -1)
+    {
+        return;
+    }
+    
+    if (turnFlag)
+    {
+        DrawTurnGraph(x, y, frameHandle, TRUE);
+    }
+    else
+    {
+        DrawGraph(x, y, frameHandle, TRUE);
+    }
+}
+
+void DrawAnimationRotated(const AnimationData& anim, int x, int y, double scale, double angle, bool turnFlag)
+{
+    int frameHandle = GetCurrentAnimationFrame(anim);
+    if (frameHandle == -1)
+    {
+        return;
+    }
+    
+    DrawRotaGraph(x, y, scale, angle, frameHandle, TRUE, turnFlag);
+}
+
 // 追加: 画像サイズを取得して自動で分割読み込みする関数
+
 bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
     int frameWidth, int frameHeight,
     int animSpeed, AnimationMode mode)
@@ -400,3 +469,223 @@ bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
 
     return true;
 }
+
+// ===== プレイヤーアニメーション管理 =====
+
+namespace
+{
+    bool FileExists(const char* path)
+    {
+        int handle = FileRead_open(path);
+        if (handle == 0)
+        {
+            return false;
+        }
+        FileRead_close(handle);
+        return true;
+    }
+
+    bool TryLoadDiveAttackAnimation(AnimationData& anim, const char* path)
+    {
+        const int frameWidth = 203;
+        const int frameHeight = 269;
+
+        if (LoadAnimationFromSheetRange(
+            anim,
+            path,
+            42,
+            12,
+            25,
+            frameWidth,
+            frameHeight,
+            6,
+            AnimationMode::Once))
+        {
+            return true;
+        }
+
+        if (FileExists("Data/Player/aerial dash.png"))
+        {
+            if (LoadAnimationFromSheetRange(anim, "Data/Player/aerial dash.png", 12, 0, 6, 104, 50, 4, AnimationMode::Loop))
+            {
+                return true;
+            }
+        }
+
+        InitAnimation(anim);
+        return false;
+    }
+}
+
+bool LoadPlayerAnimations(PlayerAnimations& anims)
+{
+    LoadAnimationFromSheet(anims.idle, "Data/Player/Idle.png", 10, 46, 55, 8, AnimationMode::Loop);
+    LoadAnimationAuto(anims.walk, "Data/Player/Run.png", 65, 48, 8, AnimationMode::Loop);
+
+    if (FileExists("Data/Player/Run_Start.png"))
+    {
+        LoadAnimationAuto(anims.runStart, "Data/Player/Run_Start.png", 59, 53, 8, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.runStart);
+    }
+
+    if (FileExists("Data/Player/Run_Stop.png"))
+    {
+        LoadAnimationFromSheetRange(anims.runStop, "Data/Player/Run_Stop.png",
+            16, 0, 15, 63, 53, 8, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.runStop);
+    }
+
+    if (FileExists("Data/Player/Jump.png"))
+    {
+        LoadAnimationFromSheetRange(anims.jump, "Data/Player/Jump.png",
+            24, 0, 13, 64, 80, 4, AnimationMode::Once);
+        LoadAnimationFromSheetRange(anims.fall, "Data/Player/Jump.png",
+            24, 13, 7, 64, 80, 5, AnimationMode::Loop);
+        LoadAnimationFromSheetRange(anims.land, "Data/Player/Jump.png",
+            24, 20, 4, 64, 80, 4, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.jump);
+        InitAnimation(anims.fall);
+        InitAnimation(anims.land);
+    }
+
+    if (FileExists("Data/Player/healing_merged.png"))
+    {
+        LoadAnimationAuto(anims.healing, "Data/Player/healing_merged.png",
+            97, 81, 8, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.healing);
+    }
+
+    if (FileExists("Data/Player/aerial dash.png"))
+    {
+        LoadAnimationFromSheetRange(anims.dodge, "Data/Player/aerial dash.png",
+            12, 0, 6, 104, 50, 4, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.dodge);
+    }
+
+    if (FileExists("Data/Player/aerial dash_smoke.png"))
+    {
+        LoadAnimationFromSheetRange(anims.dashEffect, "Data/Player/aerial dash_smoke.png",
+            8, 0, 6, 60, 157, 2, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.dashEffect);
+    }
+
+    const char* diveAnimPath = nullptr;
+    if (FileExists("Data/Player/dodge atk 3x_merged.png"))
+    {
+        diveAnimPath = "Data/Player/dodge atk 3x_merged.png";
+    }
+    else if (FileExists("Data/Player/DiveAttack.png"))
+    {
+        diveAnimPath = "Data/Player/DiveAttack.png";
+    }
+    else if (FileExists("Data/Player/diveattack.png"))
+    {
+        diveAnimPath = "Data/Player/diveattack.png";
+    }
+    else if (FileExists("Data/Player/Dive Attack.png"))
+    {
+        diveAnimPath = "Data/Player/Dive Attack.png";
+    }
+
+    if (diveAnimPath != nullptr)
+    {
+        TryLoadDiveAttackAnimation(anims.diveAttack, diveAnimPath);
+    }
+    else
+    {
+        if (FileExists("Data/Player/aerial dash.png"))
+        {
+            LoadAnimationFromSheetRange(anims.diveAttack, "Data/Player/aerial dash.png", 12, 0, 6, 104, 50, 4, AnimationMode::Loop);
+        }
+        else
+        {
+            InitAnimation(anims.diveAttack);
+        }
+    }
+
+    return true;
+}
+
+void UnloadPlayerAnimations(PlayerAnimations& anims)
+{
+    UnloadAnimation(anims.idle);
+    UnloadAnimation(anims.walk);
+    UnloadAnimation(anims.runStart);
+    UnloadAnimation(anims.runStop);
+    UnloadAnimation(anims.jump);
+    UnloadAnimation(anims.fall);
+    UnloadAnimation(anims.land);
+    UnloadAnimation(anims.healing);
+    UnloadAnimation(anims.dodge);
+    UnloadAnimation(anims.dashEffect);
+    UnloadAnimation(anims.diveAttack);
+}
+
+void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip, int playerWidth, int playerHeight)
+{
+    int frameHandle = GetCurrentAnimationFrame(anim);
+    if (frameHandle == -1)
+    {
+        return;
+    }
+
+    int w = 0;
+    int h = 0;
+    GetGraphSize(frameHandle, &w, &h);
+
+    int drawX = baseX - (playerWidth / 2) + (playerWidth - w) / 2;
+    int drawY = baseY - playerHeight + (playerHeight - h);
+
+    if (flip)
+    {
+        DrawTurnGraph(drawX, drawY, frameHandle, TRUE);
+    }
+    else
+    {
+        DrawGraph(drawX, drawY, frameHandle, TRUE);
+    }
+}
+
+void DrawAnimationAlignedOffset(const AnimationData& anim, int baseX, int baseY, bool flip, int offsetX, int offsetY)
+{
+    int frameHandle = GetCurrentAnimationFrame(anim);
+    if (frameHandle == -1)
+    {
+        return;
+    }
+
+    int w = 0;
+    int h = 0;
+    GetGraphSize(frameHandle, &w, &h);
+
+    int drawX = baseX - (w / 2) + offsetX;
+    int drawY = baseY - h + offsetY;
+
+    if (flip)
+    {
+        DrawTurnGraph(drawX, drawY, frameHandle, TRUE);
+    }
+    else
+    {
+        DrawGraph(drawX, drawY, frameHandle, TRUE);
+    }
+}
+

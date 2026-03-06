@@ -43,8 +43,13 @@ bool LoadJumpFallAnimations(AnimationData& jumpAnim, AnimationData& fallAnim,
                             const char* filePath, int totalFrames, int jumpFrameCount,
                             int frameWidth, int frameHeight);
 
+// 個別ファイルからアニメーションを読み込む（連番ファイル用）
+bool LoadAnimationFromFiles(AnimationData& anim, const char* basePath, const char* prefix,
+                           int frameCount, int animSpeed, AnimationMode mode = AnimationMode::Loop);
+
 // アニメーション画像を解放
 void UnloadAnimation(AnimationData& anim);
+
 
 // ===== 更新・制御 =====
 
@@ -89,3 +94,33 @@ void DrawAnimationRotated(const AnimationData& anim, int x, int y, double scale,
 bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
                        int frameWidth, int frameHeight,
                        int animSpeed, AnimationMode mode = AnimationMode::Loop);
+
+// ===== プレイヤーアニメーション管理 =====
+
+// プレイヤーアニメーションセット
+struct PlayerAnimations
+{
+    AnimationData idle;
+    AnimationData walk;
+    AnimationData runStart;
+    AnimationData runStop;
+    AnimationData jump;
+    AnimationData fall;
+    AnimationData land;
+    AnimationData healing;
+    AnimationData dodge;
+    AnimationData dashEffect;
+    AnimationData diveAttack;
+};
+
+// プレイヤーのアニメーションを全て読み込み
+bool LoadPlayerAnimations(PlayerAnimations& anims);
+
+// プレイヤーのアニメーションを全て解放
+void UnloadPlayerAnimations(PlayerAnimations& anims);
+
+// プレイヤー用の描画関数（固定サイズ枠内で中央揃え+足元揃え）
+void DrawAnimationAligned(const AnimationData& anim, int baseX, int baseY, bool flip, int playerWidth, int playerHeight);
+
+// プレイヤー用の描画関数（オフセット付き、落下攻撃用）
+void DrawAnimationAlignedOffset(const AnimationData& anim, int baseX, int baseY, bool flip, int offsetX, int offsetY);

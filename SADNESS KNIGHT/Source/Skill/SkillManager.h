@@ -38,6 +38,7 @@ public:
     void ClearLastUsedSkillID() { m_lastUsedSkillID = -1; }
 
     int GetEquipSkill(int set, int slot) const;
+    bool IsSkillEquipped(int skillID) const;
     int GetCurrentSet() const { return m_currentSet; }
     void SetCurrentSet(int s) { m_currentSet = s; }
     void UnequipSkill(int set, int slot);
