@@ -148,6 +148,21 @@ int SkillManager::GetEquipSkill(int set, int slot) const
 {
     return m_equipSlots[set][slot];
 }
+
+bool SkillManager::IsSkillEquipped(int skillID) const
+{
+    for (int s = 0; s < 2; s++)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            if (m_equipSlots[s][i] == skillID)
+                return true;
+        }
+    }
+
+    return false;
+}
+
 // ƒXƒLƒ‹ŠO‚·
 void SkillManager::UnequipSkill(int set, int slot)
 {

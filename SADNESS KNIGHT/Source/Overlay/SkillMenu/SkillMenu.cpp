@@ -62,13 +62,15 @@ void UpdateSkillMenuScene()
 
     if (g_Mode == SkillMenuMode::SlotSelect)
     {
-        if (IsTriggerKey(KEY_LEFT)) g_SelectedSlot--;
+        if (IsTriggerKey(KEY_LEFT))  g_SelectedSlot--;
         if (IsTriggerKey(KEY_RIGHT)) g_SelectedSlot++;
-        if (IsTriggerKey(KEY_UP)) g_EditSet = 0;
-        if (IsTriggerKey(KEY_DOWN)) g_EditSet = 1;
 
         if (g_SelectedSlot < 0) g_SelectedSlot = 0;
-        if (g_SelectedSlot > 2) g_SelectedSlot = 2;
+        if (g_SelectedSlot > 5) g_SelectedSlot = 5;
+
+        // set と slot を計算
+        g_EditSet = g_SelectedSlot / 3;
+        int slot = g_SelectedSlot % 3;
 
         if (IsTriggerKey(KEY_OK))
         {
@@ -79,7 +81,12 @@ void UpdateSkillMenuScene()
         // 解除
         if (IsTriggerKey(KEY_CANCEL))
         {
-            g_SkillManager.UnequipSkill(g_EditSet, g_SelectedSlot);
+            int slot = g_SelectedSlot % 3;
+
+            g_SkillManager.UnequipSkill(
+                g_EditSet,
+                slot
+            );
         }
     }
     else
@@ -87,12 +94,9 @@ void UpdateSkillMenuScene()
         std::vector<int> list;
         BuildOwnedSkills(list);
 
-        DrawFormatString(50, 50, GetColor(255, 255, 255),
-            "SkillCount:%d",
-            list.size());
-
         if (list.empty())
         {
+            g_SelectedSkillIndex = 0;
             //DrawString(SX(40), SY(140), "No Skills", GetColor(200, 200, 200));
         }
 
@@ -107,9 +111,11 @@ void UpdateSkillMenuScene()
 
         if (IsTriggerKey(KEY_OK))
         {
+            int slot = g_SelectedSlot % 3;
+
             g_SkillManager.EquipSkill(
                 g_EditSet,
-                g_SelectedSlot,
+                slot,
                 list[g_SelectedSkillIndex]
             );
             g_Mode = SkillMenuMode::SlotSelect;
@@ -141,12 +147,35 @@ void DrawSkillMenuScene(const OverlayArea& area)
     // ===============================
     // セット表示（上）
     // ===============================
+
+    DrawString(
+        SX(30),
+        SY(0),
+        "セット中のスキル",
+        GetColor(255, 255, 200));
+
     for (int s = 0; s < 2; s++)
     {
+        int setX = SX(10 + s * 220);
+        int setY = SY(35);
+
+        DrawString(
+            setX,
+            setY,
+            "Set",
+            GetColor(200, 200, 200));
+
+        DrawFormatString(
+            setX + SS(8),
+            setY + SS(18),
+            GetColor(255, 255, 255),
+            "%d",
+            s + 1);
+
         for (int i = 0; i < 3; i++)
         {
-            int x = SX(40 + s * 220 + i * 60);
-            int y = SY(40);
+            int x = SX(60 + s * 220 + i * 60);
+            int y = SY(50);
 
             int skillID = g_SkillManager.GetEquipSkill(s, i);
 
@@ -164,9 +193,10 @@ void DrawSkillMenuScene(const OverlayArea& area)
                     data.iconSmallHandle,
                     TRUE);
             }
+            int index = s * 3 + i;
+
             if (g_Mode == SkillMenuMode::SlotSelect
-                && s == g_EditSet
-                && i == g_SelectedSlot)
+                && index == g_SelectedSlot)
             {
                 DrawCircle(x, y, SS(24), GetColor(255, 255, 0), FALSE);
             }
@@ -190,39 +220,78 @@ void DrawSkillMenuScene(const OverlayArea& area)
         GetColor(160, 160, 160)
     );
 
+    DrawString(
+        SX(40),
+        SY(120),
+        "取得スキル",
+        GetColor(255, 255, 200));
+
     // ===============================
     // スキル一覧
     // ===============================
     std::vector<int> list;
     BuildOwnedSkills(list);
 
+    int cols = 7;
+    int iconSize = SS(48);
+    int step = SS(56);
+
     int listX = SX(40);
     int listY = SY(140);
 
     for (int i = 0; i < (int)list.size(); i++)
     {
-        int x = listX + (i % 6) * SS(60);
-        int y = listY + (i / 6) * SS(60);
+        int col = i % cols;
+        int row = i / cols;
 
-        const SkillData& data = GetSkillData(list[i]);
+        int x = listX + col * step;
+        int y = listY + row * step;
 
-        DrawGraph(
-            x,
-            y,
-            data.iconSmallHandle,
-            TRUE);
-
-        if (g_Mode == SkillMenuMode::SkillSelect
-            && i == g_SelectedSkillIndex)
+        // 選択枠
+        if (g_Mode == SkillMenuMode::SkillSelect &&
+            i == g_SelectedSkillIndex)
         {
             DrawBox(
-                x - SS(2),
-                y - SS(2),
-                x + SS(50),
-                y + SS(50),
+                x - 2,
+                y - 2,
+                x + iconSize + 2,
+                y + iconSize + 2,
                 GetColor(255, 255, 0),
                 FALSE);
         }
+
+        // 背景
+        DrawBox(
+            x,
+            y,
+            x + iconSize,
+            y + iconSize,
+            GetColor(90, 90, 90),
+            TRUE);
+
+        const SkillData& data = GetSkillData(list[i]);
+
+        if (data.iconSmallHandle > 0)
+        {
+            DrawExtendGraph(
+                x,
+                y,
+                x + iconSize,
+                y + iconSize,
+                data.iconSmallHandle,
+                TRUE);
+        }
+        
+        // 装備マーク
+        if (g_SkillManager.IsSkillEquipped(list[i]))
+        {
+            DrawString(
+                x + 4,
+                y + 2,
+                "E",
+                GetColor(0, 255, 0));
+        }
+        
     }
 
     // ===============================
@@ -260,10 +329,12 @@ void DrawSkillMenuScene(const OverlayArea& area)
     }
     else
     {
+        int slot = g_SelectedSlot % 3;
+
         selectedSkillID =
             g_SkillManager.GetEquipSkill(
                 g_EditSet,
-                g_SelectedSlot);
+                slot);
     }
 
     if (selectedSkillID == -1) return;
