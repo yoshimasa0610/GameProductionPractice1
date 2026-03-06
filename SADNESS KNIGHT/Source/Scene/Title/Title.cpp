@@ -40,6 +40,7 @@ static bool g_SaveSlotExists[SAVE_SLOT_MAX];
 // 画像
 static int g_BGHandle = -1;
 static int g_TitleHandle = -1;
+static int g_TitleUIHandle = -1;
 
 static int g_SelectFrameHandle = -1;
 
@@ -74,6 +75,7 @@ void LoadTitleScene()
 {
 	g_BGHandle = LoadGraph("Data/Title/TitleBG.png");
 	g_TitleHandle = LoadGraph("Data/Title/TitleText.png");
+	g_TitleUIHandle = LoadGraph("Data/Title/TitleUI.png");
 	g_SelectFrameHandle = LoadGraph("Data/UI/UI_Elements01.png");
 
 	g_MenuFont = CreateFontToHandle("Yu Mincho",32,5,DX_FONTTYPE_ANTIALIASING_4X4);
@@ -270,6 +272,7 @@ void DrawTitleScene()
 	// 背景
 	DrawGraph(0, 0, g_BGHandle, TRUE);
 	DrawGraph(TITLE_POS_X, TITLE_POS_Y, g_TitleHandle, TRUE);
+	DrawGraph(0, -60, g_TitleUIHandle, TRUE);
 
 	// スロット画面のときは背景を暗くするんや
 	if (g_TitleState == TitleState::SelectSlot_New ||
@@ -435,6 +438,7 @@ void FinTitleScene()
 {
 	DeleteGraph(g_BGHandle);
 	DeleteGraph(g_TitleHandle);
+	DeleteGraph(g_TitleUIHandle);
 	StopBGM(BGM_TITLE);
 	DeleteFontToHandle(g_MenuFont);
 	DeleteFontToHandle(g_DataSelectFont);
