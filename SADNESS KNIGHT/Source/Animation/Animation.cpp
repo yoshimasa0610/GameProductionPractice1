@@ -207,7 +207,42 @@ void UnloadAnimation(AnimationData& anim)
     InitAnimation(anim);
 }
 
+// 個別ファイルからアニメーションを読み込む
+bool LoadAnimationFromFiles(AnimationData& anim, const char* basePath, const char* prefix,
+                           int frameCount, int animSpeed, AnimationMode mode)
+{
+    InitAnimation(anim);
+    
+    anim.frames = new int[frameCount];
+    anim.frameCount = frameCount;
+    anim.animationSpeed = animSpeed;
+    anim.mode = mode;
+    
+    char filePath[256];
+    for (int i = 0; i < frameCount; i++)
+    {
+        sprintf_s(filePath, sizeof(filePath), "%s%s-%d.png", basePath, prefix, i);
+        anim.frames[i] = LoadGraph(filePath);
+        
+        if (anim.frames[i] == -1)
+        {
+            for (int j = 0; j < i; j++)
+            {
+                if (anim.frames[j] != -1)
+                    DeleteGraph(anim.frames[j]);
+            }
+            delete[] anim.frames;
+            anim.frames = nullptr;
+            anim.frameCount = 0;
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 // アニメーションを更新
+
 void UpdateAnimation(AnimationData& anim)
 {
     // 再生中でない、またはフレームがない場合は何もしない
@@ -339,7 +374,41 @@ bool IsAnimationPlaying(const AnimationData& anim)
     return anim.isPlaying;
 }
 
+//============================================================
+// 描画関数
+//============================================================
+
+void DrawAnimation(const AnimationData& anim, int x, int y, bool turnFlag)
+{
+    int frameHandle = GetCurrentAnimationFrame(anim);
+    if (frameHandle == -1)
+    {
+        return;
+    }
+    
+    if (turnFlag)
+    {
+        DrawTurnGraph(x, y, frameHandle, TRUE);
+    }
+    else
+    {
+        DrawGraph(x, y, frameHandle, TRUE);
+    }
+}
+
+void DrawAnimationRotated(const AnimationData& anim, int x, int y, double scale, double angle, bool turnFlag)
+{
+    int frameHandle = GetCurrentAnimationFrame(anim);
+    if (frameHandle == -1)
+    {
+        return;
+    }
+    
+    DrawRotaGraph(x, y, scale, angle, frameHandle, TRUE, turnFlag);
+}
+
 // 追加: 画像サイズを取得して自動で分割読み込みする関数
+
 bool LoadAnimationAuto(AnimationData& anim, const char* filePath,
     int frameWidth, int frameHeight,
     int animSpeed, AnimationMode mode)
