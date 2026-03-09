@@ -14,7 +14,11 @@ void InitAnimation(AnimationData& anim)
     anim.isPlaying = true;
     anim.isFinished = false;
     anim.isPingPongReverse = false;
+    anim.usePartialLoop = false;
+    anim.loopStartFrame = 0;
+    anim.loopEndFrame = 0;
 }
+
 
 // スプライトシートを読み込んでアニメーションを作成
 bool LoadAnimationFromSheet(AnimationData& anim, const char* filePath, 
@@ -275,7 +279,13 @@ void UpdateAnimation(AnimationData& anim)
             if (!anim.isFinished)
             {
                 anim.currentFrame++;
-                if (anim.currentFrame >= anim.frameCount)
+                
+                // 部分ループが有効な場合
+                if (anim.usePartialLoop && anim.currentFrame > anim.loopEndFrame)
+                {
+                    anim.currentFrame = anim.loopStartFrame;
+                }
+                else if (anim.currentFrame >= anim.frameCount)
                 {
                     anim.currentFrame = anim.frameCount - 1;
                     anim.isFinished = true;
@@ -283,6 +293,7 @@ void UpdateAnimation(AnimationData& anim)
                 }
             }
             break;
+
             
         case AnimationMode::PingPong:
             // 往復再生
@@ -352,7 +363,19 @@ void SetAnimationFrame(AnimationData& anim, int frame)
     }
 }
 
+// 部分ループを設定
+void SetAnimationPartialLoop(AnimationData& anim, int loopStartFrame, int loopEndFrame)
+{
+    if (loopStartFrame >= 0 && loopEndFrame < anim.frameCount && loopStartFrame <= loopEndFrame)
+    {
+        anim.usePartialLoop = true;
+        anim.loopStartFrame = loopStartFrame;
+        anim.loopEndFrame = loopEndFrame;
+    }
+}
+
 // 現在のフレーム画像ハンドルを取得
+
 int GetCurrentAnimationFrame(const AnimationData& anim)
 {
     if (anim.frames == nullptr || anim.currentFrame >= anim.frameCount)
@@ -546,10 +569,13 @@ bool LoadPlayerAnimations(PlayerAnimations& anims)
         LoadAnimationFromSheetRange(anims.jump, "Data/Player/Jump.png",
             24, 0, 13, 64, 80, 4, AnimationMode::Once);
         LoadAnimationFromSheetRange(anims.fall, "Data/Player/Jump.png",
-            24, 13, 7, 64, 80, 5, AnimationMode::Loop);
+            24, 13, 7, 64, 80, 5, AnimationMode::Once);
+        SetAnimationPartialLoop(anims.fall, 3, 6);
         LoadAnimationFromSheetRange(anims.land, "Data/Player/Jump.png",
             24, 20, 4, 64, 80, 4, AnimationMode::Once);
     }
+
+
     else
     {
         InitAnimation(anims.jump);
