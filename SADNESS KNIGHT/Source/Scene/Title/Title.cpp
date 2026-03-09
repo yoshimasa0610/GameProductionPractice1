@@ -79,7 +79,6 @@ void LoadTitleScene()
 	g_SelectFrameHandle = LoadGraph("Data/UI/UI_Elements01.png");
 
 	g_MenuFont = CreateFontToHandle("Yu Mincho",32,5,DX_FONTTYPE_ANTIALIASING_4X4);
-
 	g_DataSelectFont = CreateFontToHandle("Yu Mincho",42,7,DX_FONTTYPE_ANTIALIASING_4X4);
 
 }
@@ -102,7 +101,7 @@ static void StartNewGame(int slot)
 {
 	SaveData data{};
 
-	 data.maxHP = PLAYER_INIT_HP;
+	data.maxHP = PLAYER_INIT_HP;
 
 	strcpy_s(data.stageName, "forest_1");
 
