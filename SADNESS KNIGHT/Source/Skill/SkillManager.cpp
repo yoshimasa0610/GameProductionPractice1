@@ -185,3 +185,16 @@ void SkillManager::EquipSkill(int setIndex, int slotIndex, int skillID)
 
     m_equipSlots[setIndex][slotIndex] = skillID;
 }
+
+SkillType SkillManager::GetSkillTypeInSlot(int slotIndex) const
+{
+    int skillID = m_equipSlots[m_currentSet][slotIndex];
+
+    for (auto& s : m_ownedSkills)
+    {
+        if (s->GetID() == skillID)
+            return s->GetType();
+    }
+
+    return SkillType::Attack;
+}

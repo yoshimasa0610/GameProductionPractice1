@@ -65,6 +65,8 @@ void Skill::Activate(PlayerData* player)
             const ComboStep& step = m_data.comboSteps[m_comboIndex];
 
             m_activeTimer = step.duration;
+            m_frame = 0;
+            m_hitActive = false;
 
             // ヒット履歴リセット
             ClearHitTargets();
@@ -146,7 +148,10 @@ void Skill::Update(PlayerData* player)
     if (m_isActive && m_data.type == SkillType::Attack)
     {
         if (m_activeTimer > 0)
+        {
             m_activeTimer--;
+            m_frame++;
+        }
 
         if (m_activeTimer <= 0)
         {
@@ -174,6 +179,25 @@ void Skill::Update(PlayerData* player)
     if (m_attackCollider != -1 && !m_data.comboSteps.empty())
     {
         const ComboStep& step = m_data.comboSteps[m_comboIndex];
+
+        if (!m_hitActive && m_frame >= step.hitStartFrame)
+        {
+            m_hitActive = true;
+
+            if (m_attackCollider == -1)
+                CreateAttackCollider(m_attackCollider, step, player, this);
+        }
+
+        if (m_hitActive && m_frame > step.hitEndFrame)
+        {
+            m_hitActive = false;
+
+            if (m_attackCollider != -1)
+            {
+                DestroyCollider(m_attackCollider);
+                m_attackCollider = -1;
+            }
+        }
 
         float left =
             player->posX

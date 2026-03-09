@@ -47,8 +47,6 @@ namespace
 
     PlayerAnimations playerAnims;
 
-    SkillManager skillManager;
-
     int g_playerColliderId = -1;
 
     enum class RunAnimState
@@ -154,7 +152,7 @@ void UpdatePlayer()
 
     ProcessInput();
     UpdatePhysics();
-    skillManager.Update(&playerData);
+    g_SkillManager.Update(&playerData);
     UpdateState();
     UpdatePlayerAnimation();
 
@@ -309,6 +307,52 @@ void DrawPlayer()
     }
 
     // 既存のデバッグ表示はそのまま
+
+    // スキルデバッグ表示
+    // 邪魔だと思うので一時的にコメントアウトしておきます。まだ消さないでください
+    /*
+    {
+        int x = 20;
+        int y = 60;
+
+        DrawString(x, y, "=== Skill Debug ===", GetColor(255, 255, 0));
+        y += 20;
+
+        int currentSet = g_SkillManager.GetCurrentSet();
+
+        DrawFormatString(x, y, GetColor(255, 255, 255),
+            "Current Set : %d", currentSet + 1);
+        y += 20;
+
+        for (int i = 0; i < 3; i++)
+        {
+            int skillID = g_SkillManager.GetEquipSkill(currentSet, i);
+
+            if (skillID == -1)
+            {
+                DrawFormatString(x, y, GetColor(150, 150, 150),
+                    "Slot %d : (Empty)", i + 1);
+            }
+            else
+            {
+                const SkillData& data = GetSkillData(skillID);
+
+                DrawFormatString(x, y, GetColor(255, 255, 255),
+                    "Slot %d : %s", i + 1, data.name.c_str());
+            }
+
+            y += 20;
+        }
+        DrawFormatString(
+            x,
+            y + 10,
+            GetColor(255, 200, 200),
+            "PlayerState : %d",
+            (int)playerData.state);
+        DrawFormatString(20, 360, GetColor(255, 255, 255),
+            "LastSkill : %d",
+            g_SkillManager.GetLastUsedSkillID());
+    }*/
 }
 
 // プレイヤーのリソース解放
@@ -491,6 +535,7 @@ namespace
         }
     }
 
+    // スキルの発動
     void ProcessSkills()
     {
         if (playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Dodging)
@@ -498,21 +543,32 @@ namespace
 
         if (IsTriggerKey(KEY_SKILL1))
         {
-            skillManager.UseSkill(0, &playerData);
-            playerData.state = PlayerState::UsingSkill;
+            g_SkillManager.UseSkill(0, &playerData);
+            // 剣などのスキルを発動している場合は、UsingSkillに移行
+            // 追従型などは移行させずにスキルを発動させながらPlayerは移動やジャンプを可能に。
+            if (g_SkillManager.GetSkillTypeInSlot(0) == SkillType::Attack)
+            {
+                playerData.state = PlayerState::UsingSkill;
+            }
         }
         else if (IsTriggerKey(KEY_SKILL2))
         {
-            skillManager.UseSkill(1, &playerData);
-            playerData.state = PlayerState::UsingSkill;
+            g_SkillManager.UseSkill(1, &playerData);
+            if (g_SkillManager.GetSkillTypeInSlot(1) == SkillType::Attack)
+            {
+                playerData.state = PlayerState::UsingSkill;
+            }
         }
         else if (IsTriggerKey(KEY_SKILL3))
         {
-            skillManager.UseSkill(2, &playerData);
-            playerData.state = PlayerState::UsingSkill;
+            g_SkillManager.UseSkill(2, &playerData);
+            if (g_SkillManager.GetSkillTypeInSlot(2) == SkillType::Attack)
+            {
+                playerData.state = PlayerState::UsingSkill;
+            }
         }
 
-        if (IsTriggerKey(KEY_CHANGE)) skillManager.ChangeSet();
+        if (IsTriggerKey(KEY_CHANGE)) g_SkillManager.ChangeSet();
         if (IsTriggerKey(KEY_HEAL)) TryHeal();
         if (IsTriggerKey(KEY_DODGE)) TryDodge();
     }
@@ -712,9 +768,27 @@ namespace
             prevIsGrounded = playerData.isGrounded;
             return;
         }
-
+        // ここがreturnしかしていなかったのでスキルが終わらなかった。
+        // 終わるように書きました。
         if (playerData.state == PlayerState::UsingSkill)
         {
+            bool anySkillActive = false;
+
+            for (auto& s : g_SkillManager.GetSkills())
+            {
+                if (s->IsActive())
+                {
+                    anySkillActive = true;
+                    break;
+                }
+            }
+
+            // スキル終了
+            if (!anySkillActive)
+            {
+                playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
+            }
+
             return;
         }
 

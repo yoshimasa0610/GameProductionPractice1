@@ -14,7 +14,7 @@ void RegisterSkills()
     Slash->name = "Slash";
     Slash->type = SkillType::Attack;
 
-    Slash->coolTime = 60;
+    Slash->coolTime = 10;
     Slash->maxUseCount = -1;
 
     // 通常値（未使用でもOK）
