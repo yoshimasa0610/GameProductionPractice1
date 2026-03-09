@@ -39,14 +39,12 @@ static bool g_IsPaused = false;
 static bool g_EnemySpawned = false;
 
 void InitPlayScene()
-
-
 {
 	InitCamera();
 	InitMoneyDrops();
 	InitMoneyPopup();
-	// プレイヤー初期化（地面に配置）
-	InitPlayer(544.0f, 384.0f);  // startY=0で自動的にGROUND_Yに配置
+	InitEnemySystem();
+	InitPlayer(544.0f, 384.0f);
 }
 
 void LoadPlayScene()
@@ -129,10 +127,19 @@ void StepPlayScene()
 	{
 		float playerX = GetPlayerPosX();
 		float playerY = GetPlayerPosY();
-		bool facingRight = IsPlayerFacingRight();
-		float spawnX = playerX + (facingRight ? 150.0f : -150.0f);
+		
+		float spawnX = playerX;
 		float spawnY = playerY;
-		SpawnSlime(spawnX, spawnY);
+		
+		printfDx("=== Spawning Slime ===\n");
+		printfDx("Player: (%.1f, %.1f)\n", playerX, playerY);
+		printfDx("Slime: (%.1f, %.1f)\n", spawnX, spawnY);
+		
+		int slimeId = SpawnSlime(spawnX, spawnY);
+		
+		printfDx("Slime ID: %d\n", slimeId);
+		printfDx("Total Enemies: %d\n", GetEnemyCount());
+		
 		g_EnemySpawned = true;
 	}
 
@@ -232,15 +239,19 @@ void DrawPlayScene()
 	DrawCheckpoint();
 	g_ItemField.Draw();
 	DrawMoneyDrops();
+	DrawEnemies();
 	DrawMapOutsideMask();
 	DrawForeground();
 
-	// プレイヤー描画
 	DrawPlayer();
 	g_MoneyManager.Draw();
 	DrawMoneyPopup();
 
+	DrawFormatString(10, 10, GetColor(255, 255, 255), "Player: (%.1f, %.1f)", GetPlayerPosX(), GetPlayerPosY());
+	DrawFormatString(10, 30, GetColor(255, 255, 255), "EnemySpawned: %s", g_EnemySpawned ? "YES" : "NO");
+
 	if (IsOptionOpen())
+
 	{
 		DrawOption();
 		return;

@@ -196,6 +196,10 @@ int SpawnEnemy(EnemyType type, float x, float y)
 {
     const EnemyConfig& config = GetEnemyConfig(type);
     
+    printfDx("--- SpawnEnemy ---\n");
+    printfDx("Type: %d, Pos: (%.1f, %.1f)\n", (int)type, x, y);
+    printfDx("Config: W=%.1f H=%.1f\n", config.width, config.height);
+    
     EnemyData e{};
     e.active = true;
     e.type = type;
@@ -213,7 +217,6 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.hasLineOfSight = false;
     
     e.maxHP = config.maxHP;
-
     e.currentHP = config.maxHP;
     e.attackPower = config.attackPower;
     e.moveSpeed = config.moveSpeed;
@@ -232,11 +235,19 @@ int SpawnEnemy(EnemyType type, float x, float y)
     float top = e.posY - e.height;
     e.colliderId = CreateCollider(ColliderTag::Enemy, left, top, e.width, e.height, nullptr);
 
+    printfDx("Collider: L=%.1f T=%.1f W=%.1f H=%.1f\n", left, top, e.width, e.height);
+
     e.animations = LoadEnemyAnimations(type);
+    
+    printfDx("Animations: %s\n", e.animations ? "OK" : "NULL");
 
     g_enemies.push_back(e);
+    
+    printfDx("Enemy added to vector. Total: %d\n", (int)g_enemies.size());
+    
     return static_cast<int>(g_enemies.size() - 1);
 }
+
 
 
 
@@ -401,14 +412,44 @@ void DrawEnemies()
 {
     CameraData camera = GetCamera();
     
+    // デバッグ: 大きな文字で表示
+    DrawFormatString(400, 20, GetColor(255, 0, 255), "*** DRAW ENEMIES v2.0 ***");
+    DrawFormatString(400, 50, GetColor(255, 255, 0), "Enemy Count: %d", g_enemies.size());
+    DrawFormatString(400, 70, GetColor(255, 255, 0), "Camera: (%.1f, %.1f)", camera.posX, camera.posY);
+    
+    int debugIndex = 0;
     for (const auto& e : g_enemies)
     {
-        if (!e.active) continue;
+        DrawFormatString(400, 90 + debugIndex * 20, GetColor(0, 255, 255), 
+                        "=== ENEMY %d ===", debugIndex);
+        
+        if (!e.active) 
+        {
+            DrawFormatString(400, 110 + debugIndex * 20, GetColor(255, 0, 0), "INACTIVE!");
+            debugIndex++;
+            continue;
+        }
 
+        // 敵のposYは足元。プレイヤーと同じ座標系
         int drawX = static_cast<int>((e.posX - camera.posX) * camera.scale);
-        int drawY = static_cast<int>((e.posY - e.height - camera.posY) * camera.scale);
+        int drawY = static_cast<int>((e.posY - camera.posY) * camera.scale);
 
-        // アニメーションがあれば描画
+        DrawFormatString(400, 110 + debugIndex * 60, GetColor(255, 255, 255), 
+                        "World: (%.0f, %.0f)", e.posX, e.posY);
+        DrawFormatString(400, 130 + debugIndex * 60, GetColor(255, 255, 255), 
+                        "Screen: (%d, %d)", drawX, drawY);
+
+        // 赤丸で敵の足元を表示
+        DrawCircle(drawX, drawY, 15, GetColor(255, 0, 0), TRUE);
+        DrawCircle(drawX, drawY, 18, GetColor(255, 255, 0), FALSE);
+        DrawCircle(drawX, drawY, 3, GetColor(0, 255, 0), TRUE);
+        DrawFormatString(drawX + 20, drawY - 15, GetColor(255, 255, 0), "SLIME %d", debugIndex);
+
+
+
+        // 画像描画位置は足元から高さ分上
+        int drawTopY = drawY - static_cast<int>(e.height * camera.scale);
+
         if (e.animations != nullptr)
         {
             AnimationData* currentAnim = nullptr;
@@ -420,31 +461,34 @@ void DrawEnemies()
             
             if (currentAnim != nullptr && currentAnim->frames != nullptr)
             {
-                DrawAnimation(*currentAnim, drawX, drawY, !e.isFacingRight);
+                DrawAnimation(*currentAnim, drawX - static_cast<int>(e.width * 0.5f * camera.scale), drawTopY, !e.isFacingRight);
             }
         }
         else
         {
-            // アニメーションがない場合は簡易描画
             int halfW = static_cast<int>(e.width * 0.5f * camera.scale);
             int h = static_cast<int>(e.height * camera.scale);
 
             unsigned int color = GetColor(200, 50, 50);
-            DrawBox(drawX - halfW, drawY, drawX + halfW, drawY + h, color, TRUE);
+            DrawBox(drawX - halfW, drawTopY, drawX + halfW, drawY, color, TRUE);
 
             if (e.isFacingRight)
             {
-                DrawTriangle(drawX + halfW, drawY + h / 2, drawX + halfW - 8, drawY + h / 2 - 6, 
-                           drawX + halfW - 8, drawY + h / 2 + 6, GetColor(255, 255, 0), TRUE);
+                DrawTriangle(drawX + halfW, drawTopY + h / 2, drawX + halfW - 8, drawTopY + h / 2 - 6, 
+                           drawX + halfW - 8, drawTopY + h / 2 + 6, GetColor(255, 255, 0), TRUE);
             }
             else
             {
-                DrawTriangle(drawX - halfW, drawY + h / 2, drawX - halfW + 8, drawY + h / 2 - 6, 
-                           drawX - halfW + 8, drawY + h / 2 + 6, GetColor(255, 255, 0), TRUE);
+                DrawTriangle(drawX - halfW, drawTopY + h / 2, drawX - halfW + 8, drawTopY + h / 2 - 6, 
+                           drawX - halfW + 8, drawTopY + h / 2 + 6, GetColor(255, 255, 0), TRUE);
             }
         }
+        
+        debugIndex++;
     }
 }
+
+
 
 
 
