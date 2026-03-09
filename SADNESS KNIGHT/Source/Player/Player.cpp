@@ -425,7 +425,17 @@ bool HasDiveAttack() { return playerData.hasDiveAttack; }
 void OnCatCombatDefeated() { UnlockDiveAttack(); }
 
 // ===== 回復関連 ===== GetHealCount() { return playerData.healCount; }
-int GetMaxHealCount() { return playerData.maxHealCount; }
+// 残り回復回数取得
+int GetHealCount()
+{
+    return GetPlayerData().healCount;
+}
+
+// 最大回復回数取得
+int GetMaxHealCount()
+{
+    return GetPlayerData().maxHealCount;
+}
 
 // ===== 回避関連 =====
 void TryHeal()
