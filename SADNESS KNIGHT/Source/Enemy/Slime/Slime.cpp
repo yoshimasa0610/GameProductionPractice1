@@ -11,5 +11,6 @@
 
 int SpawnSlime(float x, float y)
 {
-    return SpawnEnemy(EnemyType::Slime, 546, 384);
+    return SpawnEnemy(EnemyType::Slime, x, y);
 }
+

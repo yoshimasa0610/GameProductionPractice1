@@ -20,7 +20,13 @@ struct AnimationData
     bool isPlaying;             // 再生中かどうか
     bool isFinished;            // 再生が終了したか（Onceモードのみ）
     bool isPingPongReverse;     // PingPongモードで逆再生中か
+    
+    // 部分ループ用（指定範囲だけをループ）
+    bool usePartialLoop;        // 部分ループを使用するか
+    int loopStartFrame;         // ループ開始フレーム
+    int loopEndFrame;           // ループ終了フレーム
 };
+
 
 // ===== 初期化・解放 =====
 
@@ -71,7 +77,11 @@ void SetAnimationSpeed(AnimationData& anim, int speed);
 // 特定のフレームに設定
 void SetAnimationFrame(AnimationData& anim, int frame);
 
+// 部分ループを設定（指定範囲だけをループ）
+void SetAnimationPartialLoop(AnimationData& anim, int loopStartFrame, int loopEndFrame);
+
 // ===== 取得 =====
+
 
 // 現在のフレーム画像ハンドルを取得
 int GetCurrentAnimationFrame(const AnimationData& anim);
