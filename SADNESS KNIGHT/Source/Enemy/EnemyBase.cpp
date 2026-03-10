@@ -14,6 +14,7 @@
 namespace
 {
     std::vector<EnemyData> g_enemies;
+    static int g_EnemyDebugFrame = 0;
 
     //============================================================
     // 敵の設定テーブル（ここを編集してバランス調整）
@@ -37,7 +38,7 @@ namespace
         // { HP, 攻撃, 速度, 幅, 高さ, 検知, 攻撃範囲, 攻撃時間, CD, ジャンプ, J力, パス }
         
         // Slime: 初心者向けの弱い敵
-        { 12, 4, 1.0f, 24.0f, 20.0f, 140.0f, 18.0f, 0.15f, 1.2f, false, 0.0f, "Assets/Enemies/Slime/" },
+        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 18.0f, 0.15f, 1.2f, false, 0.0f, "Assets/Enemies/Slime/" },
         
         // Skeleton: 標準的な敵、ジャンプで追いかけてくる
         { 60, 12, 1.5f, 30.0f, 56.0f, 280.0f, 48.0f, 0.2f, 1.0f, true, 8.0f, "Assets/Enemies/Skeleton/" },
@@ -63,33 +64,44 @@ namespace
     // レイキャストによる視線判定（ブロックを透視できない）
     bool HasLineOfSight(float fromX, float fromY, float toX, float toY)
     {
+        if (!std::isfinite(fromX) || !std::isfinite(fromY) || !std::isfinite(toX) || !std::isfinite(fromY))
+        {
+            return false;
+        }
+
         float dx = toX - fromX;
         float dy = toY - fromY;
         float distance = std::sqrt(dx * dx + dy * dy);
-        
-        if (distance < 0.01f) return true;
-        
-        // レイを細かくサンプリング
+
+        if (!std::isfinite(distance) || distance < 0.01f) return true;
+
         int steps = static_cast<int>(distance / 8.0f) + 1;
+        if (steps > 256) steps = 256;
+        if (steps < 1) steps = 1;
+
         float stepX = dx / steps;
         float stepY = dy / steps;
-        
+
         for (int i = 0; i < steps; i++)
         {
             float checkX = fromX + stepX * i;
             float checkY = fromY + stepY * i;
-            
-            // マップチップのインデックスを計算
+
+            if (!std::isfinite(checkX) || !std::isfinite(checkY))
+            {
+                return false;
+            }
+
             int gridX = static_cast<int>(checkX / BLOCK_SIZE);
             int gridY = static_cast<int>(checkY / BLOCK_SIZE);
-            
+
             MapChipData* mc = GetMapChipData(gridX, gridY);
             if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
             {
-                return false; // ブロックに遮られている
+                return false;
             }
         }
-        
+
         return true;
     }
     
@@ -195,11 +207,7 @@ void InitEnemySystem()
 int SpawnEnemy(EnemyType type, float x, float y)
 {
     const EnemyConfig& config = GetEnemyConfig(type);
-    
-    printfDx("--- SpawnEnemy ---\n");
-    printfDx("Type: %d, Pos: (%.1f, %.1f)\n", (int)type, x, y);
-    printfDx("Config: W=%.1f H=%.1f\n", config.width, config.height);
-    
+
     EnemyData e{};
     e.active = true;
     e.type = type;
@@ -210,12 +218,12 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.isFacingRight = true;
     e.isAggro = false;
     e.isGrounded = false;
-    
+
     e.patrolStartX = x;
     e.patrolRange = PATROL_RANGE_BLOCKS * BLOCK_SIZE;
     e.patrolDirection = 1;
     e.hasLineOfSight = false;
-    
+
     e.maxHP = config.maxHP;
     e.currentHP = config.maxHP;
     e.attackPower = config.attackPower;
@@ -235,16 +243,9 @@ int SpawnEnemy(EnemyType type, float x, float y)
     float top = e.posY - e.height;
     e.colliderId = CreateCollider(ColliderTag::Enemy, left, top, e.width, e.height, nullptr);
 
-    printfDx("Collider: L=%.1f T=%.1f W=%.1f H=%.1f\n", left, top, e.width, e.height);
-
     e.animations = LoadEnemyAnimations(type);
-    
-    printfDx("Animations: %s\n", e.animations ? "OK" : "NULL");
 
     g_enemies.push_back(e);
-    
-    printfDx("Enemy added to vector. Total: %d\n", (int)g_enemies.size());
-    
     return static_cast<int>(g_enemies.size() - 1);
 }
 
@@ -292,11 +293,17 @@ void UpdateEnemies()
 {
     PlayerData& player = GetPlayerData();
     const float FRAME_TIME = 1.0f / 60.0f;
-    const float DETECTION_RANGE = 4.0f * BLOCK_SIZE; // 4ブロック
+    const float DETECTION_RANGE = 4.0f * BLOCK_SIZE;
 
     for (auto& e : g_enemies)
     {
         if (!e.active) continue;
+
+        if (!std::isfinite(e.posX) || !std::isfinite(e.posY) || !std::isfinite(e.velocityX) || !std::isfinite(e.velocityY))
+        {
+            e.active = false;
+            continue;
+        }
 
         if (e.currentHP <= 0)
         {
@@ -314,17 +321,18 @@ void UpdateEnemies()
             continue;
         }
 
-        // プレイヤーとの距離と視線判定
         float dx = player.posX - e.posX;
         float dy = player.posY - e.posY;
         float dist = std::sqrt(dx * dx + dy * dy);
-        
-        // 視線判定（敵の目の位置からプレイヤーの中心へ）
-        float eyeY = e.posY - e.height * 0.7f;
-        float playerCenterY = player.posY - (PLAYER_HEIGHT * 0.5f);
-        e.hasLineOfSight = HasLineOfSight(e.posX, eyeY, player.posX, playerCenterY);
-        
-        // プレイヤー検知（距離内 && 視線が通っている）
+
+        e.hasLineOfSight = false;
+        if (std::isfinite(dist) && dist <= DETECTION_RANGE)
+        {
+            float eyeY = e.posY - e.height * 0.7f;
+            float playerCenterY = player.posY - (PLAYER_HEIGHT * 0.5f);
+            e.hasLineOfSight = HasLineOfSight(e.posX, eyeY, player.posX, playerCenterY);
+        }
+
         if (dist <= DETECTION_RANGE && e.hasLineOfSight)
         {
             e.isAggro = true;
@@ -338,10 +346,8 @@ void UpdateEnemies()
         if (e.cooldownTimer > 0.0f) e.cooldownTimer -= FRAME_TIME;
         if (e.attackTimer > 0.0f) e.attackTimer -= FRAME_TIME;
 
-        // AI行動
         if (e.isAggro)
         {
-            // プレイヤー追跡
             if (std::fabs(dx) > e.attackRange * 0.5f)
             {
                 e.velocityX = (dx > 0.0f) ? e.moveSpeed : -e.moveSpeed;
@@ -351,43 +357,35 @@ void UpdateEnemies()
                 e.velocityX = 0.0f;
             }
         }
-        else
+        else if (e.isGrounded)
         {
-            // 徘徊モード
-            if (e.isGrounded)
-            {
-                float distFromStart = e.posX - e.patrolStartX;
-                
-                // 徘徊範囲を超えたら方向転換
-                if (distFromStart > e.patrolRange)
-                {
-                    e.patrolDirection = -1;
-                }
-                else if (distFromStart < -e.patrolRange)
-                {
-                    e.patrolDirection = 1;
-                }
-                
-                e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
-                e.isFacingRight = (e.patrolDirection > 0);
-            }
+            float distFromStart = e.posX - e.patrolStartX;
+            if (distFromStart > e.patrolRange) e.patrolDirection = -1;
+            else if (distFromStart < -e.patrolRange) e.patrolDirection = 1;
+
+            e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
+            e.isFacingRight = (e.patrolDirection > 0);
         }
 
-        // 重力
         if (!e.isGrounded)
         {
             e.velocityY += GRAVITY;
             if (e.velocityY > MAX_FALL_SPEED) e.velocityY = MAX_FALL_SPEED;
         }
 
-        // 位置更新
         e.posX += e.velocityX;
         e.posY += e.velocityY;
-        
-        // マップとの当たり判定
+
+        const float mapBottom = static_cast<float>(GetMapHeight());
+        if (mapBottom > 0.0f && e.posY > mapBottom)
+        {
+            e.posY = mapBottom;
+            e.velocityY = 0.0f;
+            e.isGrounded = true;
+        }
+
         ResolveEnemyMapCollision(e);
 
-        // コライダー更新
         if (e.colliderId != -1)
         {
             float left = e.posX - (e.width * 0.5f);
@@ -395,99 +393,59 @@ void UpdateEnemies()
             UpdateCollider(e.colliderId, left, top, e.width, e.height);
         }
 
-        // アニメーション更新
         if (e.animations != nullptr)
         {
-            if (std::fabs(e.velocityX) > 0.01f)
-                UpdateAnimation(e.animations->move);
-            else
-                UpdateAnimation(e.animations->idle);
+            if (std::fabs(e.velocityX) > 0.01f) UpdateAnimation(e.animations->move);
+            else UpdateAnimation(e.animations->idle);
         }
     }
 }
 
-
-
 void DrawEnemies()
 {
     CameraData camera = GetCamera();
-    
-    // デバッグ: 大きな文字で表示
-    DrawFormatString(400, 20, GetColor(255, 0, 255), "*** DRAW ENEMIES v2.0 ***");
-    DrawFormatString(400, 50, GetColor(255, 255, 0), "Enemy Count: %d", g_enemies.size());
-    DrawFormatString(400, 70, GetColor(255, 255, 0), "Camera: (%.1f, %.1f)", camera.posX, camera.posY);
-    
-    int debugIndex = 0;
+
     for (const auto& e : g_enemies)
     {
-        DrawFormatString(400, 90 + debugIndex * 20, GetColor(0, 255, 255), 
-                        "=== ENEMY %d ===", debugIndex);
-        
-        if (!e.active) 
-        {
-            DrawFormatString(400, 110 + debugIndex * 20, GetColor(255, 0, 0), "INACTIVE!");
-            debugIndex++;
-            continue;
-        }
+        if (!e.active) continue;
 
-        // 敵のposYは足元。プレイヤーと同じ座標系
         int drawX = static_cast<int>((e.posX - camera.posX) * camera.scale);
         int drawY = static_cast<int>((e.posY - camera.posY) * camera.scale);
-
-        DrawFormatString(400, 110 + debugIndex * 60, GetColor(255, 255, 255), 
-                        "World: (%.0f, %.0f)", e.posX, e.posY);
-        DrawFormatString(400, 130 + debugIndex * 60, GetColor(255, 255, 255), 
-                        "Screen: (%d, %d)", drawX, drawY);
-
-        // 赤丸で敵の足元を表示
-        DrawCircle(drawX, drawY, 15, GetColor(255, 0, 0), TRUE);
-        DrawCircle(drawX, drawY, 18, GetColor(255, 255, 0), FALSE);
-        DrawCircle(drawX, drawY, 3, GetColor(0, 255, 0), TRUE);
-        DrawFormatString(drawX + 20, drawY - 15, GetColor(255, 255, 0), "SLIME %d", debugIndex);
-
-
-
-        // 画像描画位置は足元から高さ分上
         int drawTopY = drawY - static_cast<int>(e.height * camera.scale);
 
         if (e.animations != nullptr)
         {
-            AnimationData* currentAnim = nullptr;
-            
-            if (std::fabs(e.velocityX) > 0.01f)
-                currentAnim = &e.animations->move;
-            else
-                currentAnim = &e.animations->idle;
-            
+            AnimationData* currentAnim = (std::fabs(e.velocityX) > 0.01f) ? &e.animations->move : &e.animations->idle;
             if (currentAnim != nullptr && currentAnim->frames != nullptr)
             {
-                DrawAnimation(*currentAnim, drawX - static_cast<int>(e.width * 0.5f * camera.scale), drawTopY, !e.isFacingRight);
+                const int frameHandle = GetCurrentAnimationFrame(*currentAnim);
+                if (frameHandle != -1)
+                {
+                    const int halfW = static_cast<int>(e.width * 0.5f * camera.scale);
+                    const int h = static_cast<int>(e.height * camera.scale);
+                    const int left = drawX - halfW;
+                    const int top = drawY - h;
+                    const int right = drawX + halfW;
+                    const int bottom = drawY;
+
+                    if (e.isFacingRight)
+                    {
+                        DrawExtendGraph(right, top, left, bottom, frameHandle, TRUE);
+                    }
+                    else
+                    {
+                        DrawExtendGraph(left, top, right, bottom, frameHandle, TRUE);
+                    }
+                }
             }
         }
         else
         {
             int halfW = static_cast<int>(e.width * 0.5f * camera.scale);
-            int h = static_cast<int>(e.height * camera.scale);
-
-            unsigned int color = GetColor(200, 50, 50);
-            DrawBox(drawX - halfW, drawTopY, drawX + halfW, drawY, color, TRUE);
-
-            if (e.isFacingRight)
-            {
-                DrawTriangle(drawX + halfW, drawTopY + h / 2, drawX + halfW - 8, drawTopY + h / 2 - 6, 
-                           drawX + halfW - 8, drawTopY + h / 2 + 6, GetColor(255, 255, 0), TRUE);
-            }
-            else
-            {
-                DrawTriangle(drawX - halfW, drawTopY + h / 2, drawX - halfW + 8, drawTopY + h / 2 - 6, 
-                           drawX - halfW + 8, drawTopY + h / 2 + 6, GetColor(255, 255, 0), TRUE);
-            }
+            DrawBox(drawX - halfW, drawTopY, drawX + halfW, drawY, GetColor(200, 50, 50), TRUE);
         }
-        
-        debugIndex++;
     }
 }
-
 
 
 

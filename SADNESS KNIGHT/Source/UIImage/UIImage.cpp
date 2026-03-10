@@ -1,6 +1,7 @@
 #include "DxLib.h"
 #include "UIImage.h"
 #include "../Player/Player.h"
+#include "../Scene/Play/Play.h"
 
 // HPÉoÅ[âÊëú
 static int g_HPBarFrame = -1;
@@ -21,6 +22,11 @@ void LoadUIImage()
     g_HPBarFrame = LoadGraph("Data/UI/hp_frame.png");
     g_HPBarFill = LoadGraph("Data/UI/hp_fill.png");
     g_HealIcon = LoadGraph("Data/UI/heal_icon.png");
+
+    if (g_HealIcon == -1)
+    {
+        printfDx("heal_icon.png ì«Ç›çûÇ›é∏îs\n");
+    }
 }
 
 void UpdateUIImage()
@@ -71,6 +77,7 @@ void DrawUIImage()
             SetDrawBright(255, 255, 255);
         }
     }
+    DrawGraph(300, 300, g_HealIcon, TRUE);
 }
 
 void UnloadUIImage()
