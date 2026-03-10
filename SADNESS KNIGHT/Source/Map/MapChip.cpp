@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include "../Collision/Collision.h"
+#include "../Money/MoneyDropSystem.h"
 
 // ============================
 // 可変サイズ対応
@@ -143,12 +144,13 @@ void CreateMap()
                 float left = x * MAP_CHIP_WIDTH;
                 float top = y * MAP_CHIP_HEIGHT;
 
-                CreateCollider(ColliderTag::Block,
-                    left,
-                    top,
-                    MAP_CHIP_WIDTH,
-                    MAP_CHIP_HEIGHT,
-                    nullptr);
+                g_MapChip[y][x].colliderId =
+                    CreateCollider(ColliderTag::Block,
+                        left,
+                        top,
+                        MAP_CHIP_WIDTH,
+                        MAP_CHIP_HEIGHT,
+                        nullptr);
             }
             else
             {
@@ -166,8 +168,9 @@ void CreateMap()
 
                 float width = MAP_CHIP_WIDTH;
                 float height = 8.0f; // ← 上面だけ判定
-                //これで上から8pxのみ当たり判定がついています
-                CreateCollider(ColliderTag::SemiSolid, left, top, width, height, nullptr);
+                //これで上から8pxのみ当たり判定がついている
+                g_MapChip[y][x].colliderId =
+                    CreateCollider(ColliderTag::SemiSolid, left, top, width, height, nullptr);
             }
 
             if (type == BREAKABLE_WALL)
@@ -178,6 +181,11 @@ void CreateMap()
             {
                 g_MapChip[y][x].hp = 1; // 石像（後で増やしてもOK）
             }
+            else if (type == BREAKABLE_DIVE_FLOOR)
+            {
+                g_MapChip[y][x].hp = 1;
+            }
+
             else
             {
                 g_MapChip[y][x].hp = 0;
@@ -194,6 +202,77 @@ MapChipData* GetMapChipData(int x, int y)
     if (y < 0 || y >= g_MapChipYNum || x < 0 || x >= g_MapChipXNum)
         return nullptr;
     return &g_MapChip[y][x];
+}
+
+bool DamageMapChip(int x, int y, int damage, bool isDiveAttack)
+{
+    MapChipData* chip = GetMapChipData(x, y);
+    if (!chip) return false;
+
+    MapChipType type = (MapChipType)chip->mapChip;
+
+    // 破壊対象か確認
+    if (type != BREAKABLE_WALL &&
+        type != BREAKABLE_STATUE &&
+        type != BREAKABLE_DIVE_FLOOR)
+    {
+        return false;
+    }
+
+    if (type == BREAKABLE_DIVE_FLOOR && !isDiveAttack)
+        return false;
+
+    chip->hp -= damage;
+
+    if (chip->hp > 0)
+        return false;
+
+    // -------------------------
+    // 破壊処理
+    // -------------------------
+
+    float worldX = x * MAP_CHIP_WIDTH + MAP_CHIP_WIDTH * 0.5f;
+    float worldY = y * MAP_CHIP_HEIGHT + MAP_CHIP_HEIGHT * 0.5f;
+
+    // ドロップ処理
+    if (type == BREAKABLE_STATUE)
+    {
+        int money = DecideStatueDropMoney();
+        if (money > 0)
+        {
+            SpawnMoneyDrops(worldX, worldY, money);
+        }
+    }
+
+    // 壁は低確率ドロップ
+    if (type == BREAKABLE_WALL)
+    {
+        if (GetRand(3) == 0) // 25%
+        {
+            SpawnMoneyDrops(worldX, worldY, 1);
+        }
+    }
+
+    // Collider削除
+    if (chip->colliderId >= 0)
+    {
+        DestroyCollider(chip->colliderId);
+        chip->colliderId = -1;
+    }
+
+    // Block削除
+    if (chip->data)
+    {
+        chip->data->active = false;
+        chip->data = nullptr;
+    }
+
+    chip->mapChip = MAP_CHIP_NONE;
+    chip->isSolid = false;
+    chip->hp = 0;
+    // 破壊SE
+    //PlaySE(SE_BREAK_WALL);
+    return true;
 }
 
 // ============================

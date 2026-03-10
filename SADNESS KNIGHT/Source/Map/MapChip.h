@@ -15,3 +15,4 @@ void LoadMapChipData(const char* filePath);
 void CreateMap();
 void FreeMapChip();
 MapChipData* GetMapChipData(int x, int y);
+bool DamageMapChip(int x, int y, int damage, bool isDiveAttack);
