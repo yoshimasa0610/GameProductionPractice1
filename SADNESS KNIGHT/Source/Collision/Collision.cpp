@@ -28,6 +28,7 @@ namespace
 {
     std::vector<Collider> g_colliders;
     ColliderId g_nextId = 1;
+    int g_playerEnemyHitCooldown = 0;
 }
 
 // MapManager 互換：シンプルな呼び出し版（GetPlayerData を使って内部実装に委譲）
@@ -384,6 +385,11 @@ void ResolveCollisions()
 {
     if (g_colliders.empty()) return;
 
+    if (g_playerEnemyHitCooldown > 0)
+    {
+        --g_playerEnemyHitCooldown;
+    }
+
     for (auto& c : g_colliders)
     {
         if (!c.active) continue;
@@ -473,10 +479,13 @@ void ResolveCollisions()
             {
                 Collider* playerC = (a.tag == ColliderTag::Player) ? &a : &b;
                 PlayerData* player = static_cast<PlayerData*>(playerC->owner);
-                if (player)
+                if (player && player->currentHP > 0)
                 {
-                    // 固定ダメージ（必要に応じて owner をキャストして敵のダメージ値を参照する実装に変更）
-                    DamagePlayerHP(10);
+                    if (g_playerEnemyHitCooldown <= 0)
+                    {
+                        DamagePlayerHP(10);
+                        g_playerEnemyHitCooldown = 30; // 0.5秒(60fps想定)
+                    }
                 }
             }
             // 必要であれば他組合せの処理を追加

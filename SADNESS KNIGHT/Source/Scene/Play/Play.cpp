@@ -123,39 +123,16 @@ void StepPlayScene()
 {
 	if (g_IsPaused) return;
 
-	if (!g_EnemySpawned && IsPlayerAlive())
-	{
-		float playerX = GetPlayerPosX();
-		float playerY = GetPlayerPosY();
-		
-		float spawnX = playerX;
-		float spawnY = playerY;
-		
-		printfDx("=== Spawning Slime ===\n");
-		printfDx("Player: (%.1f, %.1f)\n", playerX, playerY);
-		printfDx("Slime: (%.1f, %.1f)\n", spawnX, spawnY);
-		
-		int slimeId = SpawnSlime(spawnX, spawnY);
-		
-		printfDx("Slime ID: %d\n", slimeId);
-		printfDx("Total Enemies: %d\n", GetEnemyCount());
-		
-		g_EnemySpawned = true;
-	}
-
 	float deltaTime = 1.0f / 60.0f;
 	g_ElapsedTime += deltaTime;
 
 	UpdateEnemies();
-
-	// お金更新（吸い寄せ & 回収）
 
 	UpdateMoneyDrops(
 		player.posX,
 		player.posY
 	);
 
-	// ---- フィールドアイテムとの当たり判定 ----
 	g_ItemField.Update(
 		GetPlayerPosX(),
 		GetPlayerPosY(),
@@ -163,25 +140,26 @@ void StepPlayScene()
 		(float)PLAYER_HEIGHT
 	);
 
-	// ---- このフレーム拾ったアイテム取得 ----
 	auto picked = g_ItemField.FetchPickedItems();
 	for (int id : picked)
 	{
-		// 所持にする
 		ItemManager_AddItem(id);
 		g_ItemManager.ApplyBuffsToPlayer(&player);
-		// 即セーブ（チェックポイント制なら後回しでもOK）
 		ExportSaveData(&g_SaveData);
 		SaveGame(&g_SaveData, g_CurrentSaveSlot);
 	}
 	UpdateMoneyPopup(1.0f / 60.0f);
 }
 
-//前方宣言
 static void RespawnFromCheckpoint();
 
 void UpdatePlayScene()
 {
+	if (g_IsPaused && !IsOverlayOpen() && !g_IsMenuOpen && !IsOptionOpen())
+	{
+		g_IsPaused = false;
+	}
+
 	if (IsOptionOpen())
 	{
 		UpdateOption();
@@ -213,7 +191,6 @@ void UpdatePlayScene()
 		return;
 	}
 
-	// チェックポイント更新
 	UpdateCheckpoint(
 		&g_SaveData,
 		(int)player.posX,
@@ -222,10 +199,23 @@ void UpdatePlayScene()
 		(int)PLAYER_HEIGHT
 	);
 
-	if (g_IsPaused) return; // ポーズ中は更新を止める
+	if (g_IsPaused) return;
 
-	// プレイヤー更新とか
 	UpdatePlayer();
+
+	if (!g_EnemySpawned && IsPlayerAlive() && IsPlayerGrounded())
+	{
+		const float oneBlock = 32.0f;
+		const bool facingRight = IsPlayerFacingRight();
+		const float playerX = GetPlayerPosX();
+		const float playerY = GetPlayerPosY();
+		const float spawnX = playerX + (facingRight ? oneBlock : -oneBlock);
+		const float spawnY = playerY;
+
+		SpawnSlime(spawnX, spawnY);
+		g_EnemySpawned = true;
+	}
+
 	UpdateCamera();
 	UpdateFade();
 }
@@ -239,16 +229,13 @@ void DrawPlayScene()
 	DrawCheckpoint();
 	g_ItemField.Draw();
 	DrawMoneyDrops();
-	DrawEnemies();
 	DrawMapOutsideMask();
 	DrawForeground();
 
+	DrawEnemies();
 	DrawPlayer();
 	g_MoneyManager.Draw();
 	DrawMoneyPopup();
-
-	DrawFormatString(10, 10, GetColor(255, 255, 255), "Player: (%.1f, %.1f)", GetPlayerPosX(), GetPlayerPosY());
-	DrawFormatString(10, 30, GetColor(255, 255, 255), "EnemySpawned: %s", g_EnemySpawned ? "YES" : "NO");
 
 	if (IsOptionOpen())
 
