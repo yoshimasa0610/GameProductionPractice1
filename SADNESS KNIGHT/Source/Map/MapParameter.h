@@ -1,5 +1,6 @@
 #pragma once
 #include "DxLib.h"
+#include "../Collision/Collision.h"
 
 #define BLOCK_MAX 4096         //ゲーム全体で扱えるブロックの最大数 
 
@@ -22,6 +23,7 @@ enum MapChipType
 	SEMI_SOLID_BLOCK,      // 下からはすり抜けるブロック
 	BREAKABLE_WALL,
 	BREAKABLE_STATUE,
+	BREAKABLE_DIVE_FLOOR,  // 落下攻撃でしか破壊できないブロック
 	SPIKE_BLOCK,           // トゲ（ダメージ）
 	BACKGROUND_BLOCK,      // 背景（装飾用、当たり判定なし）
 
@@ -51,6 +53,7 @@ struct MapChipData
 	bool isSolid = false;
 	BlockData* data = nullptr;       // 対応するブロックデータ
 	int hp = 0;
+	ColliderId colliderId = -1;
 };
 
 // =====================================
