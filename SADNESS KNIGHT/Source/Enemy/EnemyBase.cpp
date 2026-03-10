@@ -38,7 +38,11 @@ namespace
         // { HP, 攻撃, 速度, 幅, 高さ, 検知, 攻撃範囲, 攻撃時間, CD, ジャンプ, J力, パス }
         
         // Slime: 初心者向けの弱い敵
-        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 18.0f, 0.15f, 1.2f, false, 0.0f, "Assets/Enemies/Slime/" },
+        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.35f, 0.7f, false, 0.0f, "Assets/Enemies/Slime/" },
+
+
+
+
         
         // Skeleton: 標準的な敵、ジャンプで追いかけてくる
         { 60, 12, 1.5f, 30.0f, 56.0f, 280.0f, 48.0f, 0.2f, 1.0f, true, 8.0f, "Assets/Enemies/Skeleton/" },
@@ -60,6 +64,7 @@ namespace
     const float MAX_FALL_SPEED = 6.0f;
     const float PATROL_RANGE_BLOCKS = 5.0f;
     const float BLOCK_SIZE = 32.0f;
+    const float FACE_TURN_DEADZONE = 12.0f;
     
     // レイキャストによる視線判定（ブロックを透視できない）
     bool HasLineOfSight(float fromX, float fromY, float toX, float toY)
@@ -236,7 +241,11 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.cooldownTimer = 0.0f;
     e.canJump = config.canJump;
     e.jumpPower = config.jumpPower;
+    e.isAttacking = false;
+    e.attackColliderId = -1;
     e.width = config.width;
+
+
     e.height = config.height;
 
     float left = e.posX - (e.width * 0.5f);
@@ -262,6 +271,11 @@ void DespawnEnemy(int index)
         DestroyCollider(e.colliderId);
         e.colliderId = -1;
     }
+    if (e.attackColliderId != -1)
+    {
+        DestroyCollider(e.attackColliderId);
+        e.attackColliderId = -1;
+    }
     if (e.animations != nullptr)
     {
         UnloadEnemyAnimations(e.animations);
@@ -280,6 +294,11 @@ void ClearEnemies()
             DestroyCollider(e.colliderId);
             e.colliderId = -1;
         }
+        if (e.attackColliderId != -1)
+        {
+            DestroyCollider(e.attackColliderId);
+            e.attackColliderId = -1;
+        }
         if (e.animations != nullptr)
         {
             UnloadEnemyAnimations(e.animations);
@@ -288,6 +307,7 @@ void ClearEnemies()
     }
     g_enemies.clear();
 }
+
 
 void UpdateEnemies()
 {
@@ -312,7 +332,13 @@ void UpdateEnemies()
                 DestroyCollider(e.colliderId);
                 e.colliderId = -1;
             }
+            if (e.attackColliderId != -1)
+            {
+                DestroyCollider(e.attackColliderId);
+                e.attackColliderId = -1;
+            }
             if (e.animations != nullptr)
+
             {
                 UnloadEnemyAnimations(e.animations);
                 e.animations = nullptr;
@@ -324,6 +350,7 @@ void UpdateEnemies()
         float dx = player.posX - e.posX;
         float dy = player.posY - e.posY;
         float dist = std::sqrt(dx * dx + dy * dy);
+        bool justFinishedAttack = false;
 
         e.hasLineOfSight = false;
         if (std::isfinite(dist) && dist <= DETECTION_RANGE)
@@ -336,7 +363,10 @@ void UpdateEnemies()
         if (dist <= DETECTION_RANGE && e.hasLineOfSight)
         {
             e.isAggro = true;
-            e.isFacingRight = (dx >= 0.0f);
+            if (std::fabs(dx) > FACE_TURN_DEADZONE)
+            {
+                e.isFacingRight = (dx >= 0.0f);
+            }
         }
         else
         {
@@ -344,9 +374,64 @@ void UpdateEnemies()
         }
 
         if (e.cooldownTimer > 0.0f) e.cooldownTimer -= FRAME_TIME;
-        if (e.attackTimer > 0.0f) e.attackTimer -= FRAME_TIME;
+        if (e.attackTimer > 0.0f)
+        {
+            e.attackTimer -= FRAME_TIME;
 
-        if (e.isAggro)
+            // 攻撃中は急接近した勢いを少しずつ減衰
+            e.velocityX *= 0.94f;
+
+            if (e.attackTimer <= 0.0f)
+            {
+                e.isAttacking = false;
+                justFinishedAttack = true;
+
+                // 攻撃判定コライダーを削除
+                if (e.attackColliderId != -1)
+                {
+                    DestroyCollider(e.attackColliderId);
+                    e.attackColliderId = -1;
+                }
+            }
+        }
+
+        // 攻撃判定：攻撃範囲内に入った瞬間に即攻撃開始
+        if (!justFinishedAttack && e.isAggro && dist <= e.attackRange && e.cooldownTimer <= 0.0f && !e.isAttacking)
+        {
+            e.isAttacking = true;
+            e.attackTimer = e.attackDuration;
+            e.cooldownTimer = e.attackCooldown; // これが後隙
+
+            // 即座にプレイヤーへ急接近
+            const float lungeSpeed = e.moveSpeed * 6.0f;
+            e.velocityX = (dx > 0.0f) ? lungeSpeed : -lungeSpeed;
+
+            // 攻撃判定コライダーを即生成
+            const float attackWidth = e.width * 1.5f;
+            const float attackHeight = e.height;
+            const float attackOffsetX = e.isFacingRight ? e.width * 0.5f : -e.width * 0.5f - attackWidth;
+            const float attackLeft = e.posX + attackOffsetX;
+            const float attackTop = e.posY - attackHeight;
+            e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
+
+            if (e.animations != nullptr)
+            {
+                ResetAnimation(e.animations->attack);
+            }
+        }
+
+        // 攻撃終了直後は一度プレイヤー方向を再確認して停止（次フレームから移動再開）
+        if (justFinishedAttack)
+        {
+            if (std::fabs(dx) > FACE_TURN_DEADZONE)
+            {
+                e.isFacingRight = (dx >= 0.0f);
+            }
+            e.velocityX = 0.0f;
+        }
+        // 移動処理（攻撃中は上の攻撃ロジックで制御）
+        else if (!e.isAttacking && e.isAggro)
+
         {
             if (std::fabs(dx) > e.attackRange * 0.5f)
             {
@@ -357,6 +442,7 @@ void UpdateEnemies()
                 e.velocityX = 0.0f;
             }
         }
+
         else if (e.isGrounded)
         {
             float distFromStart = e.posX - e.patrolStartX;
@@ -392,12 +478,35 @@ void UpdateEnemies()
             float top = e.posY - e.height;
             UpdateCollider(e.colliderId, left, top, e.width, e.height);
         }
+        
+        // 攻撃判定コライダーを更新（攻撃中のみ）
+        if (e.isAttacking && e.attackColliderId != -1)
+        {
+            const float attackWidth = e.width * 1.5f;
+            const float attackHeight = e.height;
+            const float attackOffsetX = e.isFacingRight ? e.width * 0.5f : -e.width * 0.5f - attackWidth;
+            const float attackLeft = e.posX + attackOffsetX;
+            const float attackTop = e.posY - attackHeight;
+            UpdateCollider(e.attackColliderId, attackLeft, attackTop, attackWidth, attackHeight);
+        }
 
         if (e.animations != nullptr)
+
         {
-            if (std::fabs(e.velocityX) > 0.01f) UpdateAnimation(e.animations->move);
-            else UpdateAnimation(e.animations->idle);
+            if (e.isAttacking)
+            {
+                UpdateAnimation(e.animations->attack);
+            }
+            else if (std::fabs(e.velocityX) > 0.01f)
+            {
+                UpdateAnimation(e.animations->move);
+            }
+            else
+            {
+                UpdateAnimation(e.animations->idle);
+            }
         }
+
     }
 }
 
@@ -415,8 +524,23 @@ void DrawEnemies()
 
         if (e.animations != nullptr)
         {
-            AnimationData* currentAnim = (std::fabs(e.velocityX) > 0.01f) ? &e.animations->move : &e.animations->idle;
+            AnimationData* currentAnim = nullptr;
+            
+            if (e.isAttacking)
+            {
+                currentAnim = &e.animations->attack;
+            }
+            else if (std::fabs(e.velocityX) > 0.01f)
+            {
+                currentAnim = &e.animations->move;
+            }
+            else
+            {
+                currentAnim = &e.animations->idle;
+            }
+            
             if (currentAnim != nullptr && currentAnim->frames != nullptr)
+
             {
                 const int frameHandle = GetCurrentAnimationFrame(*currentAnim);
                 if (frameHandle != -1)
