@@ -50,6 +50,7 @@ void InitPlayScene()
 void LoadPlayScene()
 {
 	LoadPlayer();
+	LoadUIImage();
 
 	// SaveData からステージをロード
 	if (g_SaveData.stageName[0] == '\0')
@@ -234,6 +235,7 @@ void DrawPlayScene()
 
 	DrawEnemies();
 	DrawPlayer();
+	DrawUIImage();
 	g_MoneyManager.Draw();
 	DrawMoneyPopup();
 
@@ -258,6 +260,7 @@ void DrawPlayScene()
 
 void FinPlayScene()
 {
+	UnloadUIImage();
 	// マップ終了
 	FinStage();
 

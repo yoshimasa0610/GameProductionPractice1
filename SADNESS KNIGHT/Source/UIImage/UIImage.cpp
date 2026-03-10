@@ -46,20 +46,35 @@ void DrawUIImage()
     int barWidth = 200;
     int hpWidth = (int)(barWidth * hpRate);
 
-    DrawGraph(HP_POS_X, HP_POS_Y, g_HPBarFrame, TRUE);
+    
+    int barHeight = 15;
 
+    // 最大HP（黒バー）
+    DrawBox(
+        HP_POS_X + 5,
+        HP_POS_Y + 5,
+        HP_POS_X + 5 + barWidth,
+        HP_POS_Y + 5 + barHeight,
+        GetColor(0, 0, 0),
+        TRUE
+    );
+
+    // 現在HP（赤バー）
     DrawBox(
         HP_POS_X + 5,
         HP_POS_Y + 5,
         HP_POS_X + 5 + hpWidth,
-        HP_POS_Y + 20,
-        GetColor(200, 0, 0),
+        HP_POS_Y + 5 + barHeight,
+        GetColor(220, 40, 40),
         TRUE
     );
 
+    // フレーム
+    DrawGraph(HP_POS_X, HP_POS_Y, g_HPBarFrame, TRUE);
+
     // 回復回数UI
     int healCount = GetHealCount();
-    int maxHeal = GetMaxHealCount();
+    int maxHeal = 3;
 
     for (int i = 0; i < maxHeal; i++)
     {
@@ -68,7 +83,16 @@ void DrawUIImage()
 
         if (i < healCount)
         {
-            DrawGraph(x, y, g_HealIcon, TRUE);
+            int size = 32;
+
+            DrawExtendGraph(
+                x,
+                y,
+                x + size,
+                y + size,
+                g_HealIcon,
+                TRUE
+            );
         }
         else
         {
@@ -77,7 +101,7 @@ void DrawUIImage()
             SetDrawBright(255, 255, 255);
         }
     }
-    DrawGraph(300, 300, g_HealIcon, TRUE);
+    //DrawGraph(300, 300, g_HealIcon, TRUE);
 }
 
 void UnloadUIImage()
