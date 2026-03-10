@@ -423,10 +423,30 @@ void ResolveCollisions()
                 PlayerData* player = static_cast<PlayerData*>(a.owner);
                 if (player) ResolvePlayerBlock(player, b, a);
             }
+            else if (a.tag == ColliderTag::Attack && b.tag == ColliderTag::Block)
+            {
+                PlayerData* player = static_cast<PlayerData*>(a.owner);
+                bool isDive = (player && player->state == PlayerState::DiveAttack);
+
+                int mapX = (int)((b.left + b.width * 0.5f) / MAP_CHIP_WIDTH);
+                int mapY = (int)((b.top + b.height * 0.5f) / MAP_CHIP_HEIGHT);
+
+                DamageMapChip(mapX, mapY, 1, isDive);
+            }
             else if (b.tag == ColliderTag::Player && a.tag == ColliderTag::Block)
             {
                 PlayerData* player = static_cast<PlayerData*>(b.owner);
                 if (player) ResolvePlayerBlock(player, a, b);
+            }
+            else if (b.tag == ColliderTag::Attack && a.tag == ColliderTag::Block)
+            {
+                PlayerData* player = static_cast<PlayerData*>(a.owner);
+                bool isDive = (player && player->state == PlayerState::DiveAttack);
+
+                int mapX = (int)((b.left + b.width * 0.5f) / MAP_CHIP_WIDTH);
+                int mapY = (int)((b.top + b.height * 0.5f) / MAP_CHIP_HEIGHT);
+
+                DamageMapChip(mapX, mapY, 1, isDive);
             }
 			// Player <-> SemiSolid : 下からの当たりを判定
             //（簡易実装：プレイヤーが下から接触している場合のみブロックとして扱う）

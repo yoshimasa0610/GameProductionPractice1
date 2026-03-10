@@ -625,6 +625,21 @@ namespace
             // 着地で衝撃波区間へ移行（着地前には出さない）
             if (!g_DiveAttackLanded && playerData.isGrounded && g_DiveAttackLockFrames <= 0)
             {
+                // 勝手に追加しときましたb
+                // DiveAttack 床破壊処理
+                float left = playerData.posX - DIVE_ATTACK_WIDTH * 0.5f;
+                float right = playerData.posX + DIVE_ATTACK_WIDTH * 0.5f;
+                float y = playerData.posY + 4;
+
+                int mapStartX = (int)(left / MAP_CHIP_WIDTH);
+                int mapEndX = (int)(right / MAP_CHIP_WIDTH);
+                int mapY = (int)(y / MAP_CHIP_HEIGHT);
+
+                for (int x = mapStartX; x <= mapEndX; x++)
+                {
+                    DamageMapChip(x, mapY, playerData.diveAttackDamage, true);
+                }
+
                 g_DiveAttackLanded = true;
                 playerData.velocityY = 0.0f;
 
