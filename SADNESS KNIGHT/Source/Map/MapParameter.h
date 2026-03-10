@@ -2,7 +2,7 @@
 #include "DxLib.h"
 #include "../Collision/Collision.h"
 
-#define BLOCK_MAX 4096         //ゲーム全体で扱えるブロックの最大数 
+#define BLOCK_MAX 8192         //ゲーム全体で扱えるブロックの最大数 
 
 // マップ1チップの大きさ（共通）
 #define MAP_CHIP_WIDTH  (32.0f)
@@ -21,8 +21,14 @@ enum MapChipType
 	NORMAL_BLOCK,          //壁や天井などのブロック
 	EXIT_BLOCK,            //対応しているステージに移動
 	SEMI_SOLID_BLOCK,      // 下からはすり抜けるブロック
+
 	BREAKABLE_WALL,
 	BREAKABLE_STATUE,
+	BREAKABLE_CRATE,
+	BREAKABLE_BARREL,
+	BREAKABLE_POT,
+	BREAKABLE_BOX,
+
 	BREAKABLE_DIVE_FLOOR,  // 落下攻撃でしか破壊できないブロック
 	SPIKE_BLOCK,           // トゲ（ダメージ）
 	BACKGROUND_BLOCK,      // 背景（装飾用、当たり判定なし）
@@ -39,8 +45,8 @@ struct BlockData
 	MapChipType type = MAP_CHIP_NONE; // ブロック種別
 	VECTOR pos = VGet(0.0f, 0.0f, 0.0f); // ワールド座標
 	bool isSolid = false;           // 当たり判定があるかどうか
-
 	int visual;//見た目の変化
+	int sourceSize = 32; // 元の画像サイズ
 };
 
 struct MapChipData

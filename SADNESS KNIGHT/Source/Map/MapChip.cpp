@@ -173,6 +173,24 @@ void CreateMap()
                     CreateCollider(ColliderTag::SemiSolid, left, top, width, height, nullptr);
             }
 
+            if (type == BREAKABLE_CRATE ||
+                type == BREAKABLE_BARREL ||
+                type == BREAKABLE_POT)
+            {
+                float left = x * MAP_CHIP_WIDTH;
+                float top = y * MAP_CHIP_HEIGHT;
+
+                g_MapChip[y][x].colliderId =
+                    CreateCollider(
+                        ColliderTag::Block,
+                        left,
+                        top,
+                        MAP_CHIP_WIDTH,
+                        MAP_CHIP_HEIGHT,
+                        nullptr
+                    );
+            }
+
             if (type == BREAKABLE_WALL)
             {
                 g_MapChip[y][x].hp = 1; // ï«
@@ -185,7 +203,18 @@ void CreateMap()
             {
                 g_MapChip[y][x].hp = 1;
             }
-
+            if (type == BREAKABLE_CRATE)
+            {
+                g_MapChip[y][x].hp = 1;
+            }
+            else if (type == BREAKABLE_BARREL)
+            {
+                g_MapChip[y][x].hp = 1;
+            }
+            else if (type == BREAKABLE_POT)
+            {
+                g_MapChip[y][x].hp = 1;
+            }
             else
             {
                 g_MapChip[y][x].hp = 0;
@@ -214,7 +243,11 @@ bool DamageMapChip(int x, int y, int damage, bool isDiveAttack)
     // îjâÛëŒè€Ç©ämîF
     if (type != BREAKABLE_WALL &&
         type != BREAKABLE_STATUE &&
-        type != BREAKABLE_DIVE_FLOOR)
+        type != BREAKABLE_DIVE_FLOOR &&
+        type != BREAKABLE_CRATE &&
+        type != BREAKABLE_BARREL &&
+        type != BREAKABLE_POT &&
+        type != BREAKABLE_BOX)
     {
         return false;
     }

@@ -14,7 +14,7 @@
 BlockData g_Blocks[BLOCK_MAX] = { 0 };              // 全ブロックデータ
 int g_BlockHandle[BLOCK_TYPE_MAX] = { 0 };         // ブロック種別ごとの画像
 int g_NormalTileHandles[49];                       // 通常ブロックのタイル画像 (7x7)
-
+int g_PropTileHandles[1024];
 // オートタイル変換テーブル（内部用）
 // visual(0～15) → タイルシート番号に変換
 int g_AutoTileTable[16] =
@@ -70,6 +70,16 @@ void LoadBlock()
 
 	// トゲブロック画像読み込み
 	g_BlockHandle[SPIKE_BLOCK] = LoadGraph("Data/Map/SpikeBlock.png");
+
+	LoadDivGraph(
+		"Data/Map/TX Village Props.png",
+		256,   // 16×16
+		16,
+		16,
+		64,
+		64,
+		g_PropTileHandles
+	);
 }
 
 //============================================================
@@ -97,7 +107,6 @@ void DrawBlock()
 	float cameraScale = camera.scale;
 
 	const float DRAW_TILE_SIZE = 32.0f;     // 描画サイズ（ワールド座標）
-	float imageScale = DRAW_TILE_SIZE / 512.0f;
 
 	BlockData* block = g_Blocks;
 
@@ -120,7 +129,7 @@ void DrawBlock()
 
 		int drawX = (int)roundf(bx);
 		int drawY = (int)roundf(by);
-
+		float imageScale = DRAW_TILE_SIZE / (float)block->sourceSize;
 		float drawScale = cameraScale * imageScale;
 
 		// ブロック描画
@@ -156,6 +165,13 @@ void FinBlock()
 		if (g_NormalTileHandles[i] > 0)
 			DeleteGraph(g_NormalTileHandles[i]);
 	}
+
+	for (int i = 0; i < 1024; i++)
+	{
+		if (g_PropTileHandles[i] > 0)
+			DeleteGraph(g_PropTileHandles[i]);
+	}
+
 }
 
 //============================================================
@@ -224,7 +240,29 @@ BlockData* CreateBlock(MapChipType type, VECTOR pos, int visual)
 
 				block.tileIndex = index;
 				block.handle = g_NormalTileHandles[index];
+				block.sourceSize = 512;
 			}
+			else if (type == BREAKABLE_CRATE)
+			{
+				block.handle = g_PropTileHandles[0];
+				block.sourceSize = 64;
+			}
+			else if (type == BREAKABLE_BOX)
+			{
+				block.handle = g_PropTileHandles[1];
+				block.sourceSize = 64;
+			}
+			else if (type == BREAKABLE_BARREL)
+			{
+				block.handle = g_PropTileHandles[2];
+				block.sourceSize = 64;
+			}
+			else if (type == BREAKABLE_POT)
+			{
+				block.handle = g_PropTileHandles[5];
+				block.sourceSize = 64;
+			}
+
 			else
 			{
 				// その他のブロックタイプ
@@ -236,6 +274,8 @@ BlockData* CreateBlock(MapChipType type, VECTOR pos, int visual)
 	}
 	return nullptr;
 }
+
+
 
 BlockData* GetBlocks()
 {
