@@ -101,8 +101,14 @@ struct EnemyData
     float moveSpeed;
     bool canJump;
     float jumpPower;
+    
+    // 攻撃状態
+    bool isAttacking;       // 攻撃モーション再生中か
+    int attackColliderId;   // 攻撃判定コライダー
 
     // 描画・当たり判定（システムが自動管理）
+
+
     float width;
     float height;
     int colliderId;

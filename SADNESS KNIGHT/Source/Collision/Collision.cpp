@@ -1,11 +1,14 @@
 #include "Collision.h"
+#include "Collision.h"
 #include <vector>
 #include <algorithm>
 #include <cmath>
 #include "../Player/Player.h"
+#include "../Enemy/EnemyBase.h"
 #include "DxLib.h"
 #include "../Map/MapParameter.h"
 #include "../Map/MapChip.h"
+
 
 //
 // シンプルなコライダー実装
@@ -508,7 +511,26 @@ void ResolveCollisions()
                     }
                 }
             }
+            // Player <-> Attack : 敵の攻撃判定
+            else if ((a.tag == ColliderTag::Player && b.tag == ColliderTag::Attack) ||
+                     (b.tag == ColliderTag::Player && a.tag == ColliderTag::Attack))
+            {
+                Collider* playerC = (a.tag == ColliderTag::Player) ? &a : &b;
+                Collider* attackC = (a.tag == ColliderTag::Attack) ? &a : &b;
+                PlayerData* player = static_cast<PlayerData*>(playerC->owner);
+                
+                if (player && player->currentHP > 0 && attackC->owner != nullptr)
+                {
+                    if (g_playerEnemyHitCooldown <= 0)
+                    {
+                        EnemyData* enemy = static_cast<EnemyData*>(attackC->owner);
+                        DamagePlayerHP(enemy->attackPower);
+                        g_playerEnemyHitCooldown = 30;
+                    }
+                }
+            }
             // 必要であれば他組合せの処理を追加
+
         }
     }
 }
