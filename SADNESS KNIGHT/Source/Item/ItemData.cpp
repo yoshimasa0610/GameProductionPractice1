@@ -132,7 +132,8 @@ void InitAllItems()
         item->systemDesc = {
             "スキル使用回数が15%増加する"
         };
-
+        item->iconSmallPath = "Data/Item/Icon/magic_small.png";
+        item->iconLargePath = "Data/Item/Icon/magic_large.png";
         g_ItemManager.AddItem(std::move(item));
     }
 
@@ -149,7 +150,8 @@ void InitAllItems()
         item->systemDesc = {
             "最大体力が5%増加する"
         };
-
+        item->iconSmallPath = "Data/Item/Icon/aaa_small.png";
+        item->iconLargePath = "Data/Item/Icon/aaa_large.png";
         g_ItemManager.AddItem(std::move(item));
     }
 }

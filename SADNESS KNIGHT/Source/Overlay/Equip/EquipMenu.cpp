@@ -335,6 +335,19 @@ void DrawEquipMenuScene(const OverlayArea& area)
             GetColor(90, 90, 90), TRUE);
 
         const auto& item = items[ownedIndices[i]];
+
+        if (item->iconSmallHandle > 0)
+        {
+            DrawExtendGraph(
+                x,
+                y,
+                x + iconSize,
+                y + iconSize,
+                item->iconSmallHandle,
+                TRUE
+            );
+        }
+
         if (item->isEquipped)
         {
             DrawString(

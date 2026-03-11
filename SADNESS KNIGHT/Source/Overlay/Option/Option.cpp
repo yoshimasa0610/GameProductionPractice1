@@ -113,10 +113,12 @@ static const ControlHelpData g_ControlHelpList[] =
         ""
     },
     {
-
+        "？？？",
+        "未実装"
     },
     {
-
+        "？？？",
+        "未実装"
     },
     {
         "回復",

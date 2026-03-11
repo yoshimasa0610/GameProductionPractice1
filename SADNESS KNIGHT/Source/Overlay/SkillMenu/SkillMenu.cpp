@@ -271,7 +271,7 @@ void DrawSkillMenuScene(const OverlayArea& area)
 
         const SkillData& data = GetSkillData(list[i]);
 
-        if (data.iconSmallHandle > 0)
+        if (data.iconSmallHandle != -1)
         {
             DrawExtendGraph(
                 x,

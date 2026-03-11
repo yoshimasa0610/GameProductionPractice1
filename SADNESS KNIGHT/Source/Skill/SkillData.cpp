@@ -77,6 +77,23 @@ void RegisterSkills()
     };
 
     g_SkillDatabase.push_back(std::move(shadow));
+
+
+    // ===============================
+    // ‰æ‘œƒ[ƒh
+    // ===============================
+    for (auto& s : g_SkillDatabase)
+    {
+        if (!s->iconSmallPath.empty())
+        {
+            s->iconSmallHandle = LoadGraph(s->iconSmallPath.c_str());
+        }
+
+        if (!s->iconLargePath.empty())
+        {
+            s->iconLargeHandle = LoadGraph(s->iconLargePath.c_str());
+        }
+    }
 }
 
 const SkillData& GetSkillData(int skillID)
