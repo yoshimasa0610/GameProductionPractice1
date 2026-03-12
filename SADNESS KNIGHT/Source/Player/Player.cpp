@@ -553,28 +553,45 @@ namespace
 
         if (IsTriggerKey(KEY_SKILL1))
         {
-            g_SkillManager.UseSkill(0, &playerData);
-            // 剣などのスキルを発動している場合は、UsingSkillに移行
-            // 追従型などは移行させずにスキルを発動させながらPlayerは移動やジャンプを可能に。
-            if (g_SkillManager.GetSkillTypeInSlot(0) == SkillType::Attack)
+            int set = g_SkillManager.GetCurrentSet();
+            int id = g_SkillManager.GetEquipSkill(set, 0);
+
+            if (id != -1)
             {
-                playerData.state = PlayerState::UsingSkill;
+                g_SkillManager.UseSkill(0, &playerData);
+
+                if (g_SkillManager.GetSkillTypeInSlot(0) == SkillType::Attack)
+                {
+                    playerData.state = PlayerState::UsingSkill;
+                }
             }
         }
         else if (IsTriggerKey(KEY_SKILL2))
         {
-            g_SkillManager.UseSkill(1, &playerData);
-            if (g_SkillManager.GetSkillTypeInSlot(1) == SkillType::Attack)
+            int set = g_SkillManager.GetCurrentSet();
+            int id = g_SkillManager.GetEquipSkill(set, 1);
+
+            if (id != -1)
             {
-                playerData.state = PlayerState::UsingSkill;
+                g_SkillManager.UseSkill(1, &playerData);
+                if (g_SkillManager.GetSkillTypeInSlot(1) == SkillType::Attack)
+                {
+                    playerData.state = PlayerState::UsingSkill;
+                }
             }
         }
         else if (IsTriggerKey(KEY_SKILL3))
         {
-            g_SkillManager.UseSkill(2, &playerData);
-            if (g_SkillManager.GetSkillTypeInSlot(2) == SkillType::Attack)
+            int set = g_SkillManager.GetCurrentSet();
+            int id = g_SkillManager.GetEquipSkill(set, 2);
+
+            if (id != -1)
             {
-                playerData.state = PlayerState::UsingSkill;
+                g_SkillManager.UseSkill(2, &playerData);
+                if (g_SkillManager.GetSkillTypeInSlot(2) == SkillType::Attack)
+                {
+                    playerData.state = PlayerState::UsingSkill;
+                }
             }
         }
 
