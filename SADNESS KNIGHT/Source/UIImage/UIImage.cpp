@@ -97,7 +97,18 @@ void DrawUIImage()
         else
         {
             SetDrawBright(100, 100, 100);
-            DrawGraph(x, y, g_HealIcon, TRUE);
+
+            int size = 32;
+
+            DrawExtendGraph(
+                x,
+                y,
+                x + size,
+                y + size,
+                g_HealIcon,
+                TRUE
+            );
+
             SetDrawBright(255, 255, 255);
         }
     }
