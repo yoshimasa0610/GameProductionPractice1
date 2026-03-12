@@ -43,6 +43,8 @@ public:
     void SetCurrentSet(int s) { m_currentSet = s; }
     void UnequipSkill(int set, int slot);
     SkillType GetSkillTypeInSlot(int slotIndex) const;
+    int GetRemainingUses(int skillID) const;
+    Skill* GetEquippedSkill(int set, int slot) const;
 };
 
 extern SkillManager g_SkillManager;

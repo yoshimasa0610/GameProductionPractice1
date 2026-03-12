@@ -5,6 +5,7 @@
 
 enum class SkillType
 {
+    None,
     Attack,
     Follow,
     Summon
