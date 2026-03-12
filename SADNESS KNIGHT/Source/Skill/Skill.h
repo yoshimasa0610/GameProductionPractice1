@@ -78,4 +78,5 @@ public:
     {
         m_onConsumeUse = cb;
     }
+    int GetCoolTime() const { return m_currentCoolTime; }
 };

@@ -39,7 +39,7 @@ void DrawDebugLog()
 // 下記の二つの破壊することのできるブロックかはこの関数を経由させる
 inline bool IsBreakableBlock(MapChipType type)
 {
-	return type == BREAKABLE_WALL || type == BREAKABLE_STATUE;
+	return type == BREAKABLE_OBJECT || type == BREAKABLE_DIVE_FLOOR;
 }
 
 // ===================================================

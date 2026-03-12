@@ -20,15 +20,8 @@ enum MapChipType
 	MAP_CHIP_NONE = 0,
 	NORMAL_BLOCK,          //壁や天井などのブロック
 	EXIT_BLOCK,            //対応しているステージに移動
+	BREAKABLE_OBJECT,      // 壊せるオブジェクト（壊れるとアイテムが出る）
 	SEMI_SOLID_BLOCK,      // 下からはすり抜けるブロック
-
-	BREAKABLE_WALL,
-	BREAKABLE_STATUE,
-	BREAKABLE_CRATE,
-	BREAKABLE_BARREL,
-	BREAKABLE_POT,
-	BREAKABLE_BOX,
-
 	BREAKABLE_DIVE_FLOOR,  // 落下攻撃でしか破壊できないブロック
 	SPIKE_BLOCK,           // トゲ（ダメージ）
 	BACKGROUND_BLOCK,      // 背景（装飾用、当たり判定なし）
@@ -46,7 +39,9 @@ struct BlockData
 	VECTOR pos = VGet(0.0f, 0.0f, 0.0f); // ワールド座標
 	bool isSolid = false;           // 当たり判定があるかどうか
 	int visual;//見た目の変化
-	int sourceSize = 32; // 元の画像サイズ
+	float imageSize = 512.0f; // 画像の大きさ（拡大率）
+	float collisionW = MAP_CHIP_WIDTH;// 当たり判定の幅（可変サイズ対応）
+	float collisionH = MAP_CHIP_HEIGHT;// 当たり判定の高さ（可変サイズ対応）
 };
 
 struct MapChipData
@@ -60,6 +55,7 @@ struct MapChipData
 	BlockData* data = nullptr;       // 対応するブロックデータ
 	int hp = 0;
 	ColliderId colliderId = -1;
+	int visual;             //見た目の変化
 };
 
 // =====================================

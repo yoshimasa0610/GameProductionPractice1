@@ -196,5 +196,31 @@ SkillType SkillManager::GetSkillTypeInSlot(int slotIndex) const
             return s->GetType();
     }
 
-    return SkillType::Attack;
+    return SkillType::None;
+}
+
+int SkillManager::GetRemainingUses(int skillID) const
+{
+    auto it = m_remainingUses.find(skillID);
+
+    if (it == m_remainingUses.end())
+        return 0;
+
+    return it->second;
+}
+
+Skill* SkillManager::GetEquippedSkill(int set, int slot) const
+{
+    int skillID = m_equipSlots[set][slot];
+
+    if (skillID == -1)
+        return nullptr;
+
+    for (auto& s : m_ownedSkills)
+    {
+        if (s->GetID() == skillID)
+            return s.get();
+    }
+
+    return nullptr;
 }

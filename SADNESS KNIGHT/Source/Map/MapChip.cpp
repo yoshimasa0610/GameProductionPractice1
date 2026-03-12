@@ -49,7 +49,7 @@ void LoadMapChipData(const char* filePath)
     long fileSize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    long expected = (long)g_MapChipXNum * (long)g_MapChipYNum;
+    long expected = (long)g_MapChipXNum * (long)g_MapChipYNum * 2;
 
     if (fileSize != expected)
     {
@@ -64,13 +64,15 @@ void LoadMapChipData(const char* filePath)
     {
         for (int x = 0; x < g_MapChipXNum; x++)
         {
-            int map = (idx < fileSize) ? temp[idx] : 0;
-            g_MapChip[y][x].mapChip = map;
+            int chip = (idx < fileSize) ? temp[idx++] : 0;
+            int visual = (idx < fileSize) ? temp[idx++] : 0;
+
+            g_MapChip[y][x].mapChip = chip;
+            g_MapChip[y][x].visual = visual;
             g_MapChip[y][x].xIndex = x;
             g_MapChip[y][x].yIndex = y;
-            g_MapChip[y][x].isSolid = (map != MAP_CHIP_NONE);
+            g_MapChip[y][x].isSolid = (chip != MAP_CHIP_NONE);
             g_MapChip[y][x].data = nullptr;
-            idx++;
         }
     }
 }
@@ -154,7 +156,8 @@ void CreateMap()
             }
             else
             {
-                g_MapChip[y][x].data = CreateBlock(type, pos, 0);
+                int visual = g_MapChip[y][x].visual;
+                g_MapChip[y][x].data = CreateBlock(type, pos, visual);
             }
 
             if (type == EXIT_BLOCK)
@@ -173,9 +176,7 @@ void CreateMap()
                     CreateCollider(ColliderTag::SemiSolid, left, top, width, height, nullptr);
             }
 
-            if (type == BREAKABLE_CRATE ||
-                type == BREAKABLE_BARREL ||
-                type == BREAKABLE_POT)
+            if (type == BREAKABLE_OBJECT)
             {
                 float left = x * MAP_CHIP_WIDTH;
                 float top = y * MAP_CHIP_HEIGHT;
@@ -189,30 +190,6 @@ void CreateMap()
                         MAP_CHIP_HEIGHT,
                         nullptr
                     );
-            }
-
-            if (type == BREAKABLE_WALL)
-            {
-                g_MapChip[y][x].hp = 1; // 壁
-            }
-            else if (type == BREAKABLE_STATUE)
-            {
-                g_MapChip[y][x].hp = 1; // 石像（後で増やしてもOK）
-            }
-            else if (type == BREAKABLE_DIVE_FLOOR)
-            {
-                g_MapChip[y][x].hp = 1;
-            }
-            if (type == BREAKABLE_CRATE)
-            {
-                g_MapChip[y][x].hp = 1;
-            }
-            else if (type == BREAKABLE_BARREL)
-            {
-                g_MapChip[y][x].hp = 1;
-            }
-            else if (type == BREAKABLE_POT)
-            {
                 g_MapChip[y][x].hp = 1;
             }
             else
@@ -241,13 +218,8 @@ bool DamageMapChip(int x, int y, int damage, bool isDiveAttack)
     MapChipType type = (MapChipType)chip->mapChip;
 
     // 破壊対象か確認
-    if (type != BREAKABLE_WALL &&
-        type != BREAKABLE_STATUE &&
-        type != BREAKABLE_DIVE_FLOOR &&
-        type != BREAKABLE_CRATE &&
-        type != BREAKABLE_BARREL &&
-        type != BREAKABLE_POT &&
-        type != BREAKABLE_BOX)
+    if (type != BREAKABLE_OBJECT &&
+        type != BREAKABLE_DIVE_FLOOR)
     {
         return false;
     }
@@ -266,7 +238,7 @@ bool DamageMapChip(int x, int y, int damage, bool isDiveAttack)
 
     float worldX = x * MAP_CHIP_WIDTH + MAP_CHIP_WIDTH * 0.5f;
     float worldY = y * MAP_CHIP_HEIGHT + MAP_CHIP_HEIGHT * 0.5f;
-
+    /*
     // ドロップ処理
     if (type == BREAKABLE_STATUE)
     {
@@ -285,7 +257,7 @@ bool DamageMapChip(int x, int y, int damage, bool isDiveAttack)
             SpawnMoneyDrops(worldX, worldY, 1);
         }
     }
-
+    */
     // Collider削除
     if (chip->colliderId >= 0)
     {

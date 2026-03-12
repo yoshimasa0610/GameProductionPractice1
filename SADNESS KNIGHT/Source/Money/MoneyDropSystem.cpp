@@ -207,7 +207,6 @@ int DecideStatueDropMoney()
     {
         return 0;
     }
-
-    // 3`10G
-    return 3 + GetRand(7);
+    // 10`20G
+    return 10 + GetRand(10);
 }
