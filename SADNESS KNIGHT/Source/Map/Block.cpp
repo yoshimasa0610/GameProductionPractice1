@@ -14,7 +14,10 @@
 BlockData g_Blocks[BLOCK_MAX] = { 0 };              // 全ブロックデータ
 int g_BlockHandle[BLOCK_TYPE_MAX] = { 0 };         // ブロック種別ごとの画像
 int g_NormalTileHandles[49];                       // 通常ブロックのタイル画像 (7x7)
-int g_PropTileHandles[1024];
+// アイテムや装飾など、ブロック以外のプロック用ハンドル（必要に応じて増やす）
+int g_PropHandles[32];
+// オブジェクト全般のシート（必要に応じて増やす）
+int objectSheet;
 // オートタイル変換テーブル（内部用）
 // visual(0～15) → タイルシート番号に変換
 int g_AutoTileTable[16] =
@@ -68,17 +71,35 @@ void LoadBlock()
 		g_NormalTileHandles
 	);
 
-	// トゲブロック画像読み込み
-	g_BlockHandle[SPIKE_BLOCK] = LoadGraph("Data/Map/SpikeBlock.png");
+	// シートを1枚ロード
+	objectSheet = LoadGraph("Data/Map/Object.png");
 
-	LoadDivGraph(
-		"Data/Map/TX Village Props.png",
-		256,   // 16×16
-		16,
-		16,
-		64,
-		64,
-		g_PropTileHandles
+	// 木箱
+	g_PropHandles[0] = DerivationGraph(
+		42, 20,
+		45, 45,
+		objectSheet
+	);
+
+	// 樽
+	g_PropHandles[1] = DerivationGraph(
+		195, 29,
+		27, 35,
+		objectSheet
+	);
+
+	// ツボ
+	g_PropHandles[2] = DerivationGraph(
+		195, 29,
+		27, 35,
+		objectSheet
+	);
+
+	// 石像
+	g_PropHandles[3] = DerivationGraph(
+		700, 115,
+		35, 77,
+		objectSheet
 	);
 }
 
@@ -129,7 +150,7 @@ void DrawBlock()
 
 		int drawX = (int)roundf(bx);
 		int drawY = (int)roundf(by);
-		float imageScale = DRAW_TILE_SIZE / (float)block->sourceSize;
+		float imageScale = DRAW_TILE_SIZE / (float)block->imageSize;
 		float drawScale = cameraScale * imageScale;
 
 		// ブロック描画
@@ -165,13 +186,6 @@ void FinBlock()
 		if (g_NormalTileHandles[i] > 0)
 			DeleteGraph(g_NormalTileHandles[i]);
 	}
-
-	for (int i = 0; i < 1024; i++)
-	{
-		if (g_PropTileHandles[i] > 0)
-			DeleteGraph(g_PropTileHandles[i]);
-	}
-
 }
 
 //============================================================
@@ -240,33 +254,25 @@ BlockData* CreateBlock(MapChipType type, VECTOR pos, int visual)
 
 				block.tileIndex = index;
 				block.handle = g_NormalTileHandles[index];
-				block.sourceSize = 512;
+				block.imageSize = 512.0f;
 			}
-			else if (type == BREAKABLE_CRATE)
+			else if (type == BREAKABLE_OBJECT)
 			{
-				block.handle = g_PropTileHandles[0];
-				block.sourceSize = 64;
-			}
-			else if (type == BREAKABLE_BOX)
-			{
-				block.handle = g_PropTileHandles[1];
-				block.sourceSize = 64;
-			}
-			else if (type == BREAKABLE_BARREL)
-			{
-				block.handle = g_PropTileHandles[2];
-				block.sourceSize = 64;
-			}
-			else if (type == BREAKABLE_POT)
-			{
-				block.handle = g_PropTileHandles[5];
-				block.sourceSize = 64;
-			}
+				block.handle = g_PropHandles[visual];
 
+				if (visual == 0)      block.imageSize = 45.0f; // 木箱
+				else if (visual == 1) block.imageSize = 35.0f; // 樽
+				else if (visual == 2) block.imageSize = 35.0f; // 壺
+				else if (visual == 3) block.imageSize = 77.0f; // 石像
+
+				block.collisionW = MAP_CHIP_WIDTH;
+				block.collisionH = MAP_CHIP_HEIGHT;
+			}
 			else
 			{
 				// その他のブロックタイプ
 				block.handle = g_BlockHandle[type];
+				block.imageSize = 512.0f;
 			}
 
 			return &block;
