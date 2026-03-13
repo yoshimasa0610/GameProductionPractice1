@@ -14,8 +14,9 @@ enum class PlayerState
     Land,       // 着地
     UsingSkill, // スキル
     Healing,    // 回復中
-    Dodging,    // 回避中
+    Dodging,    // 回避
     DiveAttack, // 落下攻撃
+    Hurt,       // 被弾
 };
 
 // プレイヤーのデータ構造体
@@ -72,6 +73,7 @@ struct PlayerData
 
     // 回避関連
     bool isInvincible = false;
+    int invincibleTimer = 0; // 被弾後の無敵時間(フレーム)
     int dodgeCooldown = 0;
 
     // ダッシュエフェクト関連
