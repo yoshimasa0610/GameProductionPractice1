@@ -219,6 +219,7 @@ void UpdatePlayScene()
 
 	UpdateCamera();
 	UpdateFade();
+	UpdateUIImage();
 }
 
 void DrawPlayScene()
