@@ -583,6 +583,16 @@ bool LoadPlayerAnimations(PlayerAnimations& anims)
         InitAnimation(anims.land);
     }
 
+    if (FileExists("Data/Player/normal hit.png"))
+    {
+        LoadAnimationFromSheetRange(anims.hurt, "Data/Player/normal hit.png",
+            24, 0, 22, 70, 60, 3, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.hurt);
+    }
+
     if (FileExists("Data/Player/healing_merged.png"))
     {
         LoadAnimationAuto(anims.healing, "Data/Player/healing_merged.png",
@@ -659,6 +669,7 @@ void UnloadPlayerAnimations(PlayerAnimations& anims)
     UnloadAnimation(anims.jump);
     UnloadAnimation(anims.fall);
     UnloadAnimation(anims.land);
+    UnloadAnimation(anims.hurt);
     UnloadAnimation(anims.healing);
     UnloadAnimation(anims.dodge);
     UnloadAnimation(anims.dashEffect);

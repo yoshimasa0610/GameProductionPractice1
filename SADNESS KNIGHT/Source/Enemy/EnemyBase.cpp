@@ -38,7 +38,7 @@ namespace
         // { HP, 攻撃, 速度, 幅, 高さ, 検知, 攻撃範囲, 攻撃時間, CD, ジャンプ, J力, パス }
         
         // Slime: 初心者向けの弱い敵
-        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.35f, 0.7f, false, 0.0f, "Assets/Enemies/Slime/" },
+        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.45f, 0.7f, false, 0.0f, "Assets/Enemies/Slime/" },
 
 
 
@@ -69,7 +69,7 @@ namespace
     // レイキャストによる視線判定（ブロックを透視できない）
     bool HasLineOfSight(float fromX, float fromY, float toX, float toY)
     {
-        if (!std::isfinite(fromX) || !std::isfinite(fromY) || !std::isfinite(toX) || !std::isfinite(fromY))
+        if (!std::isfinite(fromX) || !std::isfinite(fromY) || !std::isfinite(toX) || !std::isfinite(toY))
         {
             return false;
         }
@@ -363,7 +363,7 @@ void UpdateEnemies()
         if (dist <= DETECTION_RANGE && e.hasLineOfSight)
         {
             e.isAggro = true;
-            if (std::fabs(dx) > FACE_TURN_DEADZONE)
+            if (!e.isAttacking && std::fabs(dx) > FACE_TURN_DEADZONE)
             {
                 e.isFacingRight = (dx >= 0.0f);
             }
@@ -374,19 +374,18 @@ void UpdateEnemies()
         }
 
         if (e.cooldownTimer > 0.0f) e.cooldownTimer -= FRAME_TIME;
-        if (e.attackTimer > 0.0f)
+
+        // 攻撃中更新
+        if (e.isAttacking)
         {
             e.attackTimer -= FRAME_TIME;
-
-            // 攻撃中は急接近した勢いを少しずつ減衰
-            e.velocityX *= 0.94f;
+            e.velocityX *= 0.93f;
 
             if (e.attackTimer <= 0.0f)
             {
                 e.isAttacking = false;
-                justFinishedAttack = true;
+                e.velocityX = 0.0f;
 
-                // 攻撃判定コライダーを削除
                 if (e.attackColliderId != -1)
                 {
                     DestroyCollider(e.attackColliderId);
@@ -395,19 +394,26 @@ void UpdateEnemies()
             }
         }
 
-        // 攻撃判定：攻撃範囲内に入った瞬間に即攻撃開始
-        if (!justFinishedAttack && e.isAggro && dist <= e.attackRange && e.cooldownTimer <= 0.0f && !e.isAttacking)
+        // 攻撃開始条件（水平距離重視）
+        const bool inAttackRange = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height);
+        if (!e.isAttacking && e.cooldownTimer <= 0.0f && inAttackRange)
         {
             e.isAttacking = true;
             e.attackTimer = e.attackDuration;
-            e.cooldownTimer = e.attackCooldown; // これが後隙
+            e.cooldownTimer = e.attackCooldown; // 後隙込み
 
-            // 即座にプレイヤーへ急接近
-            const float lungeSpeed = e.moveSpeed * 6.0f;
-            e.velocityX = (dx > 0.0f) ? lungeSpeed : -lungeSpeed;
+            // 攻撃開始と同時に急接近
+            const float lungeSpeed = e.moveSpeed * 5.0f;
+            e.velocityX = (dx >= 0.0f) ? lungeSpeed : -lungeSpeed;
+            e.isFacingRight = (dx >= 0.0f);
 
-            // 攻撃判定コライダーを即生成
-            const float attackWidth = e.width * 1.5f;
+            // 攻撃判定を即生成
+            if (e.attackColliderId != -1)
+            {
+                DestroyCollider(e.attackColliderId);
+                e.attackColliderId = -1;
+            }
+            const float attackWidth = e.width * 1.3f;
             const float attackHeight = e.height;
             const float attackOffsetX = e.isFacingRight ? e.width * 0.5f : -e.width * 0.5f - attackWidth;
             const float attackLeft = e.posX + attackOffsetX;
@@ -420,37 +426,33 @@ void UpdateEnemies()
             }
         }
 
-        // 攻撃終了直後は一度プレイヤー方向を再確認して停止（次フレームから移動再開）
-        if (justFinishedAttack)
+        // 通常移動（攻撃中・後隙中は停止）
+        if (!e.isAttacking && e.cooldownTimer <= 0.0f)
         {
-            if (std::fabs(dx) > FACE_TURN_DEADZONE)
+            if (e.isAggro)
             {
-                e.isFacingRight = (dx >= 0.0f);
+                if (std::fabs(dx) > e.attackRange * 0.5f)
+                {
+                    e.velocityX = (dx > 0.0f) ? e.moveSpeed : -e.moveSpeed;
+                }
+                else
+                {
+                    e.velocityX = 0.0f;
+                }
             }
+            else if (e.isGrounded)
+            {
+                float distFromStart = e.posX - e.patrolStartX;
+                if (distFromStart > e.patrolRange) e.patrolDirection = -1;
+                else if (distFromStart < -e.patrolRange) e.patrolDirection = 1;
+
+                e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
+                e.isFacingRight = (e.patrolDirection > 0);
+            }
+        }
+        else if (!e.isAttacking)
+        {
             e.velocityX = 0.0f;
-        }
-        // 移動処理（攻撃中は上の攻撃ロジックで制御）
-        else if (!e.isAttacking && e.isAggro)
-
-        {
-            if (std::fabs(dx) > e.attackRange * 0.5f)
-            {
-                e.velocityX = (dx > 0.0f) ? e.moveSpeed : -e.moveSpeed;
-            }
-            else
-            {
-                e.velocityX = 0.0f;
-            }
-        }
-
-        else if (e.isGrounded)
-        {
-            float distFromStart = e.posX - e.patrolStartX;
-            if (distFromStart > e.patrolRange) e.patrolDirection = -1;
-            else if (distFromStart < -e.patrolRange) e.patrolDirection = 1;
-
-            e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
-            e.isFacingRight = (e.patrolDirection > 0);
         }
 
         if (!e.isGrounded)
