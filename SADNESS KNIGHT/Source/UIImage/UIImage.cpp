@@ -2,10 +2,22 @@
 #include "UIImage.h"
 #include "../Player/Player.h"
 #include "../Scene/Play/Play.h"
+#include "../Skill/Skill.h"
+#include "../Skill/SkillData.h"
+#include "../Skill/SkillManager.h"
 
 // HPバー画像
 static int g_HPBarFrame = -1;
 static int g_HPBarFill = -1;
+
+// 遅れて減るHPゲージ用
+static float g_DamageHP = 0.0f;
+static int g_DamageDelayTimer = 0;
+
+static int g_PrevHP = 0;
+
+static const int DAMAGE_DELAY = 30;
+static const float DAMAGE_SPEED = 0.02f;
 
 // 回復アイコン
 static int g_HealIcon = -1;
@@ -17,6 +29,12 @@ static const int HP_POS_Y = 30;
 static const int HEAL_POS_X = 30;
 static const int HEAL_POS_Y = 80;
 
+static const int SKILL_UI_X = 30;
+static const int SKILL_UI_Y = 800;
+
+static const int SKILL_ICON_SIZE = 40;
+static const int SKILL_SPACING = 55;
+
 void LoadUIImage()
 {
     g_HPBarFrame = LoadGraph("Data/UI/hp_frame.png");
@@ -27,11 +45,39 @@ void LoadUIImage()
     {
         printfDx("heal_icon.png 読み込み失敗\n");
     }
+
+    g_DamageHP = (float)GetPlayerHP();
+    g_PrevHP = GetPlayerHP();
 }
 
 void UpdateUIImage()
 {
+    int currentHP = GetPlayerHP();
 
+    // ダメージを受けた瞬間だけ検知
+    if (currentHP < g_PrevHP)
+    {
+        g_DamageDelayTimer = DAMAGE_DELAY;
+    }
+
+    // 遅延
+    if (g_DamageDelayTimer > 0)
+    {
+        g_DamageDelayTimer--;
+    }
+    else
+    {
+        // 赤ゲージをゆっくり減らす
+        g_DamageHP += (currentHP - g_DamageHP) * DAMAGE_SPEED;
+    }
+
+    // 回復時
+    if (currentHP > g_DamageHP)
+    {
+        g_DamageHP = (float)currentHP;
+    }
+
+    g_PrevHP = currentHP;
 }
 
 void DrawUIImage()
@@ -39,33 +85,45 @@ void DrawUIImage()
     int currentHP = GetPlayerHP();
     int maxHP = GetPlayerMaxHP();
 
-    // HP割合
     float hpRate = (float)currentHP / (float)maxHP;
+    float damageRate = g_DamageHP / (float)maxHP;
 
-    // HPバー描画
     int barWidth = 200;
-    int hpWidth = (int)(barWidth * hpRate);
-
-    
     int barHeight = 15;
 
-    // 最大HP（黒バー）
+    int hpWidth = (int)(barWidth * hpRate);
+    int damageWidth = (int)(barWidth * damageRate);
+
+    int x = HP_POS_X + 5;
+    int y = HP_POS_Y + 5;
+
+    // 黒（背景）
     DrawBox(
-        HP_POS_X + 5,
-        HP_POS_Y + 5,
-        HP_POS_X + 5 + barWidth,
-        HP_POS_Y + 5 + barHeight,
-        GetColor(0, 0, 0),
+        x,
+        y,
+        x + barWidth,
+        y + barHeight,
+        GetColor(40, 40, 40),
         TRUE
     );
 
-    // 現在HP（赤バー）
+    // 赤（ダメージゲージ）
     DrawBox(
-        HP_POS_X + 5,
-        HP_POS_Y + 5,
-        HP_POS_X + 5 + hpWidth,
-        HP_POS_Y + 5 + barHeight,
+        x,
+        y,
+        x + damageWidth,
+        y + barHeight,
         GetColor(220, 40, 40),
+        TRUE
+    );
+
+    // 白（現在HP）
+    DrawBox(
+        x,
+        y,
+        x + hpWidth,
+        y + barHeight,
+        GetColor(255, 255, 255),
         TRUE
     );
 
@@ -113,6 +171,58 @@ void DrawUIImage()
         }
     }
     //DrawGraph(300, 300, g_HealIcon, TRUE);
+
+    // =====================
+// スキルUI
+// =====================
+
+    int currentSet = g_SkillManager.GetCurrentSet();
+
+    for (int i = 0; i < 3; i++)
+    {
+        int skillID = g_SkillManager.GetEquipSkill(currentSet, i);
+
+        if (skillID < 0)
+            continue;
+
+        const SkillData& data = GetSkillData(skillID);
+
+        int x = SKILL_UI_X + i * SKILL_SPACING;
+        int y = SKILL_UI_Y;
+
+        // アイコン
+        DrawExtendGraph(
+            x,
+            y,
+            x + SKILL_ICON_SIZE,
+            y + SKILL_ICON_SIZE,
+            data.iconSmallHandle,
+            TRUE
+        );
+
+        // 残り回数
+        int remain = g_SkillManager.GetRemainingUses(skillID);
+
+        if (remain >= 0)
+        {
+            DrawFormatString(
+                x,
+                y + SKILL_ICON_SIZE + 2,
+                GetColor(255, 255, 255),
+                "%d",
+                remain
+            );
+        }
+        else
+        {
+            DrawFormatString(
+                x,
+                y + SKILL_ICON_SIZE + 2,
+                GetColor(255, 255, 255),
+                "∞"
+            );
+        }
+    }
 }
 
 void UnloadUIImage()
