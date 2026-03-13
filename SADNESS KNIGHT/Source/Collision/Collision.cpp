@@ -551,6 +551,17 @@ void ResolveCollisions()
     }
 }
 
+void DestroyCollidersByTag(ColliderTag tag)
+{
+    for (auto& c : g_colliders)
+    {
+        if (c.tag == tag)
+        {
+            c.active = false;
+        }
+    }
+}
+
 // ===== プレイヤーコライダー管理 =====
 
 ColliderId CreatePlayerCollider(float centerX, float centerY, float width, float height, void* owner)
