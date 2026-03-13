@@ -117,6 +117,7 @@ struct PlayerAnimations
     AnimationData jump;
     AnimationData fall;
     AnimationData land;
+    AnimationData hurt;
     AnimationData healing;
     AnimationData dodge;
     AnimationData dashEffect;

@@ -1,8 +1,4 @@
-﻿
-
-
-
-#include "Player.h"
+﻿#include "Player.h"
 #include "../Input/Input.h"
 #include "../Animation/Animation.h"
 #include "../Skill/SkillManager.h"
@@ -24,6 +20,8 @@ namespace
     const float SPAWN_RAISE_OFFSET = 16.0f; // スポーン時に少し上げる量
     const float DODGE_DISTANCE = 80.0f;     // 回避ダッシュ距離
     const int DODGE_COOLDOWN = 30;          // 回避クールダウン（フレーム）
+    const float HURT_KNOCKBACK_SPEED = 8.0f;   // 被弾ノックバック初速（約2ブロック）
+    const float HURT_KNOCKBACK_DAMP = 0.88f;   // 被弾ノックバック減衰
 
     const float DIVE_ATTACK_SPEED = 12.0f;     // 落下攻撃の速度
     const int DIVE_ATTACK_DAMAGE = 150;        // 落下攻撃のダメージ
@@ -138,6 +136,15 @@ void LoadPlayer()
 void UpdatePlayer()
 {
     if (playerData.currentHP <= 0) return;
+
+    if (playerData.invincibleTimer > 0)
+    {
+        playerData.invincibleTimer--;
+        if (playerData.invincibleTimer <= 0 && playerData.state != PlayerState::Dodging)
+        {
+            playerData.isInvincible = false;
+        }
+    }
 
     if (g_PendingCenterSpawn && PlacePlayerAtMapCenter())
     {
@@ -256,6 +263,12 @@ void DrawPlayer()
         case PlayerState::Land:
             if (playerAnims.land.frames != nullptr)
                 DrawAnimationAligned(playerAnims.land, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+            else
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+            break;
+        case PlayerState::Hurt:
+            if (playerAnims.hurt.frames != nullptr)
+                DrawAnimationAligned(playerAnims.hurt, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
                 DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
@@ -404,6 +417,26 @@ void DamagePlayerHP(int damage)
 
     playerData.currentHP -= finalDamage;
     if (playerData.currentHP < 0) playerData.currentHP = 0;
+
+    if (playerData.currentHP > 0)
+    {
+        playerData.isInvincible = true;
+        playerData.invincibleTimer = 90; // 1.5秒 (60fps)
+
+        if (playerData.state != PlayerState::Dodging && playerData.state != PlayerState::DiveAttack)
+        {
+            playerData.state = PlayerState::Hurt;
+            playerData.velocityX = playerData.isFacingRight ? -HURT_KNOCKBACK_SPEED : HURT_KNOCKBACK_SPEED;
+            if (playerData.isGrounded)
+            {
+                playerData.velocityY = -3.0f;
+            }
+             if (playerAnims.hurt.frames != nullptr)
+             {
+                 ResetAnimation(playerAnims.hurt);
+             }
+        }
+    }
 }
 
 // HPを回復する
@@ -495,7 +528,7 @@ namespace
 
     void ProcessMovement()
     {
-        if (playerData.state == PlayerState::Dodging || playerData.state == PlayerState::DiveAttack)
+        if (playerData.state == PlayerState::Dodging || playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Hurt)
             return;
 
         if (playerData.state == PlayerState::Healing)
@@ -602,6 +635,15 @@ namespace
 
     void UpdatePhysics()
     {
+        if (playerData.state == PlayerState::Hurt)
+        {
+            playerData.velocityX *= HURT_KNOCKBACK_DAMP;
+            if (std::fabs(playerData.velocityX) < 0.1f)
+            {
+                playerData.velocityX = 0.0f;
+            }
+        }
+        
         if (playerData.state == PlayerState::DiveAttack)
         {
             if (g_DiveAttackLockFrames > 0)
@@ -777,6 +819,16 @@ namespace
             return;
         }
 
+        if (playerData.state == PlayerState::Hurt)
+        {
+            if (playerAnims.hurt.frames == nullptr || playerAnims.hurt.frameCount == 0 || IsAnimationFinished(playerAnims.hurt))
+            {
+                playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
+            }
+            prevIsGrounded = playerData.isGrounded;
+            return;
+        }
+
         if (playerData.state == PlayerState::Healing)
         {
             if (IsTriggerKey(KEY_LEFT) || IsTriggerKey(KEY_RIGHT))
@@ -913,6 +965,14 @@ namespace
         if (playerData.state == PlayerState::Dodging)
         {
             UpdateAnimation(playerAnims.dodge);
+            prevFacingRight = playerData.isFacingRight;
+            prevAbsVelX = absVelX;
+            return;
+        }
+
+        if (playerData.state == PlayerState::Hurt)
+        {
+            UpdateAnimation(playerAnims.hurt);
             prevFacingRight = playerData.isFacingRight;
             prevAbsVelX = absVelX;
             return;
