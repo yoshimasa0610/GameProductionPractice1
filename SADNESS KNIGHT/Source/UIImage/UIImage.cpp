@@ -14,8 +14,10 @@ static int g_HPBarFill = -1;
 static float g_DamageHP = 0.0f;
 static int g_DamageDelayTimer = 0;
 
-static const int DAMAGE_DELAY = 30;     // 減り始めるまでの時間
-static const float DAMAGE_SPEED = 0.02f; // 減る速度
+static int g_PrevHP = 0;
+
+static const int DAMAGE_DELAY = 30;
+static const float DAMAGE_SPEED = 0.02f;
 
 // 回復アイコン
 static int g_HealIcon = -1;
@@ -45,19 +47,20 @@ void LoadUIImage()
     }
 
     g_DamageHP = (float)GetPlayerHP();
+    g_PrevHP = GetPlayerHP();
 }
 
 void UpdateUIImage()
 {
     int currentHP = GetPlayerHP();
 
-    // ダメージを受けた瞬間
-    if (currentHP < g_DamageHP)
+    // ダメージを受けた瞬間だけ検知
+    if (currentHP < g_PrevHP)
     {
         g_DamageDelayTimer = DAMAGE_DELAY;
     }
 
-    // 待機時間
+    // 遅延
     if (g_DamageDelayTimer > 0)
     {
         g_DamageDelayTimer--;
@@ -68,11 +71,13 @@ void UpdateUIImage()
         g_DamageHP += (currentHP - g_DamageHP) * DAMAGE_SPEED;
     }
 
-    // 回復した場合
+    // 回復時
     if (currentHP > g_DamageHP)
     {
         g_DamageHP = (float)currentHP;
     }
+
+    g_PrevHP = currentHP;
 }
 
 void DrawUIImage()
@@ -89,32 +94,36 @@ void DrawUIImage()
     int hpWidth = (int)(barWidth * hpRate);
     int damageWidth = (int)(barWidth * damageRate);
 
-    // 最大HP（黒バー）
+    int x = HP_POS_X + 5;
+    int y = HP_POS_Y + 5;
+
+    // 黒（背景）
     DrawBox(
-        HP_POS_X + 5,
-        HP_POS_Y + 5,
-        HP_POS_X + 5 + barWidth,
-        HP_POS_Y + 5 + barHeight,
-        GetColor(0, 0, 0),
+        x,
+        y,
+        x + barWidth,
+        y + barHeight,
+        GetColor(40, 40, 40),
         TRUE
     );
 
+    // 赤（ダメージゲージ）
     DrawBox(
-        HP_POS_X + 5,
-        HP_POS_Y + 5,
-        HP_POS_X + 5 + damageWidth,
-        HP_POS_Y + 5 + barHeight,
+        x,
+        y,
+        x + damageWidth,
+        y + barHeight,
         GetColor(220, 40, 40),
         TRUE
     );
 
-    // 現在HP（白バー）
+    // 白（現在HP）
     DrawBox(
-        HP_POS_X + 5,
-        HP_POS_Y + 5,
-        HP_POS_X + 5 + hpWidth,
-        HP_POS_Y + 5 + barHeight,
-        GetColor(225, 255, 255),
+        x,
+        y,
+        x + hpWidth,
+        y + barHeight,
+        GetColor(255, 255, 255),
         TRUE
     );
 
