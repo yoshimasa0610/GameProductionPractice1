@@ -21,6 +21,7 @@ enum class ColliderTag
     Enemy,
 	Block,// 壁や床などの通常ブロック
 	SemiSolid,// 下からはすり抜けるブロック
+    Exit,
     Attack,
     Other
 };

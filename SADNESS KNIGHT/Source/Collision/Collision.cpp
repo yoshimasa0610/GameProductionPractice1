@@ -8,7 +8,8 @@
 #include "DxLib.h"
 #include "../Map/MapParameter.h"
 #include "../Map/MapChip.h"
-
+#include "../Map/StageManager.h"
+#include "../Map/MapManager.h"
 
 //
 // シンプルなコライダー実装
@@ -424,7 +425,8 @@ void ResolveCollisions()
             if (a.tag == ColliderTag::Player && b.tag == ColliderTag::Block)
             {
                 PlayerData* player = static_cast<PlayerData*>(a.owner);
-                if (player) ResolvePlayerBlock(player, b, a);
+                if (!player) continue;
+                ResolvePlayerBlock(player, b, a);
             }
             else if (a.tag == ColliderTag::Attack && b.tag == ColliderTag::Block)
             {
@@ -443,7 +445,7 @@ void ResolveCollisions()
             }
             else if (b.tag == ColliderTag::Attack && a.tag == ColliderTag::Block)
             {
-                PlayerData* player = static_cast<PlayerData*>(a.owner);
+                PlayerData* player = static_cast<PlayerData*>(b.owner);
                 bool isDive = (player && player->state == PlayerState::DiveAttack);
 
                 int mapX = (int)((b.left + b.width * 0.5f) / MAP_CHIP_WIDTH);
@@ -494,6 +496,20 @@ void ResolveCollisions()
                         player->isGrounded = true;
                         player->jumpCount = 0;
                     }
+                }
+            }
+            if (a.tag == ColliderTag::Player && b.tag == ColliderTag::Exit)
+            {
+                int mapX = (int)((b.left + b.width * 0.5f) / MAP_CHIP_WIDTH);
+                int mapY = (int)((b.top + b.height * 0.5f) / MAP_CHIP_HEIGHT);
+
+                MapChipData* chip = GetMapChipData(mapX, mapY);
+
+                if (chip)
+                {
+                    DrawFormatString(20, 120, GetColor(255, 255, 0),
+                        "Exit touched %d %d", mapX, mapY);
+                    HandleExitBlock(*chip);
                 }
             }
             // Player <-> Enemy : 当たりを通知（簡易実装：プレイヤーへ固定ダメージ）

@@ -128,6 +128,7 @@ void CreateMap()
     ClearAllBlocks();
 
     int created = 0;
+
     for (int y = 0; y < g_MapChipYNum; y++)
     {
         for (int x = 0; x < g_MapChipXNum; x++)
@@ -136,50 +137,34 @@ void CreateMap()
             if (type == MAP_CHIP_NONE) continue;
 
             VECTOR pos = VGet(x * MAP_CHIP_WIDTH, y * MAP_CHIP_HEIGHT, 0.0f);
+
+            float left = x * MAP_CHIP_WIDTH;
+            float top = y * MAP_CHIP_HEIGHT;
+
             created++;
+
+            // デフォルト初期化
+            g_MapChip[y][x].colliderId = -1;
+            g_MapChip[y][x].hp = 0;
+
+            // -------------------------
+            // Block生成
+            // -------------------------
+            int visual = g_MapChip[y][x].visual;
 
             if (type == NORMAL_BLOCK)
             {
-                int visual = DecideNormalBlockVisual(x, y);
-                g_MapChip[y][x].data = CreateBlock(type, pos, visual);
-
-                float left = x * MAP_CHIP_WIDTH;
-                float top = y * MAP_CHIP_HEIGHT;
-
-                g_MapChip[y][x].colliderId =
-                    CreateCollider(ColliderTag::Block,
-                        left,
-                        top,
-                        MAP_CHIP_WIDTH,
-                        MAP_CHIP_HEIGHT,
-                        nullptr);
-            }
-            else
-            {
-                int visual = g_MapChip[y][x].visual;
-                g_MapChip[y][x].data = CreateBlock(type, pos, visual);
+                visual = DecideNormalBlockVisual(x, y);
             }
 
-            if (type == EXIT_BLOCK)
-            {
-            }
+            g_MapChip[y][x].data = CreateBlock(type, pos, visual);
 
-            if (type == SEMI_SOLID_BLOCK)
+            // -------------------------
+            // Collider生成
+            // -------------------------
+            switch (type)
             {
-                float left = x * MAP_CHIP_WIDTH;
-                float top = y * MAP_CHIP_HEIGHT;
-
-                float width = MAP_CHIP_WIDTH;
-                float height = 8.0f; // ← 上面だけ判定
-                //これで上から8pxのみ当たり判定がついている
-                g_MapChip[y][x].colliderId =
-                    CreateCollider(ColliderTag::SemiSolid, left, top, width, height, nullptr);
-            }
-
-            if (type == BREAKABLE_OBJECT)
-            {
-                float left = x * MAP_CHIP_WIDTH;
-                float top = y * MAP_CHIP_HEIGHT;
+            case NORMAL_BLOCK:
 
                 g_MapChip[y][x].colliderId =
                     CreateCollider(
@@ -190,16 +175,59 @@ void CreateMap()
                         MAP_CHIP_HEIGHT,
                         nullptr
                     );
+
+                break;
+
+            case EXIT_BLOCK:
+
+                g_MapChip[y][x].colliderId =
+                    CreateCollider(
+                        ColliderTag::Exit,
+                        left,
+                        top,
+                        MAP_CHIP_WIDTH,
+                        MAP_CHIP_HEIGHT,
+                        nullptr
+                    );
+                DrawFormatString(20, 120, GetColor(255, 255, 0),
+                    "Exit collider created %d %d\n", x, y);
+                break;
+
+            case SEMI_SOLID_BLOCK:
+
+                g_MapChip[y][x].colliderId =
+                    CreateCollider(
+                        ColliderTag::SemiSolid,
+                        left,
+                        top,
+                        MAP_CHIP_WIDTH,
+                        8.0f // 上面のみ判定
+                    );
+
+                break;
+
+            case BREAKABLE_OBJECT:
+
+                g_MapChip[y][x].colliderId =
+                    CreateCollider(
+                        ColliderTag::Block,
+                        left,
+                        top,
+                        MAP_CHIP_WIDTH,
+                        MAP_CHIP_HEIGHT,
+                        nullptr
+                    );
+
                 g_MapChip[y][x].hp = 1;
-            }
-            else
-            {
-                g_MapChip[y][x].hp = 0;
+
+                break;
+
+            default:
+                break;
             }
         }
     }
 }
-
 // ============================
 // 参照取得（安全版）
 // ============================
