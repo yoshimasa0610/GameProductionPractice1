@@ -38,7 +38,7 @@ namespace
         // { HP, çUåÇ, ë¨ìx, ïù, çÇÇ≥, åüím, çUåÇîÕàÕ, çUåÇéûä‘, CD, ÉWÉÉÉìÉv, JóÕ, ÉpÉX }
         
         // Slime: èâêSé“å¸ÇØÇÃé„Ç¢ìG
-        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.45f, 0.7f, false, 0.0f, "Assets/Enemies/Slime/" },
+        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.45f, 1.5f, false, 0.0f, "Assets/Enemies/Slime/" },
 
 
 
@@ -313,6 +313,8 @@ void UpdateEnemies()
 {
     PlayerData& player = GetPlayerData();
     const float FRAME_TIME = 1.0f / 60.0f;
+    const float slowMoScale = GetDeathSlowMotionScale();
+    const float effectiveFrameTime = FRAME_TIME * slowMoScale;
     const float DETECTION_RANGE = 4.0f * BLOCK_SIZE;
 
     for (auto& e : g_enemies)
@@ -373,12 +375,12 @@ void UpdateEnemies()
             e.isAggro = false;
         }
 
-        if (e.cooldownTimer > 0.0f) e.cooldownTimer -= FRAME_TIME;
+        if (e.cooldownTimer > 0.0f) e.cooldownTimer -= effectiveFrameTime;
 
         // çUåÇíÜçXêV
         if (e.isAttacking)
         {
-            e.attackTimer -= FRAME_TIME;
+            e.attackTimer -= effectiveFrameTime;
             e.velocityX *= 0.93f;
 
             if (e.attackTimer <= 0.0f)
@@ -457,12 +459,12 @@ void UpdateEnemies()
 
         if (!e.isGrounded)
         {
-            e.velocityY += GRAVITY;
+            e.velocityY += GRAVITY * slowMoScale;
             if (e.velocityY > MAX_FALL_SPEED) e.velocityY = MAX_FALL_SPEED;
         }
 
-        e.posX += e.velocityX;
-        e.posY += e.velocityY;
+        e.posX += e.velocityX * slowMoScale;
+        e.posY += e.velocityY * slowMoScale;
 
         const float mapBottom = static_cast<float>(GetMapHeight());
         if (mapBottom > 0.0f && e.posY > mapBottom)
@@ -586,6 +588,18 @@ EnemyData* GetEnemy(int index)
 int GetEnemyCount()
 {
     return static_cast<int>(g_enemies.size());
+}
+
+EnemyData* FindEnemyByColliderId(int colliderId)
+{
+    for (auto& e : g_enemies)
+    {
+        if (e.active && e.colliderId == colliderId)
+        {
+            return &e;
+        }
+    }
+    return nullptr;
 }
 
 //============================================================

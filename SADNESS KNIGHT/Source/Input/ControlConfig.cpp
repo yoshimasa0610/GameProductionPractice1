@@ -24,9 +24,9 @@ void ControlConfig::InitDefault()
 
     m_Binds[KEY_JUMP].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_SPACE };
     m_Binds[KEY_OK].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_SPACE };
-    m_Binds[KEY_SKILL1].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_X };
-    m_Binds[KEY_SKILL2].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Z };
-    m_Binds[KEY_SKILL3].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_D };
+    m_Binds[KEY_SKILL1].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Q };
+    m_Binds[KEY_SKILL2].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_W };
+    m_Binds[KEY_SKILL3].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_E };
     m_Binds[KEY_CHANGE].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_C };
     m_Binds[KEY_DODGE].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LSHIFT };
     m_Binds[KEY_DIVE_ATTACK].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_Q };

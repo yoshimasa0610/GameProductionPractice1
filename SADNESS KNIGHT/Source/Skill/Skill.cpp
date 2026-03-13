@@ -44,99 +44,61 @@ void Skill::StartCoolTime()
 // スキルの強制終了（CTは消費する）
 void Skill::Activate(PlayerData* player)
 {
-    if (!CanUse()) return;
-
     if (m_data.type == SkillType::Attack)
     {
-        // コンボがある場合
         if (!m_data.comboSteps.empty())
         {
-            if (m_comboTimer > 0)
+            if (m_isActive)
+            {
+                if (!m_comboQueued && m_comboIndex + 1 < (int)m_data.comboSteps.size())
+                {
+                    m_comboQueued = true;
+                }
+                return;
+            }
+
+            if (m_currentCoolTime > 0)
+                return;
+
+            if (m_comboTimer > 0 && m_comboIndex + 1 < (int)m_data.comboSteps.size())
             {
                 m_comboIndex++;
-                if (m_comboIndex >= m_data.comboSteps.size())
-                    m_comboIndex = 0;
             }
             else
             {
                 m_comboIndex = 0;
             }
-			// コンボステップ取得
-            const ComboStep& step = m_data.comboSteps[m_comboIndex];
 
+            const ComboStep& step = m_data.comboSteps[m_comboIndex];
             m_activeTimer = step.duration;
             m_frame = 0;
             m_hitActive = false;
-
-            // ヒット履歴リセット
+            m_comboQueued = false;
             ClearHitTargets();
 
-            // コライダー生成
             if (m_attackCollider != -1)
             {
                 DestroyCollider(m_attackCollider);
                 m_attackCollider = -1;
             }
-            // 攻撃コライダー生成
-            CreateAttackCollider(m_attackCollider, step, player, this);
         }
         else
         {
+            if (!CanUse()) return;
             m_activeTimer = m_data.duration;
+            m_frame = 0;
             ClearHitTargets();
+            StartCoolTime();
         }
 
-        m_comboTimer = 20; // 次段受付時間
+        m_comboTimer = 90;
         m_isActive = true;
+        return;
     }
-	// 追従型の処理
-    if (m_data.type == SkillType::Follow)
-    {
-        m_isActive = true;
-        m_activeTimer = m_data.duration;
-        m_followAttackTimer = 0;
 
-        float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
+    if (!CanUse()) return;
 
-        m_followPosX = player->posX + offset;
-        m_followPosY = player->posY - PLAYER_HEIGHT;
-        
-        m_followCollider = CreateCollider(
-            ColliderTag::Other,
-            m_followPosX,
-            m_followPosY,
-            60,
-            60,
-            this);
-    }
-	// 召喚型の処理
-    if (m_data.type == SkillType::Summon)
-    {
-        // 同時数制限
-        if ((int)m_summons.size() >= m_maxSummons)
-            return;
-
-        SummonUnit unit;
-
-        unit.x = player->posX;
-        unit.y = player->posY;
-        unit.timer = m_data.duration;
-
-        unit.collider = CreateCollider(
-            ColliderTag::Other,
-            unit.x - 40,
-            unit.y - 80,
-            80,
-            80,
-            this);
-
-        m_summons.push_back(unit);
-
-        m_isActive = true;
-		// ヒット履歴リセット
-        ClearHitTargets();
-    }
-	// スキル使用時のコールバック
+    // ...existing code...
     StartCoolTime();
 }
 
@@ -155,32 +117,63 @@ void Skill::Update(PlayerData* player)
 
         if (m_activeTimer <= 0)
         {
-            m_isActive = false;
-
-            // 攻撃コライダー破棄
             if (m_attackCollider != -1)
             {
                 DestroyCollider(m_attackCollider);
                 m_attackCollider = -1;
             }
+
+            if (m_comboQueued && m_comboIndex + 1 < (int)m_data.comboSteps.size())
+            {
+                m_comboIndex++;
+                const ComboStep& nextStep = m_data.comboSteps[m_comboIndex];
+                m_activeTimer = nextStep.duration;
+                m_frame = 0;
+                m_hitActive = false;
+                m_comboQueued = false;
+                ClearHitTargets();
+                m_comboTimer = 90;
+            }
+            else
+            {
+                m_isActive = false;
+                m_comboQueued = false;
+
+                if (m_comboIndex + 1 >= (int)m_data.comboSteps.size())
+                {
+                    StartCoolTime();
+                    m_comboIndex = 0;
+                    m_comboTimer = 0;
+                }
+                else
+                {
+                    m_comboTimer = 90;
+                }
+            }
         }
     }
 
-    // コンボの受付時間の減少
-    if (m_comboTimer > 0)
+    // 非アクティブ時だけコンボ受付時間を減らす
+    if (!m_isActive && m_comboTimer > 0)
         m_comboTimer--;
 
-    if (!m_isActive && m_comboTimer <= 0)
+    // 猶予切れでコンボ終了
+    if (!m_isActive && m_data.type == SkillType::Attack && m_comboTimer <= 0)
     {
+        if (m_comboIndex != 0)
+        {
+            StartCoolTime();
+        }
         m_comboIndex = 0;
+        m_comboQueued = false;
     }
 
-    // 攻撃コライダー更新
-    if (m_attackCollider != -1 && !m_data.comboSteps.empty())
+    // 攻?コライダー更新
+    if (!m_data.comboSteps.empty() && m_isActive)
     {
         const ComboStep& step = m_data.comboSteps[m_comboIndex];
 
-        if (!m_hitActive && m_frame >= step.hitStartFrame)
+        if (!m_hitActive && m_frame >= step.hitStartFrame && m_frame <= step.hitEndFrame)
         {
             m_hitActive = true;
 
@@ -199,18 +192,21 @@ void Skill::Update(PlayerData* player)
             }
         }
 
-        float left =
-            player->posX
-            + (player->isFacingRight ? step.offsetX : -step.offsetX - step.hitWidth);
+        if (m_attackCollider != -1)
+        {
+            float left =
+                player->posX
+                + (player->isFacingRight ? step.offsetX : -step.offsetX - step.hitWidth);
 
-        float top = player->posY - PLAYER_HEIGHT + step.offsetY;
+            float top = player->posY - PLAYER_HEIGHT + step.offsetY;
 
-        UpdateCollider(
-            m_attackCollider,
-            left,
-            top,
-            step.hitWidth,
-            step.hitHeight);
+            UpdateCollider(
+                m_attackCollider,
+                left,
+                top,
+                step.hitWidth,
+                step.hitHeight);
+        }
     }
 
     // 追従型の処理

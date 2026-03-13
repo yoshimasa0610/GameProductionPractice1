@@ -82,17 +82,17 @@ void SkillManager::UseSkill(int slotIndex, PlayerData* player)
         if (remain == 0)
             return;
 
-        // UŒ‚Œ^”r‘¼
+        // UŒ‚ƒ^ƒCƒv§ŒÀ
         if (skill->GetType() == SkillType::Attack)
         {
             for (auto& s : m_ownedSkills)
             {
-                if (s->GetType() == SkillType::Attack && s->IsActive())
+                if (s->GetType() == SkillType::Attack && s->IsActive() && s->GetID() != skillID)
                     return;
             }
         }
 
-        // Attack / Summon‚¾‚¯‘¦Á”ï
+        // Attack / Summon ‚Í‘¦Á”ï
         if (skill->GetType() != SkillType::Follow)
         {
             auto it = m_remainingUses.find(skillID);
@@ -103,7 +103,7 @@ void SkillManager::UseSkill(int slotIndex, PlayerData* player)
                 if (remain == 0)
                     return;
 
-                if (remain > 0)
+                if (remain > 0 && !skill->IsActive())
                     remain--;
             }
         }

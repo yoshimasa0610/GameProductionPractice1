@@ -18,6 +18,7 @@ private:
     int m_comboTimer = 0;
     int m_frame = 0;
     bool m_hitActive = false;
+    bool m_comboQueued = false;
     // Follow—p
     float m_followOffsetX = 60.0f;
     int m_followAttackInterval = 60;
@@ -79,4 +80,7 @@ public:
         m_onConsumeUse = cb;
     }
     int GetCoolTime() const { return m_currentCoolTime; }
+    int GetComboIndex() const { return m_comboIndex; }
+    int GetFrame() const { return m_frame; }
+    bool IsHitActive() const { return m_hitActive; }
 };

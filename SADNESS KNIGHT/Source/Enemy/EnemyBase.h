@@ -156,9 +156,8 @@ void DespawnEnemy(int index);
 //   EnemyData* enemy = GetEnemy(index);
 //   if (enemy) enemy->currentHP -= 10;
 EnemyData* GetEnemy(int index);
-
-// 現在の敵の数を取得
 int GetEnemyCount();
+EnemyData* FindEnemyByColliderId(int colliderId);
 
 // 敵の設定を取得（通常は使用しない）
 const EnemyConfig& GetEnemyConfig(EnemyType type);
@@ -172,5 +171,6 @@ EnemyAnimations* LoadEnemyAnimations(EnemyType type);
 
 // 敵のアニメーションを解放
 void UnloadEnemyAnimations(EnemyAnimations* anims);
+
 
 

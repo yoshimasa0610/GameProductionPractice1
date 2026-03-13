@@ -125,7 +125,8 @@ void StepPlayScene()
 	if (g_IsPaused) return;
 
 	float deltaTime = 1.0f / 60.0f;
-	g_ElapsedTime += deltaTime;
+	float slowMoScale = GetDeathSlowMotionScale();
+	g_ElapsedTime += deltaTime * slowMoScale;
 
 	UpdateEnemies();
 
@@ -149,7 +150,7 @@ void StepPlayScene()
 		ExportSaveData(&g_SaveData);
 		SaveGame(&g_SaveData, g_CurrentSaveSlot);
 	}
-	UpdateMoneyPopup(1.0f / 60.0f);
+	UpdateMoneyPopup((1.0f / 60.0f) * slowMoScale);
 }
 
 static void RespawnFromCheckpoint();

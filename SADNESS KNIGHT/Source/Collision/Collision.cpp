@@ -1,10 +1,10 @@
 #include "Collision.h"
-#include "Collision.h"
 #include <vector>
 #include <algorithm>
 #include <cmath>
 #include "../Player/Player.h"
 #include "../Enemy/EnemyBase.h"
+#include "../Skill/Skill.h"
 #include "DxLib.h"
 #include "../Map/MapParameter.h"
 #include "../Map/MapChip.h"
@@ -543,6 +543,41 @@ void ResolveCollisions()
                         DamagePlayerHP(enemy->attackPower);
                         g_playerEnemyHitCooldown = 30;
                     }
+                }
+            }
+            // Enemy <-> Other : プレイヤー攻撃スキル判定
+            else if ((a.tag == ColliderTag::Enemy && b.tag == ColliderTag::Other) ||
+                     (b.tag == ColliderTag::Enemy && a.tag == ColliderTag::Other))
+            {
+                Collider* enemyC = (a.tag == ColliderTag::Enemy) ? &a : &b;
+                Collider* attackC = (a.tag == ColliderTag::Other) ? &a : &b;
+
+                EnemyData* enemy = FindEnemyByColliderId(enemyC->id);
+                Skill* skill = static_cast<Skill*>(attackC->owner);
+                if (enemy != nullptr && skill != nullptr)
+                {
+                    if (skill->RegisterHit(enemy))
+                    {
+                        int damage = static_cast<int>(GetPlayerAttack() * skill->GetCurrentAttackRate());
+                        if (damage < 1) damage = 1;
+                        enemy->currentHP -= damage;
+                        if (enemy->currentHP < 0) enemy->currentHP = 0;
+                    }
+                }
+            }
+            // Block <-> Other : プレイヤー攻撃スキルで破壊可能オブジェクトを破壊
+            else if ((a.tag == ColliderTag::Block && b.tag == ColliderTag::Other) ||
+                     (b.tag == ColliderTag::Block && a.tag == ColliderTag::Other))
+            {
+                Collider* blockC = (a.tag == ColliderTag::Block) ? &a : &b;
+                Collider* attackC = (a.tag == ColliderTag::Other) ? &a : &b;
+                Skill* skill = static_cast<Skill*>(attackC->owner);
+                if (skill != nullptr)
+                {
+                    const int mapX = static_cast<int>((blockC->left + blockC->width * 0.5f) / MAP_CHIP_WIDTH);
+                    const int mapY = static_cast<int>((blockC->top + blockC->height * 0.5f) / MAP_CHIP_HEIGHT);
+                    const int damage = static_cast<int>(GetPlayerAttack() * skill->GetCurrentAttackRate());
+                    DamageMapChip(mapX, mapY, damage > 0 ? damage : 1, false);
                 }
             }
             // 必要であれば他組合せの処理を追加

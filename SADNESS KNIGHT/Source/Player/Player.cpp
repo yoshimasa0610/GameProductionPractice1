@@ -18,10 +18,13 @@ namespace
     const float MAX_FALL_SPEED = 6.0f;      // 最大落下速度
     const int MAX_JUMP_COUNT = 2;           // 最大ジャンプ回数（二段ジャンプ）
     const float SPAWN_RAISE_OFFSET = 16.0f; // スポーン時に少し上げる量
-    const float DODGE_DISTANCE = 80.0f;     // 回避ダッシュ距離
+    const float DODGE_DISTANCE = 50.0f;     // 回避ダッシュ距離
     const int DODGE_COOLDOWN = 30;          // 回避クールダウン（フレーム）
     const float HURT_KNOCKBACK_SPEED = 8.0f;   // 被弾ノックバック初速（約2ブロック）
     const float HURT_KNOCKBACK_DAMP = 0.88f;   // 被弾ノックバック減衰
+    const float DEATH_KNOCKBACK_SPEED = 10.5f; // 死亡ノックバック初速（約3ブロック）
+    const float DEATH_KNOCKBACK_DAMP = 0.90f;  // 死亡ノックバック減衰
+    const float DEATH_SLOWMO_SCALE = 0.3f;     // 死亡時のスローモーション倍率
 
     const float DIVE_ATTACK_SPEED = 12.0f;     // 落下攻撃の速度
     const int DIVE_ATTACK_DAMAGE = 150;        // 落下攻撃のダメージ
@@ -46,6 +49,8 @@ namespace
     PlayerAnimations playerAnims;
 
     int g_playerColliderId = -1;
+    bool g_IsPlayerDead = false;
+    float g_DeathSlowMoTimer = 0.0f;
 
     enum class RunAnimState
     {
@@ -70,6 +75,7 @@ namespace
     bool g_DiveAttackColliderRestored = false;
     int g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
     int g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
+    int g_LastSlashComboIndex = -1;
 }
 
 // 内部関数の宣言
@@ -83,6 +89,7 @@ namespace
     void UpdatePlayerAnimation();
     void ExecuteJump();
     bool PlacePlayerAtMapCenter();
+    Skill* GetActiveSlashSkill();
 }
 
 // プレイヤーの初期化
@@ -120,6 +127,9 @@ void InitPlayer(float startX, float startY)
     g_DiveAttackColliderRestored = false;
     g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
     g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
+    g_IsPlayerDead = false;
+    g_DeathSlowMoTimer = 0.0f;
+    g_LastSlashComboIndex = -1;
 
     if (DEBUG_UNLOCK_DIVE_ATTACK) UnlockDiveAttack();
 
@@ -135,7 +145,28 @@ void LoadPlayer()
 // プレイヤーの更新
 void UpdatePlayer()
 {
-    if (playerData.currentHP <= 0) return;
+    if (playerData.currentHP <= 0 && !g_IsPlayerDead)
+    {
+        g_IsPlayerDead = true;
+        playerData.state = PlayerState::Death;
+        playerData.isInvincible = true;
+        playerData.velocityX = playerData.isFacingRight ? -DEATH_KNOCKBACK_SPEED : DEATH_KNOCKBACK_SPEED;
+        playerData.velocityY = -5.0f;
+        g_DeathSlowMoTimer = 2.0f;
+        if (playerAnims.death.frames != nullptr)
+        {
+            ResetAnimation(playerAnims.death);
+        }
+    }
+
+    if (playerData.state == PlayerState::Death)
+    {
+        if (g_DeathSlowMoTimer > 0.0f)
+        {
+            g_DeathSlowMoTimer -= (1.0f / 60.0f);
+            if (g_DeathSlowMoTimer < 0.0f) g_DeathSlowMoTimer = 0.0f;
+        }
+    }
 
     if (playerData.invincibleTimer > 0)
     {
@@ -184,6 +215,7 @@ void DrawPlayer()
     bool flip = playerData.isFacingRight;
 
     bool hasAnimation = (playerAnims.idle.frames != nullptr && playerAnims.idle.frameCount > 0);
+    Skill* activeSlashSkill = GetActiveSlashSkill();
 
     // ダッシュエフェクトの描画（プレイヤーの後ろに描画）
     if (playerData.showDashEffect && playerAnims.dashEffect.frames != nullptr)
@@ -219,6 +251,27 @@ void DrawPlayer()
 
     if (hasAnimation)
     {
+        if (activeSlashSkill != nullptr)
+        {
+            AnimationData* slashAnim = nullptr;
+            switch (activeSlashSkill->GetComboIndex())
+            {
+            case 0: slashAnim = &playerAnims.slash1; break;
+            case 1: slashAnim = &playerAnims.slash2; break;
+            default: slashAnim = &playerAnims.slash3; break;
+            }
+
+            if (slashAnim != nullptr && slashAnim->frames != nullptr && slashAnim->frameCount > 0)
+            {
+                int animFrame = activeSlashSkill->GetFrame();
+                if (animFrame >= slashAnim->frameCount) animFrame = slashAnim->frameCount - 1;
+                if (animFrame < 0) animFrame = 0;
+                SetAnimationFrame(*slashAnim, animFrame);
+                DrawAnimationAligned(*slashAnim, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+                return;
+            }
+        }
+
         if ((playerData.state == PlayerState::Idle || playerData.state == PlayerState::Walk) &&
             playerData.isGrounded && runAnimState == RunAnimState::Stop &&
             playerAnims.runStop.frames != nullptr && !IsAnimationFinished(playerAnims.runStop))
@@ -258,8 +311,46 @@ void DrawPlayer()
                 DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
         case PlayerState::UsingSkill:
-            DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+        {
+            Skill* activeAttackSkill = nullptr;
+            for (auto& s : g_SkillManager.GetSkills())
+            {
+                if (s->IsActive() && s->GetType() == SkillType::Attack)
+                {
+                    activeAttackSkill = s.get();
+                    break;
+                }
+            }
+
+            if (activeAttackSkill != nullptr && activeAttackSkill->GetID() == 1)
+            {
+                AnimationData* slashAnim = nullptr;
+                switch (activeAttackSkill->GetComboIndex())
+                {
+                case 0: slashAnim = &playerAnims.slash1; break;
+                case 1: slashAnim = &playerAnims.slash2; break;
+                default: slashAnim = &playerAnims.slash3; break;
+                }
+
+                if (slashAnim != nullptr && slashAnim->frames != nullptr && slashAnim->frameCount > 0)
+                {
+                    int animFrame = activeAttackSkill->GetFrame();
+                    if (animFrame >= slashAnim->frameCount) animFrame = slashAnim->frameCount - 1;
+                    if (animFrame < 0) animFrame = 0;
+                    SetAnimationFrame(*slashAnim, animFrame);
+                    DrawAnimationAligned(*slashAnim, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+                }
+                else
+                {
+                    DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+                }
+            }
+            else
+            {
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+            }
             break;
+        }
         case PlayerState::Land:
             if (playerAnims.land.frames != nullptr)
                 DrawAnimationAligned(playerAnims.land, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -269,6 +360,12 @@ void DrawPlayer()
         case PlayerState::Hurt:
             if (playerAnims.hurt.frames != nullptr)
                 DrawAnimationAligned(playerAnims.hurt, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+            else
+                DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+            break;
+        case PlayerState::Death:
+            if (playerAnims.death.frames != nullptr)
+                DrawAnimationAligned(playerAnims.death, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             else
                 DrawAnimationAligned(playerAnims.idle, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
             break;
@@ -359,7 +456,7 @@ void DrawPlayer()
         DrawFormatString(
             x,
             y + 10,
-            GetColor(255, 200, 200),
+            GetColor(255,200,200),
             "PlayerState : %d",
             (int)playerData.state);
         DrawFormatString(20, 360, GetColor(255, 255, 255),
@@ -491,6 +588,15 @@ void TryHeal()
 
 bool IsPlayerInvincible() { return playerData.isInvincible; }
 
+float GetDeathSlowMotionScale()
+{
+    if (g_DeathSlowMoTimer > 0.0f)
+    {
+        return DEATH_SLOWMO_SCALE;
+    }
+    return 1.0f;
+}
+
 void TryDodge()
 {
     if (playerData.dodgeCooldown > 0 ||
@@ -528,8 +634,15 @@ namespace
 
     void ProcessMovement()
     {
-        if (playerData.state == PlayerState::Dodging || playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Hurt)
+        if (playerData.state == PlayerState::Dodging || playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Hurt || playerData.state == PlayerState::Death)
             return;
+
+        if (GetActiveSlashSkill() != nullptr)
+        {
+            currentMoveDir = 0;
+            playerData.velocityX = 0.0f;
+            return;
+        }
 
         if (playerData.state == PlayerState::Healing)
         {
@@ -581,7 +694,7 @@ namespace
     // スキルの発動
     void ProcessSkills()
     {
-        if (playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Dodging)
+        if (playerData.state == PlayerState::DiveAttack || playerData.state == PlayerState::Dodging || playerData.state == PlayerState::Hurt || playerData.state == PlayerState::Death)
             return;
 
         if (IsTriggerKey(KEY_SKILL1))
@@ -593,7 +706,12 @@ namespace
             {
                 g_SkillManager.UseSkill(0, &playerData);
 
-                if (g_SkillManager.GetSkillTypeInSlot(0) == SkillType::Attack)
+                Skill* activeSlash = GetActiveSlashSkill();
+                if (activeSlash != nullptr)
+                {
+                    playerData.state = PlayerState::UsingSkill;
+                }
+                else if (g_SkillManager.GetSkillTypeInSlot(0) == SkillType::Attack)
                 {
                     playerData.state = PlayerState::UsingSkill;
                 }
@@ -635,6 +753,57 @@ namespace
 
     void UpdatePhysics()
     {
+        Skill* activeSlashSkill = GetActiveSlashSkill();
+        if (activeSlashSkill != nullptr && !playerData.isGrounded && playerData.state != PlayerState::Death)
+        {
+            if (g_LastSlashComboIndex != activeSlashSkill->GetComboIndex())
+            {
+                g_LastSlashComboIndex = activeSlashSkill->GetComboIndex();
+                if (playerData.velocityY > -1.0f)
+                {
+                    playerData.velocityY = -1.0f;
+                }
+            }
+        }
+        else
+        {
+            g_LastSlashComboIndex = -1;
+        }
+
+        if (playerData.state == PlayerState::Death)
+        {
+            const float slowMo = (g_DeathSlowMoTimer > 0.0f) ? DEATH_SLOWMO_SCALE : 1.0f;
+
+            playerData.velocityX *= DEATH_KNOCKBACK_DAMP;
+            if (std::fabs(playerData.velocityX) < 0.1f)
+            {
+                playerData.velocityX = 0.0f;
+            }
+
+            if (!playerData.isGrounded)
+            {
+                playerData.velocityY += GRAVITY * slowMo;
+                if (playerData.velocityY > MAX_FALL_SPEED) playerData.velocityY = MAX_FALL_SPEED;
+            }
+
+            // 横ノックバックは見た目優先でスローモーションの影響を受けない
+            playerData.posX += playerData.velocityX;
+            playerData.posY += playerData.velocityY * slowMo;
+
+            if (g_playerColliderId != -1)
+            {
+                UpdatePlayerColliderNormal(g_playerColliderId, playerData.posX, playerData.posY,
+                    (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
+            }
+
+            ResolveCollisions();
+
+            if (playerData.isGrounded && playerData.velocityY > 0.0f)
+                playerData.velocityY = 0.0f;
+
+            return;
+        }
+
         if (playerData.state == PlayerState::Hurt)
         {
             playerData.velocityX *= HURT_KNOCKBACK_DAMP;
@@ -643,7 +812,7 @@ namespace
                 playerData.velocityX = 0.0f;
             }
         }
-        
+
         if (playerData.state == PlayerState::DiveAttack)
         {
             if (g_DiveAttackLockFrames > 0)
@@ -757,6 +926,13 @@ namespace
 
     void UpdateState()
     {
+        if (playerData.state == PlayerState::Death)
+        {
+            // 死亡アニメ終了後も Death 状態を維持（復活処理側で遷移）
+            prevIsGrounded = playerData.isGrounded;
+            return;
+        }
+
         if (playerData.state == PlayerState::DiveAttack)
         {
             if (!g_DiveAttackLanded)
@@ -978,6 +1154,21 @@ namespace
             return;
         }
 
+        if (playerData.state == PlayerState::Death)
+        {
+            UpdateAnimation(playerAnims.death);
+            prevFacingRight = playerData.isFacingRight;
+            prevAbsVelX = absVelX;
+            return;
+        }
+
+        if (playerData.state == PlayerState::UsingSkill)
+        {
+            prevFacingRight = playerData.isFacingRight;
+            prevAbsVelX = absVelX;
+            return;
+        }
+
         if (playerData.state == PlayerState::Healing)
         {
             UpdateAnimation(playerAnims.healing);
@@ -1140,5 +1331,17 @@ namespace
         }
 
         return false;
+    }
+
+    Skill* GetActiveSlashSkill()
+    {
+        for (auto& s : g_SkillManager.GetSkills())
+        {
+            if (s->IsActive() && s->GetType() == SkillType::Attack && s->GetID() == 1)
+            {
+                return s.get();
+            }
+        }
+        return nullptr;
     }
 }

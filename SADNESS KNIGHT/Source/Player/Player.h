@@ -17,6 +17,7 @@ enum class PlayerState
     Dodging,    // 回避
     DiveAttack, // 落下攻撃
     Hurt,       // 被弾
+    Death,      // 死亡
 };
 
 // プレイヤーのデータ構造体
@@ -139,6 +140,9 @@ bool IsPlayerGrounded();
 
 // プレイヤーが生きているか
 bool IsPlayerAlive();
+
+// 死亡演出中のスローモーション倍率を取得（1.0=通常速度、0.3=スロー）
+float GetDeathSlowMotionScale();
 
 // 現在のHPを取得
 int GetPlayerHP();

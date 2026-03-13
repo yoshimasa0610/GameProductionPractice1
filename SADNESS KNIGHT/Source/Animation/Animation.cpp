@@ -593,6 +593,60 @@ bool LoadPlayerAnimations(PlayerAnimations& anims)
         InitAnimation(anims.hurt);
     }
 
+    const char* deathPath = nullptr;
+    if (FileExists("Data/Player/death.png"))
+    {
+        deathPath = "Data/Player/death.png";
+    }
+    else if (FileExists("Data/Player/Death.png"))
+    {
+        deathPath = "Data/Player/Death.png";
+    }
+    else if (FileExists("Data/Player/hard hit.png"))
+    {
+        deathPath = "Data/Player/hard hit.png";
+    }
+
+    if (deathPath != nullptr)
+    {
+        LoadAnimationFromSheetRange(anims.death, deathPath,
+            34, 0, 16, 79, 60, 4, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.death);
+    }
+
+    if (FileExists("Data/Player/2x atk_merged(short).png"))
+    {
+        LoadAnimationFromSheetRange(anims.slash1, "Data/Player/2x atk_merged(short).png",
+            20, 0, 19, 192, 64, 1, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.slash1);
+    }
+
+    if (FileExists("Data/Player/2x-1 atk_merged.png"))
+    {
+        LoadAnimationFromSheetRange(anims.slash2, "Data/Player/2x-1 atk_merged.png",
+            6, 0, 6, 139, 75, 1, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.slash2);
+    }
+
+    if (FileExists("Data/Player/2x-2 atk_merged.png"))
+    {
+        LoadAnimationFromSheetRange(anims.slash3, "Data/Player/2x-2 atk_merged.png",
+            12, 0, 10, 139, 75, 1, AnimationMode::Once);
+    }
+    else
+    {
+        InitAnimation(anims.slash3);
+    }
+
     if (FileExists("Data/Player/healing_merged.png"))
     {
         LoadAnimationAuto(anims.healing, "Data/Player/healing_merged.png",
@@ -670,6 +724,10 @@ void UnloadPlayerAnimations(PlayerAnimations& anims)
     UnloadAnimation(anims.fall);
     UnloadAnimation(anims.land);
     UnloadAnimation(anims.hurt);
+    UnloadAnimation(anims.death);
+    UnloadAnimation(anims.slash1);
+    UnloadAnimation(anims.slash2);
+    UnloadAnimation(anims.slash3);
     UnloadAnimation(anims.healing);
     UnloadAnimation(anims.dodge);
     UnloadAnimation(anims.dashEffect);
