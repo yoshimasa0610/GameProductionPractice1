@@ -76,6 +76,10 @@ static void LoadExitInfo(const char* stageName)
 		ep.target, (unsigned)_countof(ep.target),
 		&ep.spawnX, &ep.spawnY) == 5)
 	{
+		// Excel → ゲーム座標へ変換
+		ep.x -= 1;
+		ep.y -= 1;
+
 		g_ExitPoints.push_back(ep);
 		printf_s("[Exit] (%d, %d) -> %s (%.1f, %.1f)\n",
 			ep.x, ep.y, ep.target, ep.spawnX, ep.spawnY);
@@ -97,6 +101,9 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	SetCurrentStage(stageName);
 	//ClearAllEnemies();
 	FinMap();
+	DestroyCollidersByTag(ColliderTag::Block);
+	DestroyCollidersByTag(ColliderTag::Exit);
+	DestroyCollidersByTag(ColliderTag::SemiSolid);
 	LoadMap(stageName);
 	FinCheckpoint();
 	InitCheckpoint(stageName);
@@ -105,6 +112,30 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	LoadExitInfo(stageName);
 	//OnStageLoaded();
 	
+		// 敵スポーンCSVを読み込む
+	char csvPath[256];
+	sprintf_s(csvPath, "Data/EnemySpawn/%s_Spawn.csv", GetCurrentStageName());
+	// ログ：実際に開くパスを出す（画面上）
+	{
+		char dbg[256];
+		sprintf_s(dbg, "[SpawnCSV] Attempting load: %s", csvPath);
+		AddDebugLog(dbg);
+	}
+	/*
+	if (!g_EnemySpawnSystem.LoadSpawnCSV(csvPath))
+	{
+		char buf[256];
+		sprintf_s(buf, "[SpawnCSV] LOAD FAILED : %s", csvPath);
+		AddDebugLog(buf);
+	}
+	else
+	{
+		char buf[256];
+		sprintf_s(buf, "[SpawnCSV] LOAD SUCCESS : %s", csvPath);
+		AddDebugLog(buf);
+	}
+	*/
+
 	// プレイヤーのスポーン位置を反映
 	PlayerData& player = GetPlayerData();
 	player.posX = playerSpawnX;
@@ -130,14 +161,29 @@ void ReloadStage()
 // -------------------------------------
 void HandleStageExit(const MapChipData& exitBlock)
 {
+	DrawFormatString(20, 200, GetColor(255, 255, 0),
+		"Touched Exit Block %d %d",
+		exitBlock.xIndex,
+		exitBlock.yIndex);
+
 	for (auto& e : g_ExitPoints)
 	{
+		DrawFormatString(20, 220, GetColor(0, 255, 255),
+			"ExitInfo %d %d -> %s",
+			e.x, e.y, e.target);
+
 		if (exitBlock.xIndex == e.x && exitBlock.yIndex == e.y)
 		{
+			DrawFormatString(20, 240, GetColor(255, 0, 0),
+				"EXIT MATCH FOUND");
+
 			LoadStage(e.target, e.spawnX, e.spawnY);
 			return;
 		}
 	}
+
+	DrawFormatString(20, 260, GetColor(255, 0, 0),
+		"NO EXIT MATCH");
 }
 
 // -------------------------------------

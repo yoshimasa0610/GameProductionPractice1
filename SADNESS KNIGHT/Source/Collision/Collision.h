@@ -39,6 +39,8 @@ void UpdateCollider(ColliderId id, float left, float top, float width, float hei
 // 指定コライダーを無効化（破棄）
 void DestroyCollider(ColliderId id);
 
+void DestroyCollidersByTag(ColliderTag tag);
+
 // 全コライダーを消去（ステージ切替時など）
 void ClearAllColliders();
 
