@@ -106,6 +106,16 @@ struct EnemyData
     bool isAttacking;       // 攻撃モーション再生中か
     int attackColliderId;   // 攻撃判定コライダー
 
+    // 特殊AI状態（主にアサシン用）
+    int behaviorPattern;    // 0:透明ワープ型, 1:突進型
+    bool isInvisible;       // 透明化中か
+    float specialTimer;     // 特殊行動タイマー
+
+    // 死亡演出状態（主にアサシン用）
+    bool isDying;           // 死亡演出中か
+    bool deathAnimFinished; // 死亡アニメ終了済みか
+    int deathBlinkTimer;    // 点滅タイマー
+
     // 描画・当たり判定（システムが自動管理）
 
 
@@ -171,6 +181,8 @@ EnemyAnimations* LoadEnemyAnimations(EnemyType type);
 
 // 敵のアニメーションを解放
 void UnloadEnemyAnimations(EnemyAnimations* anims);
+
+
 
 
 

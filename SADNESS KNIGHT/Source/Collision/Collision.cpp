@@ -431,7 +431,12 @@ void ResolveCollisions()
             else if (a.tag == ColliderTag::Attack && b.tag == ColliderTag::Block)
             {
                 PlayerData* player = static_cast<PlayerData*>(a.owner);
-                bool isDive = (player && player->state == PlayerState::DiveAttack);
+                if (player != &GetPlayerData())
+                {
+                    continue;
+                }
+
+                bool isDive = (player->state == PlayerState::DiveAttack);
 
                 int mapX = (int)((b.left + b.width * 0.5f) / MAP_CHIP_WIDTH);
                 int mapY = (int)((b.top + b.height * 0.5f) / MAP_CHIP_HEIGHT);
@@ -446,7 +451,12 @@ void ResolveCollisions()
             else if (b.tag == ColliderTag::Attack && a.tag == ColliderTag::Block)
             {
                 PlayerData* player = static_cast<PlayerData*>(b.owner);
-                bool isDive = (player && player->state == PlayerState::DiveAttack);
+                if (player != &GetPlayerData())
+                {
+                    continue;
+                }
+
+                bool isDive = (player->state == PlayerState::DiveAttack);
 
                 int mapX = (int)((b.left + b.width * 0.5f) / MAP_CHIP_WIDTH);
                 int mapY = (int)((b.top + b.height * 0.5f) / MAP_CHIP_HEIGHT);
@@ -517,10 +527,18 @@ void ResolveCollisions()
                      (b.tag == ColliderTag::Player && a.tag == ColliderTag::Enemy))
             {
                 Collider* playerC = (a.tag == ColliderTag::Player) ? &a : &b;
+                Collider* enemyC = (a.tag == ColliderTag::Enemy) ? &a : &b;
                 PlayerData* player = static_cast<PlayerData*>(playerC->owner);
+                EnemyData* enemy = FindEnemyByColliderId(enemyC->id);
+
                 if (player && player->currentHP > 0)
                 {
-                    if (g_playerEnemyHitCooldown <= 0)
+                    // Big Quartist は接触ダメージなし（攻撃判定のみでダメージ）
+                    if (enemy != nullptr && enemy->type == EnemyType::BigQuartist)
+                    {
+                        // no-op
+                    }
+                    else if (g_playerEnemyHitCooldown <= 0)
                     {
                         DamagePlayerHP(10);
                         g_playerEnemyHitCooldown = 30; // 0.5秒(60fps想定)
@@ -572,7 +590,7 @@ void ResolveCollisions()
                 Collider* blockC = (a.tag == ColliderTag::Block) ? &a : &b;
                 Collider* attackC = (a.tag == ColliderTag::Other) ? &a : &b;
                 Skill* skill = static_cast<Skill*>(attackC->owner);
-                if (skill != nullptr)
+                if (skill != nullptr && skill->GetType() == SkillType::Attack && skill->IsHitActive())
                 {
                     const int mapX = static_cast<int>((blockC->left + blockC->width * 0.5f) / MAP_CHIP_WIDTH);
                     const int mapY = static_cast<int>((blockC->top + blockC->height * 0.5f) / MAP_CHIP_HEIGHT);

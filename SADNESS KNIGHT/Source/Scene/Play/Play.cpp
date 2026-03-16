@@ -23,7 +23,7 @@
 #include "../../Skill/SkillData.h"
 #include "../../Skill/SkillManager.h"
 #include "../../Enemy/EnemyBase.h"
-#include "../../Enemy/Slime/Slime.h"
+#include "../../Enemy/Big Quartist/Big Quartist.h"
 
 static ItemField g_ItemField;
 
@@ -214,7 +214,7 @@ void UpdatePlayScene()
 		const float spawnX = playerX + (facingRight ? oneBlock : -oneBlock);
 		const float spawnY = playerY;
 
-		SpawnSlime(spawnX, spawnY);
+		SpawnBigQuartist(spawnX, spawnY);
 		g_EnemySpawned = true;
 	}
 
