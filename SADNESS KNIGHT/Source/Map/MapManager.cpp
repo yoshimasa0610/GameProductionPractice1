@@ -149,7 +149,6 @@ void ChangeMap(const char* mapFolder, float newPlayerX, float newPlayerY)
 	LoadMap(mapFolder);
 	StartMap();
 	GetPlayerPos(newPlayerX, newPlayerY);
-
 }
 
 // ===================================================

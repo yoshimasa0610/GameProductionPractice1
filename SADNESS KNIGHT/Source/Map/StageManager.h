@@ -33,7 +33,7 @@ void FadeIn(int frame = 30);
 void DrawMapOutsideMask();
 
 //îwåiÉçÅ[Éh
-void LoadBackground(const char* mapFolder);
+void LoadBackground(const char* stageName);
 
 void DrawBackgroundFar();
 void DrawBackgroundMid();

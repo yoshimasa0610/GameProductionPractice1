@@ -1,0 +1,6 @@
+2 2 forest_3 2688 384
+2 3 forest_3 2688 384
+42 2 forest_5 96 608
+42 3 forest_5 96 608
+42 13 forest_6 64 640
+42 14 forest_6 64 640

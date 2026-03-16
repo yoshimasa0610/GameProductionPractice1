@@ -226,18 +226,17 @@ void FadeIn(int frame)
 	SetDrawBright(255, 255, 255);*/
 }
 
-void LoadBackground(const char* mapFolder)
+void LoadBackground(const char* stageName)
 {
-	// mapFolder = "forest_1" ‚È‚Ç
-	const char* field = GetFieldName(mapFolder);
+	const char* field = GetFieldName(stageName);
 
 	char pathFar[256];
 	char pathMid[256];
 	char pathFore[256];
 
-	sprintf_s(pathFar, "Data/Map/%s/background_far.png", field);
-	sprintf_s(pathMid, "Data/Map/%s/background_mid.png", field);
-	sprintf_s(pathFore, "Data/Map/%s/foreground.png", field);
+	sprintf_s(pathFar, "Data/Map/%s/%s/background_far.png", field, stageName);
+	sprintf_s(pathMid, "Data/Map/%s/%s/background_mid.png", field, stageName);
+	sprintf_s(pathFore, "Data/Map/%s/%s/foreground.png", field, stageName);
 
 	if (g_BackgroundFar > 0) DeleteGraph(g_BackgroundFar);
 	if (g_BackgroundMid > 0) DeleteGraph(g_BackgroundMid);
