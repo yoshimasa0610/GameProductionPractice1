@@ -16,6 +16,59 @@ namespace
     std::vector<EnemyData> g_enemies;
     static int g_EnemyDebugFrame = 0;
 
+    float GetEnemyBodyColliderScale(EnemyType type)
+    {
+        (void)type;
+        return 0.82f;
+    }
+
+    float GetEnemyBodyColliderWidthAdjust(EnemyType type)
+    {
+        (void)type;
+        return 0.50f;
+    }
+
+    float GetEnemyBodyColliderFacingOffsetRatio(EnemyType type)
+    {
+        (void)type;
+        return 0.0f;
+    }
+
+    bool TryGetAnimationFrameSize(const AnimationData& anim, float& outWidth, float& outHeight)
+    {
+        if (anim.frames == nullptr || anim.frameCount <= 0 || anim.frames[0] == -1)
+        {
+            return false;
+        }
+
+        int w = 0;
+        int h = 0;
+        GetGraphSize(anim.frames[0], &w, &h);
+        if (w <= 0 || h <= 0)
+        {
+            return false;
+        }
+
+        outWidth = static_cast<float>(w);
+        outHeight = static_cast<float>(h);
+        return true;
+    }
+
+    bool TryGetEnemyVisualSize(EnemyAnimations* anims, float& outWidth, float& outHeight)
+    {
+        if (anims == nullptr)
+        {
+            return false;
+        }
+
+        if (TryGetAnimationFrameSize(anims->idle, outWidth, outHeight)) return true;
+        if (TryGetAnimationFrameSize(anims->move, outWidth, outHeight)) return true;
+        if (TryGetAnimationFrameSize(anims->attack, outWidth, outHeight)) return true;
+        if (TryGetAnimationFrameSize(anims->die, outWidth, outHeight)) return true;
+
+        return false;
+    }
+
     struct EnemyProjectile
     {
         bool active;
@@ -132,6 +185,8 @@ namespace
             if (!p.active) continue;
 
             p.lifeTimer -= frameTime;
+            const float prevX = p.posX;
+            const float prevY = p.posY;
             p.posX += p.velocityX * slowMoScale;
             p.posY += p.velocityY * slowMoScale;
 
@@ -152,6 +207,35 @@ namespace
             }
 
             if (p.lifeTimer <= 0.0f)
+            {
+                DestroyProjectile(p);
+                continue;
+            }
+
+            const float moveDx = p.posX - prevX;
+            const float moveDy = p.posY - prevY;
+            const float moveLen = std::sqrt(moveDx * moveDx + moveDy * moveDy);
+            int raySteps = static_cast<int>(moveLen / (mapBlockSize * 0.25f)) + 1;
+            if (raySteps < 1) raySteps = 1;
+            if (raySteps > 16) raySteps = 16;
+
+            bool hitBlock = false;
+            for (int i = 0; i <= raySteps; i++)
+            {
+                const float t = static_cast<float>(i) / static_cast<float>(raySteps);
+                const float checkX = prevX + moveDx * t;
+                const float checkY = prevY + moveDy * t;
+                const int gridX = static_cast<int>(checkX / mapBlockSize);
+                const int gridY = static_cast<int>(checkY / mapBlockSize);
+                MapChipData* mc = GetMapChipData(gridX, gridY);
+                if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
+                {
+                    hitBlock = true;
+                    break;
+                }
+            }
+
+            if (hitBlock)
             {
                 DestroyProjectile(p);
                 continue;
@@ -187,7 +271,14 @@ namespace
             const int frameHandle = g_cultistFireballFrames[p.animFrame % 4];
             if (frameHandle != -1)
             {
-                DrawExtendGraph(left, top, right, bottom, frameHandle, TRUE);
+                if (p.velocityX > 0.0f)
+                {
+                    DrawExtendGraph(right, top, left, bottom, frameHandle, TRUE);
+                }
+                else
+                {
+                    DrawExtendGraph(left, top, right, bottom, frameHandle, TRUE);
+                }
             }
             else
             {
@@ -209,8 +300,17 @@ namespace
         char filePath[256];
         for (int i = 0; i < frameCount; i++)
         {
-            sprintf_s(filePath, sizeof(filePath), "%s%s_%d.png", basePath, prefix, startIndex + i);
+            const int fileIndex = startIndex + i;
+
+            sprintf_s(filePath, sizeof(filePath), "%s%s_%d.png", basePath, prefix, fileIndex);
             anim.frames[i] = LoadGraph(filePath);
+
+            if (anim.frames[i] == -1)
+            {
+                sprintf_s(filePath, sizeof(filePath), "%s%s%d.png", basePath, prefix, fileIndex);
+                anim.frames[i] = LoadGraph(filePath);
+            }
+
             if (anim.frames[i] == -1)
             {
                 for (int j = 0; j < i; j++)
@@ -252,13 +352,12 @@ namespace
 
 
 
-
         
         // Skeleton: 標準的な敵、ジャンプで追いかけてくる
         { 60, 12, 1.5f, 30.0f, 56.0f, 280.0f, 48.0f, 0.2f, 1.0f, true, 8.0f, "Assets/Enemies/Skeleton/" },
         
         // Cultists: 近接＋火球の戦闘員
-        { 40, 12, 1.2f, 50.0f, 50.0f, 260.0f, 44.0f, 0.35f, 1.0f, false, 0.0f, "Assets/Enemies/Cultists/" },
+        { 40, 12, 1.2f, 50.0f, 50.0f, 320.0f, 96.0f, 0.35f, 1.0f, false, 0.0f, "Assets/Enemies/Cultists/" },
         
         // AssassinCultist: 素早く動く刺客、攻撃は弱め
         { 30, 8, 2.0f, 50.0f, 50.0f, 176.0f, 44.0f, 0.22f, 1.5f, true, 9.0f, "Assets/Enemies/AssassinCultist/" },
@@ -267,7 +366,7 @@ namespace
         { 250, 30, 0.8f, 150.0f, 150.0f, 360.0f, 88.0f, 0.75f, 1.8f, false, 0.0f, "Assets/Enemies/BigQuartist/" },
         
         // TwistedCaltis: 変則的な動きをする中ボス
-        { 90, 16, 1.8f, 34.0f, 52.0f, 320.0f, 44.0f, 0.22f, 1.2f, true, 10.0f, "Assets/Enemies/TwistedCaltis/" }
+        { 90, 16, 1.8f, 50.0f, 50.0f, 320.0f, 128.0f, 0.50f, 1.2f, true, 10.0f, "Assets/Enemies/TwistedCaltis/" }
     };
 
     const float GRAVITY = 0.3f;
@@ -276,7 +375,18 @@ namespace
     const float BLOCK_SIZE = 32.0f;
     const float FACE_TURN_DEADZONE = 12.0f;
     const int BIG_QUARTIST_ATTACK_HIT_START_FRAME = 5;
-    
+    const float ENEMY_ATTACK_WIDTH_SCALE = 0.75f;
+    const float ENEMY_ATTACK_HEIGHT_SCALE = 0.70f;
+    const float ENEMY_ATTACK_FRONT_OFFSET_RATIO = 0.34f;
+    const float BIG_ATTACK_WIDTH_SCALE = 0.75f;
+    const float BIG_ATTACK_HEIGHT_SCALE = 0.72f;
+    const float BIG_ATTACK_BACK_OFFSET_RATIO = 0.12f;
+    const float BIG_ATTACK_FRONT_OFFSET_RATIO = 0.55f;
+    const float TWISTED_ATTACK_WIDTH_SCALE = 1.65f;
+    const float TWISTED_ATTACK_HEIGHT_SCALE = 0.45f;
+    const float TWISTED_ATTACK_FRONT_OFFSET_RATIO = 0.65f;
+    const float TWISTED_ATTACK_CENTER_Y_RATIO = 0.62f;
+
     // レイキャストによる視線判定（ブロックを透視できない）
     bool HasLineOfSight(float fromX, float fromY, float toX, float toY)
     {
@@ -332,6 +442,26 @@ namespace
         
         e.isGrounded = false;
         
+        // 上方向の当たり判定（複数点チェック）
+        for (int i = 0; i < 3; i++)
+        {
+            float checkX = checkLeft + (checkRight - checkLeft) * (i / 2.0f);
+            int gridX = static_cast<int>(checkX / BLOCK_SIZE);
+            int gridY = static_cast<int>((checkTop - 1.0f) / BLOCK_SIZE);
+            
+            MapChipData* mc = GetMapChipData(gridX, gridY);
+            if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
+            {
+                float blockBottom = gridY * BLOCK_SIZE;
+                if (e.posY < blockBottom && e.velocityY <= 0.0f)
+                {
+                    e.posY = blockBottom;
+                    e.velocityY = 0.0f;
+                    e.isGrounded = true;
+                }
+            }
+        }
+        
         // 下方向の当たり判定（複数点チェック）
         for (int i = 0; i < 3; i++)
         {
@@ -356,35 +486,53 @@ namespace
         if (e.velocityX < 0.0f) // 左移動
         {
             int gridX = static_cast<int>((checkLeft - 1.0f) / BLOCK_SIZE);
-            int gridY = static_cast<int>((e.posY - e.height * 0.5f) / BLOCK_SIZE);
-            
-            MapChipData* mc = GetMapChipData(gridX, gridY);
-            if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
+            bool hitWall = false;
+            float nearestBlockRight = -1.0f;
+
+            for (int i = 0; i < 3; i++)
             {
-                float blockRight = (gridX + 1) * BLOCK_SIZE;
-                if (e.posX - halfW < blockRight)
+                const float sampleY = (e.posY - e.height) + (e.height * (i / 2.0f));
+                int gridY = static_cast<int>(sampleY / BLOCK_SIZE);
+                MapChipData* mc = GetMapChipData(gridX, gridY);
+                if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
                 {
-                    e.posX = blockRight + halfW;
-                    e.velocityX = 0.0f;
-                    e.patrolDirection = 1; // 方向転換
+                    hitWall = true;
+                    nearestBlockRight = (gridX + 1) * BLOCK_SIZE;
+                    break;
                 }
+            }
+
+            if (hitWall && e.posX - halfW < nearestBlockRight)
+            {
+                e.posX = nearestBlockRight + halfW;
+                e.velocityX = 0.0f;
+                e.patrolDirection = 1; // 方向転換
             }
         }
         else if (e.velocityX > 0.0f) // 右移動
         {
             int gridX = static_cast<int>((checkRight + 1.0f) / BLOCK_SIZE);
-            int gridY = static_cast<int>((e.posY - e.height * 0.5f) / BLOCK_SIZE);
-            
-            MapChipData* mc = GetMapChipData(gridX, gridY);
-            if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
+            bool hitWall = false;
+            float nearestBlockLeft = -1.0f;
+
+            for (int i = 0; i < 3; i++)
             {
-                float blockLeft = gridX * BLOCK_SIZE;
-                if (e.posX + halfW > blockLeft)
+                const float sampleY = (e.posY - e.height) + (e.height * (i / 2.0f));
+                int gridY = static_cast<int>(sampleY / BLOCK_SIZE);
+                MapChipData* mc = GetMapChipData(gridX, gridY);
+                if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
                 {
-                    e.posX = blockLeft - halfW;
-                    e.velocityX = 0.0f;
-                    e.patrolDirection = -1; // 方向転換
+                    hitWall = true;
+                    nearestBlockLeft = gridX * BLOCK_SIZE;
+                    break;
                 }
+            }
+
+            if (hitWall && e.posX + halfW > nearestBlockLeft)
+            {
+                e.posX = nearestBlockLeft - halfW;
+                e.velocityX = 0.0f;
+                e.patrolDirection = -1; // 方向転換
             }
         }
         
@@ -463,15 +611,42 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.deathAnimFinished = false;
     e.deathBlinkTimer = 0;
     e.width = config.width;
-
-
     e.height = config.height;
 
-    float left = e.posX - (e.width * 0.5f);
-    float top = e.posY - e.height;
-    e.colliderId = CreateCollider(ColliderTag::Enemy, left, top, e.width, e.height, nullptr);
-
     e.animations = LoadEnemyAnimations(type);
+
+    float visualWidth = 0.0f;
+    float visualHeight = 0.0f;
+    if (TryGetEnemyVisualSize(e.animations, visualWidth, visualHeight))
+    {
+        e.width = (visualWidth > config.width) ? visualWidth : config.width;
+        e.height = (visualHeight > config.height) ? visualHeight : config.height;
+    }
+
+    if (e.type == EnemyType::Cultists)
+    {
+        e.width = 50.0f;
+        e.height = 50.0f;
+    }
+    else if (e.type == EnemyType::TwistedCaltis)
+    {
+        e.width = 50.0f;
+        e.height = 50.0f;
+    }
+
+    if (e.type != EnemyType::BigQuartist)
+    {
+        e.width = 75.0f;
+        e.height = 75.0f;
+    }
+
+    const float bodyScale = GetEnemyBodyColliderScale(e.type);
+    const float bodyWidth = e.width * bodyScale * GetEnemyBodyColliderWidthAdjust(e.type);
+    const float bodyHeight = e.height * bodyScale;
+    const float bodyCenterY = e.posY - (e.height * 0.5f);
+    const float bodyLeft = e.posX - (bodyWidth * 0.5f);
+    const float bodyTop = bodyCenterY - (bodyHeight * 0.5f);
+    e.colliderId = CreateCollider(ColliderTag::Enemy, bodyLeft, bodyTop, bodyWidth, bodyHeight, nullptr);
 
     g_enemies.push_back(e);
     return static_cast<int>(g_enemies.size() - 1);
@@ -559,50 +734,27 @@ void UpdateEnemies()
         // 死亡開始
         if (e.currentHP <= 0 && !e.isDying)
         {
-            if (e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist || e.type == EnemyType::Cultists)
-            {
-                e.isDying = true;
-                e.isAttacking = false;
-                e.isInvisible = false;
-                e.velocityX = 0.0f;
-                e.velocityY = 0.0f;
-                e.deathAnimFinished = false;
-                e.deathBlinkTimer = 0;
+            e.isDying = true;
+            e.isAttacking = false;
+            e.isInvisible = false;
+            e.velocityX = 0.0f;
+            e.velocityY = 0.0f;
+            e.deathAnimFinished = false;
+            e.deathBlinkTimer = 0;
 
-                if (e.attackColliderId != -1)
-                {
-                    DestroyCollider(e.attackColliderId);
-                    e.attackColliderId = -1;
-                }
-                if (e.colliderId != -1)
-                {
-                    DestroyCollider(e.colliderId);
-                    e.colliderId = -1;
-                }
-                if (e.animations != nullptr)
-                {
-                    ResetAnimation(e.animations->die);
-                }
-            }
-            else
+            if (e.attackColliderId != -1)
             {
-                if (e.colliderId != -1)
-                {
-                    DestroyCollider(e.colliderId);
-                    e.colliderId = -1;
-                }
-                if (e.attackColliderId != -1)
-                {
-                    DestroyCollider(e.attackColliderId);
-                    e.attackColliderId = -1;
-                }
-                if (e.animations != nullptr)
-                {
-                    UnloadEnemyAnimations(e.animations);
-                    e.animations = nullptr;
-                }
-                e.active = false;
-                continue;
+                DestroyCollider(e.attackColliderId);
+                e.attackColliderId = -1;
+            }
+            if (e.colliderId != -1)
+            {
+                DestroyCollider(e.colliderId);
+                e.colliderId = -1;
+            }
+            if (e.animations != nullptr)
+            {
+                ResetAnimation(e.animations->die);
             }
         }
 
@@ -696,8 +848,8 @@ void UpdateEnemies()
             const float warpOffsetDist = 36.0f;
             const float warpLungeMul = 6.0f;
             const float approachMul = isBig ? 1.05f : 1.8f;
-            const float attackWScale = isBig ? 1.0f : 1.5f;
-            const float attackFrontOffset = isBig ? (e.width * 0.2f) : (e.width * 0.5f);
+            const float attackWScale = isBig ? BIG_ATTACK_WIDTH_SCALE : ENEMY_ATTACK_WIDTH_SCALE;
+            const float attackFrontOffset = isBig ? (e.width * 0.2f) : (e.width * ENEMY_ATTACK_FRONT_OFFSET_RATIO);
 
             if (!isBig && e.isInvisible)
             {
@@ -729,7 +881,7 @@ void UpdateEnemies()
                         }
 
                         const float attackWidth = e.width * attackWScale;
-                        const float attackHeight = e.height;
+                        const float attackHeight = e.height * ENEMY_ATTACK_HEIGHT_SCALE;
                         const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
                         const float attackLeft = e.posX + attackOffsetX;
                         const float attackTop = e.posY - attackHeight;
@@ -770,7 +922,7 @@ void UpdateEnemies()
                         }
 
                         const float attackWidth = e.width * attackWScale;
-                        const float attackHeight = e.height;
+                        const float attackHeight = e.height * ENEMY_ATTACK_HEIGHT_SCALE;
                         const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
                         const float attackLeft = e.posX + attackOffsetX;
                         const float attackTop = e.posY - attackHeight;
@@ -834,11 +986,15 @@ void UpdateEnemies()
                     DestroyCollider(e.attackColliderId);
                     e.attackColliderId = -1;
                 }
-                const float attackWidth = e.width * 1.3f;
-                const float attackHeight = e.height;
-                const float attackOffsetX = e.isFacingRight ? e.width * 0.5f : -e.width * 0.5f - attackWidth;
+
+                const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
+                const float attackWidth = isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * 1.3f);
+                const float attackHeight = isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : e.height;
+                const float attackFrontOffset = isTwisted ? (e.width * TWISTED_ATTACK_FRONT_OFFSET_RATIO) : (e.width * 0.5f);
+                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
                 const float attackLeft = e.posX + attackOffsetX;
-                const float attackTop = e.posY - attackHeight;
+                const float attackCenterY = isTwisted ? (e.posY - e.height * TWISTED_ATTACK_CENTER_Y_RATIO) : (e.posY - attackHeight * 0.5f);
+                const float attackTop = attackCenterY - attackHeight * 0.5f;
                 e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
 
                 if (e.animations != nullptr)
@@ -918,11 +1074,41 @@ void UpdateEnemies()
 
         ResolveEnemyMapCollision(e);
 
+        const float moveX = e.velocityX * slowMoScale;
+        const float moveY = e.velocityY * slowMoScale;
+        const float maxMoveAbs = (std::fabs(moveX) > std::fabs(moveY)) ? std::fabs(moveX) : std::fabs(moveY);
+        int moveSteps = static_cast<int>(maxMoveAbs / 8.0f) + 1;
+        if (moveSteps < 1) moveSteps = 1;
+        if (moveSteps > 16) moveSteps = 16;
+
+        const float stepX = moveX / static_cast<float>(moveSteps);
+        const float stepY = moveY / static_cast<float>(moveSteps);
+
+        for (int step = 0; step < moveSteps; ++step)
+        {
+            e.posX += stepX;
+            e.posY += stepY;
+
+            const float mapBottom = static_cast<float>(GetMapHeight());
+            if (mapBottom > 0.0f && e.posY > mapBottom)
+            {
+                e.posY = mapBottom;
+                e.velocityY = 0.0f;
+                e.isGrounded = true;
+            }
+
+            ResolveEnemyMapCollision(e);
+        }
+
         if (e.colliderId != -1)
         {
-            float left = e.posX - (e.width * 0.5f);
-            float top = e.posY - e.height;
-            UpdateCollider(e.colliderId, left, top, e.width, e.height);
+            const float bodyScale = GetEnemyBodyColliderScale(e.type);
+            const float bodyWidth = e.width * bodyScale * GetEnemyBodyColliderWidthAdjust(e.type);
+            const float bodyHeight = e.height * bodyScale;
+            const float bodyCenterY = e.posY - (e.height * 0.5f);
+            float left = e.posX - (bodyWidth * 0.5f);
+            float top = bodyCenterY - (bodyHeight * 0.5f);
+            UpdateCollider(e.colliderId, left, top, bodyWidth, bodyHeight);
         }
 
         if (e.isAttacking && e.type == EnemyType::BigQuartist && e.attackColliderId == -1)
@@ -935,11 +1121,11 @@ void UpdateEnemies()
 
             if (canActivateAttackHit)
             {
-                const float attackWidth = e.width;
-                const float attackHeight = e.height;
-                const float attackFrontOffset = e.width * 0.2f;
-                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
-                const float attackLeft = e.posX + attackOffsetX;
+                const float attackWidth = e.width * BIG_ATTACK_WIDTH_SCALE;
+                const float attackHeight = e.height * BIG_ATTACK_HEIGHT_SCALE;
+                const float backOffset = e.width * BIG_ATTACK_BACK_OFFSET_RATIO;
+                const float frontOffset = e.width * BIG_ATTACK_FRONT_OFFSET_RATIO;
+                const float attackLeft = e.isFacingRight ? (e.posX - backOffset) : (e.posX - frontOffset);
                 const float attackTop = e.posY - attackHeight;
                 e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
             }
@@ -948,12 +1134,26 @@ void UpdateEnemies()
         if (e.isAttacking && e.attackColliderId != -1)
         {
             const bool isBig = (e.type == EnemyType::BigQuartist);
-            const float attackWidth = e.width * (isBig ? 1.0f : 1.5f);
-            const float attackHeight = e.height;
-            const float attackFrontOffset = isBig ? (e.width * 0.2f) : (e.width * 0.5f);
-            const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
-            const float attackLeft = e.posX + attackOffsetX;
-            const float attackTop = e.posY - attackHeight;
+            const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
+            const float attackWidth = isBig ? (e.width * BIG_ATTACK_WIDTH_SCALE) : (isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * ENEMY_ATTACK_WIDTH_SCALE));
+            const float attackHeight = isBig ? (e.height * BIG_ATTACK_HEIGHT_SCALE) : (isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : (e.height * ENEMY_ATTACK_HEIGHT_SCALE));
+
+            float attackLeft = 0.0f;
+            if (isBig)
+            {
+                const float backOffset = e.width * BIG_ATTACK_BACK_OFFSET_RATIO;
+                const float frontOffset = e.width * BIG_ATTACK_FRONT_OFFSET_RATIO;
+                attackLeft = e.isFacingRight ? (e.posX - backOffset) : (e.posX - frontOffset);
+            }
+            else
+            {
+                const float attackFrontOffset = e.width * (isTwisted ? TWISTED_ATTACK_FRONT_OFFSET_RATIO : ENEMY_ATTACK_FRONT_OFFSET_RATIO);
+                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
+                attackLeft = e.posX + attackOffsetX;
+            }
+
+            const float attackCenterY = isTwisted ? (e.posY - e.height * TWISTED_ATTACK_CENTER_Y_RATIO) : (e.posY - attackHeight * 0.5f);
+            const float attackTop = attackCenterY - attackHeight * 0.5f;
             UpdateCollider(e.attackColliderId, attackLeft, attackTop, attackWidth, attackHeight);
         }
 
@@ -1015,19 +1215,53 @@ void DrawEnemies()
                 currentAnim = &e.animations->idle;
             }
             
-            bool drawn = false;
             if (currentAnim != nullptr && currentAnim->frames != nullptr)
-
             {
                 const int frameHandle = GetCurrentAnimationFrame(*currentAnim);
                 if (frameHandle != -1)
                 {
-                    const int halfW = static_cast<int>(e.width * 0.5f * camera.scale);
-                    const int h = static_cast<int>(e.height * camera.scale);
-                    const int left = drawX - halfW;
+                    int drawW = static_cast<int>(e.width * camera.scale);
+                    int drawH = static_cast<int>(e.height * camera.scale);
+
+                    if (e.type == EnemyType::TwistedCaltis && e.isAttacking)
+                    {
+                        int srcW = 0;
+                        int srcH = 0;
+                        GetGraphSize(frameHandle, &srcW, &srcH);
+                        if (srcW > 0 && srcH > 0)
+                        {
+                            const float aspectW = e.height * (static_cast<float>(srcW) / static_cast<float>(srcH));
+                            if (aspectW > e.width)
+                            {
+                                drawW = static_cast<int>(aspectW * camera.scale);
+                            }
+                        }
+                        drawW = static_cast<int>(drawW * 1.10f);
+                    }
+
+                    const int baseHalfW = static_cast<int>(e.width * 0.5f * camera.scale);
+                    const int baseLeft = drawX - baseHalfW;
+                    const int baseRight = drawX + baseHalfW;
+                    const int h = drawH;
                     const int top = drawY - h;
-                    const int right = drawX + halfW;
                     const int bottom = drawY;
+
+                    int left = drawX - (drawW / 2);
+                    int right = drawX + (drawW / 2);
+
+                    if (e.type == EnemyType::TwistedCaltis && e.isAttacking)
+                    {
+                        if (e.isFacingRight)
+                        {
+                            left = baseLeft;
+                            right = left + drawW;
+                        }
+                        else
+                        {
+                            right = baseRight;
+                            left = right - drawW;
+                        }
+                    }
 
                     if ((e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist) && e.isInvisible)
                     {
@@ -1047,20 +1281,8 @@ void DrawEnemies()
                     {
                         SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
                     }
-                    drawn = true;
                 }
             }
-
-            if (!drawn)
-            {
-                int halfW = static_cast<int>(e.width * 0.5f * camera.scale);
-                DrawBox(drawX - halfW, drawTopY, drawX + halfW, drawY, GetColor(200, 50, 50), TRUE);
-            }
-        }
-        else
-        {
-            int halfW = static_cast<int>(e.width * 0.5f * camera.scale);
-            DrawBox(drawX - halfW, drawTopY, drawX + halfW, drawY, GetColor(200, 50, 50), TRUE);
         }
     }
 
@@ -1148,6 +1370,22 @@ EnemyAnimations* LoadEnemyAnimations(EnemyType type)
         const bool okAttack = LoadAnimationFromFiles_Indexed(anims->attack, "Data/Enemy/Big Quartist/", "Big-Cultist_Attack", 1, 20, 5, AnimationMode::Once);
         const bool okHurt = LoadAnimationFromFiles_Indexed(anims->hurt, "Data/Enemy/Big Quartist/", "Big-Cultist_Attack", 1, 20, 5, AnimationMode::Once);
         const bool okDie = LoadAnimationFromFiles_Indexed(anims->die, "Data/Enemy/Big Quartist/", "Big-Cultist_Death", 1, 12, 6, AnimationMode::Once);
+
+        if (!okIdle) InitAnimation(anims->idle);
+        if (!okMove) InitAnimation(anims->move);
+        if (!okAttack) InitAnimation(anims->attack);
+        if (!okHurt) InitAnimation(anims->hurt);
+        if (!okDie) InitAnimation(anims->die);
+        break;
+    }
+
+    case EnemyType::TwistedCaltis:
+    {
+        const bool okIdle = LoadAnimationFromFiles_Indexed(anims->idle, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Idle", 1, 6, 6, AnimationMode::Loop);
+        const bool okMove = LoadAnimationFromFiles_Indexed(anims->move, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Walk", 1, 8, 5, AnimationMode::Loop);
+        const bool okAttack = LoadAnimationFromFiles_Indexed(anims->attack, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Attack", 1, 7, 3, AnimationMode::Once);
+        const bool okHurt = LoadAnimationFromFiles_Indexed(anims->hurt, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Attack", 1, 7, 5, AnimationMode::Once);
+        const bool okDie = LoadAnimationFromFiles_Indexed(anims->die, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Death", 1, 12, 5, AnimationMode::Once);
 
         if (!okIdle) InitAnimation(anims->idle);
         if (!okMove) InitAnimation(anims->move);
