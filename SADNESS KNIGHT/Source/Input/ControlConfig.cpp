@@ -34,7 +34,7 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_MENU].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_ESCAPE };
     m_Binds[KEY_CANCEL].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_ESCAPE };
     m_Binds[KEY_INVENTORY].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_S };
-
+    m_Binds[KEY_CLEAR].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_F };
 
     // =====================
     // Pad defaultsÅiâºÇ≈OKÅj

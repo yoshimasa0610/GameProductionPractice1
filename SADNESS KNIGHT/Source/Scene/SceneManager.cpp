@@ -3,6 +3,7 @@
 #include "Play/Play.h"
 #include <DxLib.h>
 #include "../Input/Input.h"
+#include "ClearScene/ClearScene.h"
 
 // 最初に開かれるシーンを初期値にする
 Scene g_NowScene = SCENE_TITLE;
@@ -74,6 +75,10 @@ void InitScene()
 	case SCENE_PLAY:	// プレイ
 		InitPlayScene();
 		break;
+
+	case SCENE_CLEAR:
+		InitClearScene();
+		break;
 	}
 }
 
@@ -88,6 +93,10 @@ void LoadScene()
 
 	case SCENE_PLAY:	// プレイ
 		LoadPlayScene();
+		break;
+
+	case SCENE_CLEAR:
+		LoadClearScene();
 		break;
 	}
 }
@@ -104,6 +113,10 @@ void StartScene()
 	case SCENE_PLAY:	// プレイ
 		StartPlayScene();
 		break;
+
+	case SCENE_CLEAR:
+		StartClearScene();
+		break;
 	}
 }
 
@@ -118,6 +131,10 @@ void StepScene()
 
 	case SCENE_PLAY:	// プレイ
 		StepPlayScene();
+		break;
+
+	case SCENE_CLEAR:
+		StepClearScene();
 		break;
 	}
 }
@@ -134,6 +151,10 @@ void UpdateScene()
 	case SCENE_PLAY:	// プレイ
 		UpdatePlayScene();
 		break;
+
+	case SCENE_CLEAR:
+		UpdateClearScene();
+		break;
 	}
 }
 
@@ -149,6 +170,10 @@ void DrawScene()
 	case SCENE_PLAY:	// プレイ
 		DrawPlayScene();
 		break;
+
+	case SCENE_CLEAR:
+		DrawClearScene();
+		break;
 	}
 }
 
@@ -163,6 +188,10 @@ void FinScene()
 
 	case SCENE_PLAY:	// プレイ
 		FinPlayScene();
+		break;
+
+	case SCENE_CLEAR:
+		FinClearScene();
 		break;
 	}
 }
