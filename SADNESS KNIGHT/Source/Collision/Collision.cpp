@@ -533,12 +533,7 @@ void ResolveCollisions()
 
                 if (player && player->currentHP > 0)
                 {
-                    // Big Quartist は接触ダメージなし（攻撃判定のみでダメージ）
-                    if (enemy != nullptr && enemy->type == EnemyType::BigQuartist)
-                    {
-                        // no-op
-                    }
-                    else if (g_playerEnemyHitCooldown <= 0)
+                    if (g_playerEnemyHitCooldown <= 0)
                     {
                         DamagePlayerHP(10);
                         g_playerEnemyHitCooldown = 30; // 0.5秒(60fps想定)
