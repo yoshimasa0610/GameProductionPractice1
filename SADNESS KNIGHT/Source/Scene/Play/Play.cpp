@@ -196,6 +196,11 @@ void UpdatePlayScene()
 		return;
 	}
 
+	if (CheckHitKey(KEY_INPUT_F))
+	{
+		ChangeScene(SCENE_CLEAR);
+	}
+
 	UpdateCheckpoint(
 		&g_SaveData,
 		(int)player.posX,
