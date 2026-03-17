@@ -118,6 +118,9 @@
     <Filter Include="Source\Overlay\SkillMenu">
       <UniqueIdentifier>{105d7c23-a3f6-412a-a444-92e52789aa19}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Scene\ClearScene">
+      <UniqueIdentifier>{4cd5ce96-48d5-4c42-9e00-7fcb2e1c306b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -273,6 +276,9 @@
     <ClCompile Include="Source\Overlay\SkillMenu\SkillMenu.cpp">
       <Filter>Source\Overlay\SkillMenu</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Scene\ClearScene\ClearScene.cpp">
+      <Filter>Source\Scene\ClearScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -427,6 +433,9 @@
     </ClInclude>
     <ClInclude Include="Source\Overlay\SkillMenu\SkillMenu.h">
       <Filter>Source\Overlay\SkillMenu</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\ClearScene\ClearScene.h">
+      <Filter>Source\Scene\ClearScene</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

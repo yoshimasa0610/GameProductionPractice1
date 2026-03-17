@@ -6,6 +6,7 @@ enum Scene
 	SCENE_NONE,
 	SCENE_TITLE,
 	SCENE_PLAY,
+	SCENE_CLEAR
 };
 
 // ƒV[ƒ“‚Ìó‘Ô

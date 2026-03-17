@@ -23,7 +23,7 @@
 #include "../../Skill/SkillData.h"
 #include "../../Skill/SkillManager.h"
 #include "../../Enemy/EnemyBase.h"
-#include "../../Enemy/Big Quartist/Big Quartist.h"
+#include "../../Enemy/Twisted Caltis/Twisted Caltis.h"
 
 static ItemField g_ItemField;
 
@@ -193,6 +193,11 @@ void UpdatePlayScene()
 		return;
 	}
 
+	if (CheckHitKey(KEY_INPUT_F))
+	{
+		ChangeScene(SCENE_CLEAR);
+	}
+
 	UpdateCheckpoint(
 		&g_SaveData,
 		(int)player.posX,
@@ -214,7 +219,7 @@ void UpdatePlayScene()
 		const float spawnX = playerX + (facingRight ? oneBlock : -oneBlock);
 		const float spawnY = playerY;
 
-		SpawnBigQuartist(spawnX, spawnY);
+		SpawnTwistedCultist(spawnX, spawnY);
 		g_EnemySpawned = true;
 	}
 
@@ -239,7 +244,6 @@ void DrawPlayScene()
 	DrawPlayer();
 	DrawUIImage();
 	g_MoneyManager.Draw();
-	DrawMoneyPopup();
 
 	if (IsOptionOpen())
 
