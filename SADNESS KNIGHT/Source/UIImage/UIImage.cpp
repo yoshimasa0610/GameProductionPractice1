@@ -5,6 +5,9 @@
 #include "../Skill/Skill.h"
 #include "../Skill/SkillData.h"
 #include "../Skill/SkillManager.h"
+#include "../Camera/Camera.h"
+#include "../Enemy/EnemyBase.h"
+#include "../Scene/Play/Play.h"
 
 // HPÉoÅ[âÊëú
 static int g_HPBarFrame = -1;
@@ -223,6 +226,44 @@ void DrawUIImage()
             );
         }
     }
+
+    // =====================
+    // ìGHPÉQÅ[ÉW
+    // =====================
+    CameraData cam = GetCamera();
+
+    for (int i = 0; i < GetEnemyCount(); i++)
+    {
+        EnemyData* enemy = GetEnemy(i);
+        if (enemy == nullptr) continue;
+        //if (!enemy->active) continue;
+        //if (enemy->currentHP <= 0) continue;
+
+        float rate = (float)enemy->currentHP / enemy->maxHP;
+
+        int barWidth = 50;
+        int barHeight = 6;
+
+        int screenX = (int)WorldToScreenX(enemy->posX, cam);
+        int screenY = (int)WorldToScreenY(enemy->posY, cam);
+
+        int x = screenX - barWidth / 2;
+        int y = screenY - (int)enemy->height - 10;
+
+        // îwåi
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
+
+        // HP
+        DrawBox(
+            x,
+            y,
+            x + (int)(barWidth * rate),
+            y + barHeight,
+            GetColor(255, 0, 0),
+            TRUE
+        );
+    }
+    DrawBox(100, 100, 200, 110, GetColor(255, 0, 0), TRUE);
 }
 
 void UnloadUIImage()
