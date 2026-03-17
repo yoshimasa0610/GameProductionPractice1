@@ -832,20 +832,11 @@ namespace
                 playerData.velocityY = 0.0f;
             }
 
-            // コライダー位置更新
+            // コライダー位置更新（落下攻撃時も通常判定を使用）
             if (g_playerColliderId != -1)
             {
-                if (!g_DiveAttackLanded)
-                {
-                    UpdatePlayerColliderDiveAttack(g_playerColliderId, playerData.posX, playerData.posY, 
-                                                   DIVE_ATTACK_WIDTH, DIVE_ATTACK_UP_HEIGHT, DIVE_ATTACK_DOWN_HEIGHT);
-                }
-                else if (!g_DiveAttackColliderRestored)
-                {
-                    UpdatePlayerColliderNormal(g_playerColliderId, playerData.posX, playerData.posY, 
-                                               (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
-                    g_DiveAttackColliderRestored = true;
-                }
+                UpdatePlayerColliderNormal(g_playerColliderId, playerData.posX, playerData.posY,
+                                           (float)PLAYER_WIDTH, (float)PLAYER_HEIGHT);
             }
 
             ResolveCollisions();

@@ -10,6 +10,7 @@
 #include "../Map/MapChip.h"
 #include "../Map/StageManager.h"
 #include "../Map/MapManager.h"
+#include "../BigBoss/BigBossBase.h"
 
 //
 // シンプルなコライダー実装
@@ -343,7 +344,7 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
     float bW = block.width;
     float bH = block.height;
 
-    // 中心差分で浸透量を計算
+    // 中心点と重なり量を計算
     float pCenterX = pLeft + pW * 0.5f;
     float pCenterY = pTop + pH * 0.5f;
     float bCenterX = bLeft + bW * 0.5f;
@@ -356,10 +357,36 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
 
     if (overlapX >= 0.0f && overlapY >= 0.0f)
     {
+        const bool descending = (player->velocityY >= 0.0f);
+        const bool ascending = (player->velocityY < 0.0f);
+
+        const bool wasAboveBlock = (player->prevPosY <= bTop + 1.0f);
+        const bool isAtOrBelowTopNow = (player->posY >= bTop);
+        const bool canLandFromAbove = descending && wasAboveBlock && isAtOrBelowTopNow;
+
+        const float blockBottom = bTop + bH;
+        const float prevTop = player->prevPosY - pH;
+        const bool wasBelowBlock = (prevTop >= blockBottom - 1.0f);
+        const bool isAtOrAboveBottomNow = (pTop <= blockBottom);
+        const bool canHitCeilingFromBelow = ascending && wasBelowBlock && isAtOrAboveBottomNow;
+
+        // 空中で壁に当たった時は横方向解決を優先（ただし明確な天井ヒット時は除く）
+        if (!player->isGrounded && !canLandFromAbove && !canHitCeilingFromBelow)
+        {
+            if (dx > 0.0f)
+                player->posX += overlapX;
+            else
+                player->posX -= overlapX;
+
+            pc.left = player->posX - pc.width * 0.5f;
+            pc.top = player->posY - pc.height;
+            return;
+        }
+
         if (overlapX < overlapY)
         {
             // 横方向に押し出す
-            if (dx > 0.0f) // プレイヤーが右側 -> 右へ押し出す
+            if (dx > 0.0f)
                 player->posX += overlapX;
             else
                 player->posX -= overlapX;
@@ -367,9 +394,13 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
         else
         {
             // 縦方向に押し出す
-            if (dy > 0.0f) // プレイヤーが下側 -> 下へ押し出す
+            if (dy > 0.0f) // プレイヤーが下側 -> 下へ押し出し（天井ヒット）
             {
                 player->posY += overlapY;
+                if (player->velocityY < 0.0f)
+                {
+                    player->velocityY = 0.0f;
+                }
             }
             else // プレイヤーが上側 -> ブロック上に着地
             {
@@ -378,9 +409,10 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
                 player->isGrounded = true;
                 player->jumpCount = 0;
             }
-            pc.left = player->posX - pc.width * 0.5f;
-            pc.top = player->posY - pc.height;
         }
+
+        pc.left = player->posX - pc.width * 0.5f;
+        pc.top = player->posY - pc.height;
     }
 }
 
@@ -567,14 +599,22 @@ void ResolveCollisions()
 
                 EnemyData* enemy = FindEnemyByColliderId(enemyC->id);
                 Skill* skill = static_cast<Skill*>(attackC->owner);
-                if (enemy != nullptr && skill != nullptr)
+                if (skill != nullptr)
                 {
-                    if (skill->RegisterHit(enemy))
+                    if (skill->RegisterHit(enemyC))
                     {
                         int damage = static_cast<int>(GetPlayerAttack() * skill->GetCurrentAttackRate());
                         if (damage < 1) damage = 1;
-                        enemy->currentHP -= damage;
-                        if (enemy->currentHP < 0) enemy->currentHP = 0;
+
+                        if (enemy != nullptr)
+                        {
+                            enemy->currentHP -= damage;
+                            if (enemy->currentHP < 0) enemy->currentHP = 0;
+                        }
+                        else
+                        {
+                            DamageBigBossByColliderId(enemyC->id, damage);
+                        }
                     }
                 }
             }

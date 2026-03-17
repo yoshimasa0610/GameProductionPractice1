@@ -23,7 +23,8 @@
 #include "../../Skill/SkillData.h"
 #include "../../Skill/SkillManager.h"
 #include "../../Enemy/EnemyBase.h"
-#include "../../Enemy/Twisted Caltis/Twisted Caltis.h"
+#include "../../BigBoss/BigBossBase.h"
+#include "../../BigBoss/Kether/Kether.h"
 
 static ItemField g_ItemField;
 
@@ -44,6 +45,7 @@ void InitPlayScene()
 	InitMoneyDrops();
 	InitMoneyPopup();
 	InitEnemySystem();
+	InitBigBossSystem();
 	InitPlayer(544.0f, 384.0f);
 }
 
@@ -129,6 +131,7 @@ void StepPlayScene()
 	g_ElapsedTime += deltaTime * slowMoScale;
 
 	UpdateEnemies();
+	UpdateBigBosses();
 
 	UpdateMoneyDrops(
 		player.posX,
@@ -214,7 +217,7 @@ void UpdatePlayScene()
 		const float spawnX = playerX + (facingRight ? oneBlock : -oneBlock);
 		const float spawnY = playerY;
 
-		SpawnTwistedCultist(spawnX, spawnY);
+		SpawnKether(spawnX, spawnY);
 		g_EnemySpawned = true;
 	}
 
@@ -236,6 +239,7 @@ void DrawPlayScene()
 	DrawForeground();
 
 	DrawEnemies();
+	DrawBigBosses();
 	DrawPlayer();
 	DrawUIImage();
 	g_MoneyManager.Draw();
@@ -264,6 +268,7 @@ void FinPlayScene()
 	UnloadUIImage();
 	// マップ終了
 	FinStage();
+	ClearBigBosses();
 
 }
 

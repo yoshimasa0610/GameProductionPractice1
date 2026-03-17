@@ -69,6 +69,14 @@ namespace
         return false;
     }
 
+    enum EnemyProjectileKind
+    {
+        ProjectileCultistFireball = 0,
+        ProjectileBigBook = 1,
+        ProjectileBigFlame = 2,
+        ProjectileBigShockwave = 3
+    };
+
     struct EnemyProjectile
     {
         bool active;
@@ -83,6 +91,9 @@ namespace
         int colliderId;
         int animFrame;
         int animCounter;
+        int kind;
+        float traveledDistance;
+        float maxTravelDistance;
     };
 
     std::vector<EnemyProjectile> g_enemyProjectiles;
@@ -172,6 +183,9 @@ namespace
             p.owner);
         p.animFrame = 0;
         p.animCounter = 0;
+        p.kind = ProjectileCultistFireball;
+        p.traveledDistance = 0.0f;
+        p.maxTravelDistance = 0.0f;
         g_enemyProjectiles.push_back(p);
     }
 
@@ -195,15 +209,6 @@ namespace
             {
                 p.animCounter = 0;
                 p.animFrame = (p.animFrame + 1) % 4;
-            }
-
-            int gridX = static_cast<int>(p.posX / mapBlockSize);
-            int gridY = static_cast<int>(p.posY / mapBlockSize);
-            MapChipData* mc = GetMapChipData(gridX, gridY);
-            if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
-            {
-                DestroyProjectile(p);
-                continue;
             }
 
             if (p.lifeTimer <= 0.0f)
@@ -554,9 +559,6 @@ namespace
     }
 }
 
-
-
-
 const EnemyConfig& GetEnemyConfig(EnemyType type)
 {
     return g_enemyConfigs[static_cast<int>(type)];
@@ -833,9 +835,13 @@ void UpdateEnemies()
                     e.attackColliderId = -1;
                 }
 
-                if ((e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist) && !e.isInvisible)
+                if (e.type == EnemyType::AssassinCultist && !e.isInvisible)
                 {
                     e.behaviorPattern = -1;
+                }
+                else if (e.type == EnemyType::BigQuartist)
+                {
+                    e.behaviorPattern = (e.behaviorPattern >= 10) ? 11 : 1;
                 }
             }
         }
@@ -885,10 +891,7 @@ void UpdateEnemies()
                         const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
                         const float attackLeft = e.posX + attackOffsetX;
                         const float attackTop = e.posY - attackHeight;
-                        if (!isBig)
-                        {
-                            e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
-                        }
+                        e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
 
                         if (e.animations != nullptr)
                         {
@@ -945,7 +948,7 @@ void UpdateEnemies()
 
                     if (canStart && (inWarpTrigger || inApproachTrigger))
                     {
-                        const int action = isBig ? 1 : GetRand(1); // Big�͐ڋߌŒ�
+                        const int action = isBig ? 1 : GetRand(1);
                         e.behaviorPattern = action;
 
                         if (action == 0)
@@ -1025,7 +1028,7 @@ void UpdateEnemies()
             }
         }
 
-        const bool approachMode = (specialType && e.behaviorPattern == 1 && !e.isInvisible);
+        const bool approachMode = (e.type == EnemyType::AssassinCultist && e.behaviorPattern == 1 && !e.isInvisible) || (e.type == EnemyType::BigQuartist);
         if (!e.isAttacking && !e.isInvisible && !approachMode && e.cooldownTimer <= 0.0f)
         {
             if (e.isAggro)
@@ -1055,7 +1058,7 @@ void UpdateEnemies()
             e.velocityX = 0.0f;
         }
 
-        if (!e.isGrounded)
+        if (!e.isGrounded && e.type != EnemyType::BigQuartist)
         {
             e.velocityY += GRAVITY * slowMoScale;
             if (e.velocityY > MAX_FALL_SPEED) e.velocityY = MAX_FALL_SPEED;
@@ -1135,8 +1138,9 @@ void UpdateEnemies()
         {
             const bool isBig = (e.type == EnemyType::BigQuartist);
             const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
-            const float attackWidth = isBig ? (e.width * BIG_ATTACK_WIDTH_SCALE) : (isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * ENEMY_ATTACK_WIDTH_SCALE));
-            const float attackHeight = isBig ? (e.height * BIG_ATTACK_HEIGHT_SCALE) : (isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : (e.height * ENEMY_ATTACK_HEIGHT_SCALE));
+
+            float attackWidth = isBig ? (e.width * BIG_ATTACK_WIDTH_SCALE) : (isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * ENEMY_ATTACK_WIDTH_SCALE));
+            float attackHeight = isBig ? (e.height * BIG_ATTACK_HEIGHT_SCALE) : (isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : (e.height * ENEMY_ATTACK_HEIGHT_SCALE));
 
             float attackLeft = 0.0f;
             if (isBig)
