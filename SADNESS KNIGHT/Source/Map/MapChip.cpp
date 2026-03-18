@@ -122,28 +122,33 @@ int DecideNormalBlockVisual(int x, int y)
 
 int DecideSemiSolidVisual(int x, int y)
 {
-    auto isSame = [&](int tx, int ty)
+    auto isNormal = [&](int tx, int ty)
     {
         if (tx < 0 || tx >= g_MapChipXNum ||
             ty < 0 || ty >= g_MapChipYNum)
         {
-            return false; // 範囲外は「繋がらない」
+            return false;
         }
 
         MapChipData* mc = GetMapChipData(tx, ty);
-        return mc && mc->mapChip == SEMI_SOLID_BLOCK;
+        return mc && mc->mapChip == NORMAL_BLOCK;
     };
 
-    bool left = isSame(x - 1, y);
-    bool right = isSame(x + 1, y);
+    bool leftWall = isNormal(x - 1, y);
+    bool rightWall = isNormal(x + 1, y);
 
-    // visual決定
-    if (!left && !right) return 0; // 単体
-    if (!left && right)  return 1; // 左端
-    if (left && right)   return 2; // 中央
-    if (left && !right)  return 3; // 右端
+    // 優先ルール
+    // 両方壁 → 中央
+    if (leftWall && rightWall) return 2;
 
-    return 0;
+    // 左に壁 → 左端（壁に接してる）
+    if (leftWall) return 1;
+
+    // 右に壁 → 右端
+    if (rightWall) return 3;
+
+    // どちらにも壁なし
+    return 0; // 単体 or 中央扱い（好みでOK）
 }
 
 // ============================

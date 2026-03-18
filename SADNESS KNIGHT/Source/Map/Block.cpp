@@ -105,28 +105,28 @@ void LoadBlock()
 
 	// 単体
 	g_SemiSolidHandles[0] = DerivationGraph(
-		60, 382,
+		60, 383,
 		32, 32,
 		objectSheet
 	);
 
 	// 左端
 	g_SemiSolidHandles[1] = DerivationGraph(
-		92, 382,
+		28, 383,
 		32, 32,
 		objectSheet
 	);
 
 	// 中央
 	g_SemiSolidHandles[2] = DerivationGraph(
-		124, 382,
+		60, 383,
 		32, 32,
 		objectSheet
 	);
 
 	// 右端
 	g_SemiSolidHandles[3] = DerivationGraph(
-		156, 382,
+		99, 383,
 		32, 32,
 		objectSheet
 	);

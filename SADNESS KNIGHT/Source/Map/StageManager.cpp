@@ -111,7 +111,7 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	LoadBackground(stageName);
 	StartMap();
 	LoadExitInfo(stageName);
-	LoadEnemiesFromCSV(stageName);
+	LoadEnemiesFromCSV(GetCurrentStageName());
 	// プレイヤーのスポーン位置を反映
 	PlayerData& player = GetPlayerData();
 	player.posX = playerSpawnX;

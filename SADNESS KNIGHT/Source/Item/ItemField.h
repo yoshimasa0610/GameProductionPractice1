@@ -9,7 +9,8 @@ struct SaveData;
 // フィールドに落ちているアイテムひとつ
 struct FieldItem
 {
-    // fieldItemId は itemId と同一の値を使用する
+    // fieldItemId は「配置ごとのユニークID」
+    // itemId は「アイテム種類ID」
     int fieldItemId;
     float x, y;             // 位置
     float w, h;             // サイズ（白い四角）

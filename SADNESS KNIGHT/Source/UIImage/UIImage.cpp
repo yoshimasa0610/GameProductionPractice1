@@ -177,10 +177,7 @@ void DrawUIImage()
     }
     //DrawGraph(300, 300, g_HealIcon, TRUE);
 
-    // =====================
-// ÉXÉLÉãUI
-// =====================
-
+    // ÉXÉLÉãUI
     int currentSet = g_SkillManager.GetCurrentSet();
 
     for (int i = 0; i < 3; i++)
@@ -228,10 +225,37 @@ void DrawUIImage()
             );
         }
     }
+    
+    // ìGHPÉQÅ[ÉW
+    CameraData cam = GetCamera();
 
-    // =====================
-// É{ÉXHPÉQÅ[ÉW
-// =====================
+    for (int i = 0; i < GetEnemyCount(); i++)
+    {
+        EnemyData* enemy = GetEnemy(i);
+        if (enemy == nullptr) continue;
+        if (!enemy->active) continue;
+
+        float rate = (float)enemy->currentHP / enemy->maxHP;
+
+        int barWidth = 50;
+        int barHeight = 6;
+
+        int screenX = (int)WorldToScreenX(enemy->posX, cam);
+        int screenY = (int)WorldToScreenY(enemy->posY, cam);
+
+        int x = screenX - barWidth / 2;
+        int y = screenY - (int)enemy->height - 10;
+
+        // îwåi
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
+
+        // HP
+        DrawBox(x,y,x + (int)(barWidth * rate),y + barHeight,GetColor(255, 0, 0),TRUE);
+
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(255, 255, 255), FALSE);
+    }
+    
+    // É{ÉXHPÉQÅ[ÉW
     if (IsBigBossAlive())
     {
         int hp = GetBigBossHP();
@@ -242,23 +266,19 @@ void DrawUIImage()
         int barWidth = 400;
         int barHeight = 20;
 
-        int x = 300;
-        int y = 50;
+        int screenW, screenH;
+        GetScreenState(&screenW, &screenH, NULL);
+
+        int x = screenW - barWidth - 20;
+        int y = screenH - barHeight - 20;
 
         // îwåi
         DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
 
         // HP
-        DrawBox(
-            x,
-            y,
-            x + (int)(barWidth * rate),
-            y + barHeight,
-            GetColor(255, 50, 50),
-            TRUE
-        );
+        DrawBox(x,y,x + (int)(barWidth * rate),y + barHeight,GetColor(255, 50, 50),TRUE);
 
-        // ògÅiîíÅj
+        // òg
         DrawBox(x, y, x + barWidth, y + barHeight, GetColor(255, 255, 255), FALSE);
     }
 }
