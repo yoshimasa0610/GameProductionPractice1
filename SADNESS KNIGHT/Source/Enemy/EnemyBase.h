@@ -27,7 +27,6 @@ struct MapChipData;
 enum class EnemyType
 {
     Slime,              // スライム：低HP、遅い
-    Skeleton,           // スケルトン：中堅、ジャンプ可能
     Cultists,           // カルティスト：汎用近接
     AssassinCultist,    // アサシン：素早い
     BigQuartist,        // ビッグクォーティスト：ボス級

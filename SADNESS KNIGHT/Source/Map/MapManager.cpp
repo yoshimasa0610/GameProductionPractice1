@@ -15,7 +15,7 @@
 // 内部データ
 // ===================================================
 static std::string g_DebugLog = "";
-static char g_CurrentMap[128] = "forest_1";
+//static char g_CurrentMap[128] = "forest_1";
 
 #define CHECK_ROUND_NUM (2)  // プレイヤー周囲のチェック範囲
 
@@ -47,7 +47,7 @@ inline bool IsBreakableBlock(MapChipType type)
 // ===================================================
 const char* GetCurrentMapName()
 {
-	return g_CurrentMap;
+	return GetCurrentStageName();
 }
 
 int GetMapWidth()
@@ -137,7 +137,6 @@ void DrawMap()
 // ===================================================
 void ChangeMap(const char* mapFolder)
 {
-	strcpy_s(g_CurrentMap, sizeof(g_CurrentMap), mapFolder);
 	SetCurrentStage(mapFolder);
 	LoadMap(mapFolder);
 	StartMap();
@@ -145,7 +144,6 @@ void ChangeMap(const char* mapFolder)
 
 void ChangeMap(const char* mapFolder, float newPlayerX, float newPlayerY)
 {
-	strcpy_s(g_CurrentMap, sizeof(g_CurrentMap), mapFolder);
 	LoadMap(mapFolder);
 	StartMap();
 	GetPlayerPos(newPlayerX, newPlayerY);

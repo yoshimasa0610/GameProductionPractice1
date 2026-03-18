@@ -15,7 +15,6 @@
 EnemyType StringToEnemyType(const std::string& str)
 {
     if (str == "Slime") return EnemyType::Slime;
-    if (str == "Skeleton") return EnemyType::Skeleton;
     if (str == "Cultists") return EnemyType::Cultists;
     if (str == "AssassinCultist") return EnemyType::AssassinCultist;
     if (str == "BigQuartist") return EnemyType::BigQuartist;
@@ -23,68 +22,13 @@ EnemyType StringToEnemyType(const std::string& str)
     printf("Unknown enemy type: %s\n", str.c_str());
     return EnemyType::Slime; // fallback
 }
-
-void LoadEnemiesFromCSV(const char* stageName)
-{
-    // CSVファイルのパスを構築
-    std::string path = "Data/Map/";
-    path += stageName;
-    path += "/Enemy.csv";
-    // CSVファイルを開く
-    std::ifstream file(path);
-    if (!file.is_open())
-    {
-        printf("Enemy CSV not found: %s\n", path.c_str());
-        return;
-    }
-    // CSVの各行を読み取るための変数
-    std::string line;
-
-    // 1行目スキップ（ヘッダー）
-    std::getline(file, line);
-
-    while (std::getline(file, line))
-    {
-        // 空行スキップ
-        if (line.empty()) continue;
-        // 行をカンマで分割
-        std::stringstream ss(line);
-        // CSVの各列を読み取る
-        std::string typeStr;
-        std::string xStr, yStr;
-        // CSVのフォーマット: Type,X,Y
-        std::getline(ss, typeStr, ',');
-        std::getline(ss, xStr, ',');
-        std::getline(ss, yStr, ',');
-        // 必須項目がない行はスキップ
-        if (typeStr.empty() || xStr.empty() || yStr.empty()) continue;
-
-        // Excelの行列番号をゲーム座標に変換
-        try
-        {
-            EnemyType type = StringToEnemyType(typeStr);
-
-            float gridX = std::stof(xStr);
-            float gridY = std::stof(yStr);
-
-            float x = gridX * MAP_CHIP_WIDTH;
-            float y = gridY * MAP_CHIP_HEIGHT;
-
-            SpawnEnemy(type, x, y);
-        }
-        // 例外キャッチ（数値変換失敗など）
-        catch (...)
-        {
-            printf("Invalid CSV line skipped: %s\n", line.c_str());
-            continue;
-        }
-    }
-
-    file.close();
-}
-
 namespace
 {
+    int g_loadedEnemyCount = 0;
+    bool g_enemyCSVLoaded = false;
+    std::string g_enemyCSVPath = "";
+    bool g_enemyCSVFailed = false;
+
     std::vector<EnemyData> g_enemies;
     static int g_EnemyDebugFrame = 0;
 
@@ -426,12 +370,6 @@ namespace
         
         // Slime: 初心者向けの弱い敵
         { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.45f, 1.5f, false, 0.0f, "Assets/Enemies/Slime/" },
-
-
-
-        
-        // Skeleton: 標準的な敵、ジャンプで追いかけてくる
-        { 60, 12, 1.5f, 30.0f, 56.0f, 280.0f, 48.0f, 0.2f, 1.0f, true, 8.0f, "Assets/Enemies/Skeleton/" },
         
         // Cultists: 近接＋火球の戦闘員
         { 40, 12, 1.2f, 50.0f, 50.0f, 320.0f, 96.0f, 0.35f, 1.0f, false, 0.0f, "Assets/Enemies/Cultists/" },
@@ -726,6 +664,53 @@ int SpawnEnemy(EnemyType type, float x, float y)
     return static_cast<int>(g_enemies.size() - 1);
 }
 
+void LoadEnemiesFromCSV(const char* stageName)
+{
+    std::string path = "Data/Enemy/EnemySpawn/";
+    path += stageName;
+    path += "_Spawn.csv";
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        return;
+    }
+
+    std::string line;
+    std::getline(file, line); // ヘッダ
+
+    while (std::getline(file, line))
+    {
+        if (line.empty()) continue;
+
+        std::stringstream ss(line);
+        std::string typeStr, xStr, yStr;
+
+        std::getline(ss, typeStr, ',');
+        std::getline(ss, xStr, ',');
+        std::getline(ss, yStr, ',');
+
+        if (typeStr.empty() || xStr.empty() || yStr.empty()) continue;
+
+        try
+        {
+            EnemyType type = StringToEnemyType(typeStr);
+
+            float gridX = std::stof(xStr);
+            float gridY = std::stof(yStr);
+
+            float x = gridX * MAP_CHIP_WIDTH;
+            float y = gridY * MAP_CHIP_HEIGHT;
+
+            SpawnEnemy(type, x, y);
+        }
+        catch (...)
+        {
+            printf("Invalid CSV line skipped: %s\n", line.c_str());
+        }
+    }
+
+    file.close();
+}
 
 
 

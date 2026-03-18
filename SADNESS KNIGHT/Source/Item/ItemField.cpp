@@ -87,6 +87,9 @@ void ItemField::LoadCSV(const std::string& path)
         // 空ファイル
         return;
     }
+
+    std::unordered_set<int> localIdCheck;
+
     while (std::getline(file, line))
     {
         if (line.empty()) continue;
@@ -99,6 +102,12 @@ void ItemField::LoadCSV(const std::string& path)
         // fieldItemId
         if (!std::getline(ss, token, ',')) continue;
         item.fieldItemId = std::stoi(token);
+        if (localIdCheck.count(item.fieldItemId))
+        {
+            printfDx(" 重複 fieldItemId 検出: %d\n", item.fieldItemId);
+            continue;
+        }
+        localIdCheck.insert(item.fieldItemId);
 
         // x
         if (!std::getline(ss, token, ',')) continue;
