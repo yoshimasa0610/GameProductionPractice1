@@ -8,6 +8,7 @@
 #include "../Collision/Collision.h"
 #include "../Map/MapManager.h"
 #include "../Camera/Camera.h"
+#include "../Map/Checkpoint/CheckpointManager.h"
 
 // プレイヤーのパラメータ定数
 namespace
@@ -628,6 +629,12 @@ namespace
 {
     void ProcessInput()
     {
+        // 座ってる間は操作禁止
+        if (IsPlayerSitting())
+        {
+            playerData.velocityX = 0.0f;
+            return;
+        }
         ProcessMovement();
         ProcessSkills();
     }

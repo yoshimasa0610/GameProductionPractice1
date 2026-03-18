@@ -12,6 +12,7 @@
 #include <vector>
 #include <cstdio>
 #include "../../Camera/Camera.h"
+#include "../../Skill/SkillManager.h"
 
 static const int INTERACTION_KEY = KEY_UP;
 static std::vector<Checkpoint> g_Checkpoints;
@@ -46,13 +47,19 @@ void InitCheckpoint(const char* stageName)
     fgets(line, sizeof(line), fp);
 
     Checkpoint cp;
+    int gridX, gridY;
+
     while (fscanf_s(fp, "%d,%d,%d,%d,%d",
         &cp.id,
-        &cp.x,
-        &cp.y,
+        &gridX,
+        &gridY,
         &cp.w,
         &cp.h) == 5)
     {
+        cp.x = gridX * MAP_CHIP_WIDTH;
+        cp.y = gridY * MAP_CHIP_HEIGHT;
+        cp.w *= MAP_CHIP_WIDTH;
+        cp.h *= MAP_CHIP_HEIGHT;
         g_Checkpoints.push_back(cp);
     }
 
@@ -65,8 +72,8 @@ void InitCheckpoint(const char* stageName)
 void DrawCheckpoint()
 {
     CameraData camera = GetCamera();
-
     for (const auto& cp : g_Checkpoints)
+
     {
         int drawX = (int)WorldToScreenX((float)cp.x, camera);
         int drawY = (int)WorldToScreenY((float)cp.y, camera);
@@ -106,6 +113,20 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
     PlayerData& player = GetPlayerData(); // Player.cpp で定義されているグローバル
     //g_PlayerData.hp = g_PlayerData.maxHp;
 
+    // =========================
+    // 回復処理
+    // =========================
+    // HP全回復
+    player.currentHP = player.maxHP;
+    // 回復回数リセット
+    player.healCount = player.maxHealCount;
+    // スキル回数リセット
+    g_SkillManager.RecalculateUses(&player);
+
+
+        // 座る
+    SetSitState(SitState::Sitting);
+
     // セーブ通知
     ReachCheckpoint(
         cp.x,
@@ -121,12 +142,6 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
     ExportSaveData(save);
     SaveGame(save, 0); // 仮にスロット0に固定
     */
-    // 座っている状態にする
-    SetPlayerSitting(true);
-
-    // 簡易な画面表示（デバッグ）
-    // 実際は UI にメッセージ表示するほうが良いですがここでは簡易表示
-    DrawString(100, 100, "休憩中... 体力回復＆セーブ完了", GetColor(0, 255, 0));
 }
 
 // ===============================
@@ -146,16 +161,23 @@ static void CheckpointInteraction(
         cp.isPlayerNear = true;
 
         // 座る（セーブと回復）  トリガー判定を使う
-        if (IsTriggerKey(KEY_UP))
+        if (cp.isPlayerNear && IsTriggerKey(KEY_UP))
         {
-            ActivateCheckpoint(save, cp);
+            if (!IsPlayerSitting())
+            {
+                ActivateCheckpoint(save, cp);
+            }
+            else
+            {
+                // 立つ
+                SetSitState(SitState::None);
+            }
         }
     }
     else
     {
         cp.isPlayerNear = false;
         // 椅子から離れたら座りフラグを解除
-        SetPlayerSitting(false);
     }
 
     // 座っているときのみ装備着脱が許可されるが、メニュー自体はどこでも開ける仕様。

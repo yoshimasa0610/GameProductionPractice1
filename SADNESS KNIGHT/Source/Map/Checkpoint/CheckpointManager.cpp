@@ -1,14 +1,18 @@
 #include "CheckpointManager.h"
 
-// 非公開の静的フラグ
-static bool s_PlayerSitting = false;
+static SitState s_SitState = SitState::None;
 
-void SetPlayerSitting(bool sitting)
+void SetSitState(SitState state)
 {
-    s_PlayerSitting = sitting;
+    s_SitState = state;
+}
+
+SitState GetSitState()
+{
+    return s_SitState;
 }
 
 bool IsPlayerSitting()
 {
-    return s_PlayerSitting;
+    return s_SitState == SitState::Sitting;
 }

@@ -1,4 +1,4 @@
-2 5 forest_1 1952 576
-2 6 forest_1 1952 576
+2 5 forest_1 1504 576
+2 6 forest_1 1504 576
 64 24 forest_3 128 96
 64 25 forest_3 128 96
