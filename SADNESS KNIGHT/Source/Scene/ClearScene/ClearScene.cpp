@@ -20,7 +20,7 @@ static bool g_StartFade = false;
 
 void InitClearScene()
 {
-
+    //Šç‚ª‚ ‚©‚ñ‚í
 }
 
 void LoadClearScene()

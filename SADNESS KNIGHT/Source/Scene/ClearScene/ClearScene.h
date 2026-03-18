@@ -1,6 +1,6 @@
 #pragma once
 
-// クリア画面
+// クリア画面や。次の禪院家当主は俺なんやから
 
 void InitClearScene();
 void LoadClearScene();
