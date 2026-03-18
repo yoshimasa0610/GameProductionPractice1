@@ -646,7 +646,30 @@ void ResolveCollisions()
                 Skill* skill = static_cast<Skill*>(attackC->owner);
                 if (skill != nullptr)
                 {
-                    if (skill->RegisterHit(enemyC))
+                    // ‚Ç‚Ì’e‚©“Á’è
+                    auto* bullet = skill->FindBulletByCollider(attackC->id);
+
+                    bool canHit = false;
+
+                    if (bullet)
+                    {
+                        // ===== Follow’e‚Ìˆ— =====
+                        if (bullet->hitTargets.find(enemyC) == bullet->hitTargets.end())
+                        {
+                            bullet->hitTargets.insert(enemyC);
+                            canHit = true;
+                        }
+                    }
+                    else
+                    {
+                        // ===== ’ÊíƒXƒLƒ‹‚Ìˆ— =====
+                        if (skill->RegisterHit(enemyC))
+                        {
+                            canHit = true;
+                        }
+                    }
+
+                    if (canHit)
                     {
                         int damage = static_cast<int>(GetPlayerAttack() * skill->GetCurrentAttackRate());
                         if (damage < 1) damage = 1;

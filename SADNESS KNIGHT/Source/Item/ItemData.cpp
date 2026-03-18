@@ -150,8 +150,8 @@ void InitAllItems()
         item->systemDesc = {
             "Å‘å‘Ì—Í‚ª5%‘‰Á‚·‚é"
         };
-        item->iconSmallPath = "Data/Item/Icon/aaa_small.png";
-        item->iconLargePath = "Data/Item/Icon/aaa_large.png";
+        item->iconSmallPath = "Data/Item/Icon/HP_small.png";
+        item->iconLargePath = "Data/Item/Icon/HP_large.png";
         g_ItemManager.AddItem(std::move(item));
     }
 }
