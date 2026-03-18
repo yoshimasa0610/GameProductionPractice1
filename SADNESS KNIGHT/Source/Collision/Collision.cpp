@@ -333,87 +333,132 @@ static void ResolvePlayerBlock(PlayerData* player, const Collider& block, Collid
 {
     if (player == nullptr) return;
 
-    // プレイヤー矩形（左上基準）
-    float pLeft = pc.left;
-    float pTop = pc.top;
-    float pW = pc.width;
-    float pH = pc.height;
+    const float pW = pc.width;
+    const float pH = pc.height;
 
-    float bLeft = block.left;
-    float bTop = block.top;
-    float bW = block.width;
-    float bH = block.height;
+    const float bLeft = block.left;
+    const float bTop = block.top;
+    const float bRight = block.left + block.width;
+    const float bBottom = block.top + block.height;
 
-    // 中心点と重なり量を計算
-    float pCenterX = pLeft + pW * 0.5f;
-    float pCenterY = pTop + pH * 0.5f;
-    float bCenterX = bLeft + bW * 0.5f;
-    float bCenterY = bTop + bH * 0.5f;
+    const float curLeft = pc.left;
+    const float curTop = pc.top;
+    const float curRight = curLeft + pW;
+    const float curBottom = curTop + pH;
 
-    float dx = pCenterX - bCenterX;
-    float dy = pCenterY - bCenterY;
-    float overlapX = (pW * 0.5f + bW * 0.5f) - std::fabs(dx);
-    float overlapY = (pH * 0.5f + bH * 0.5f) - std::fabs(dy);
+    const float prevLeft = player->prevPosX - pW * 0.5f;
+    const float prevTop = player->prevPosY - pH;
+    const float prevRight = prevLeft + pW;
+    const float prevBottom = prevTop + pH;
 
-    if (overlapX >= 0.0f && overlapY >= 0.0f)
+    // そもそも重なっていなければ何もしない
+    if (!AABBIntersect(curLeft, curTop, pW, pH, block.left, block.top, block.width, block.height))
     {
-        const bool descending = (player->velocityY >= 0.0f);
-        const bool ascending = (player->velocityY < 0.0f);
+        return;
+    }
 
-        const bool wasAboveBlock = (player->prevPosY <= bTop + 1.0f);
-        const bool isAtOrBelowTopNow = (player->posY >= bTop);
-        const bool canLandFromAbove = descending && wasAboveBlock && isAtOrBelowTopNow;
+    const bool overlapX = (curRight > bLeft && curLeft < bRight);
+    const bool overlapY = (curBottom > bTop && curTop < bBottom);
 
-        const float blockBottom = bTop + bH;
-        const float prevTop = player->prevPosY - pH;
-        const bool wasBelowBlock = (prevTop >= blockBottom - 1.0f);
-        const bool isAtOrAboveBottomNow = (pTop <= blockBottom);
-        const bool canHitCeilingFromBelow = ascending && wasBelowBlock && isAtOrAboveBottomNow;
+    const float overlapWidth = std::fmax(0.0f, std::fmin(curRight, bRight) - std::fmax(curLeft, bLeft));
+    const bool cornerLikeCeilingContact = (overlapWidth <= pW * 0.40f);
+    const bool pushingRightWallNow = (player->velocityX > 0.0f && curRight > bLeft && prevRight <= bLeft + 2.0f);
+    const bool pushingLeftWallNow = (player->velocityX < 0.0f && curLeft < bRight && prevLeft >= bRight - 2.0f);
+    const bool movingIntoWallNow = (pushingRightWallNow || pushingLeftWallNow);
 
-        // 空中で壁に当たった時は横方向解決を優先（ただし明確な天井ヒット時は除く）
-        if (!player->isGrounded && !canLandFromAbove && !canHitCeilingFromBelow)
+    // 1) 着地判定（上から）
+    if (player->velocityY >= 0.0f && overlapX && prevBottom <= bTop + 1.0f && curBottom >= bTop)
+    {
+        player->posY = bTop;
+        player->velocityY = 0.0f;
+        player->isGrounded = true;
+        player->jumpCount = 0;
+
+        pc.left = player->posX - pW * 0.5f;
+        pc.top = player->posY - pH;
+        return;
+    }
+
+    // 2) 天井ヒット（下から）
+    if (player->velocityY < 0.0f && overlapX && prevTop >= bBottom - 1.0f && curTop <= bBottom
+        && !(cornerLikeCeilingContact && movingIntoWallNow))
+    {
+        player->posY = bBottom + pH;
+        player->velocityY = 0.0f;
+
+        pc.left = player->posX - pW * 0.5f;
+        pc.top = player->posY - pH;
+        return;
+    }
+
+    // 3) 壁ヒット（左右）
+    if (overlapY)
+    {
+        const float wallSnapEps = 1.25f;
+        const bool pushingRightWall = (player->velocityX > 0.0f && curRight > bLeft && curLeft < bLeft);
+        const bool pushingLeftWall = (player->velocityX < 0.0f && curLeft < bRight && curRight > bRight);
+
+        // 空中で移動入力により壁へ押し込んだ時は、最優先で横補正して引っかかりを防ぐ
+        if (!player->isGrounded && (pushingRightWall || pushingLeftWall))
         {
-            if (dx > 0.0f)
-                player->posX += overlapX;
+            if (pushingRightWall)
+            {
+                player->posX = (bLeft - wallSnapEps) - pW * 0.5f;
+            }
             else
-                player->posX -= overlapX;
+            {
+                player->posX = (bRight + wallSnapEps) + pW * 0.5f;
+            }
 
-            pc.left = player->posX - pc.width * 0.5f;
-            pc.top = player->posY - pc.height;
+            pc.left = player->posX - pW * 0.5f;
+            pc.top = player->posY - pH;
             return;
         }
 
-        if (overlapX < overlapY)
+        if (player->velocityX > 0.0f && prevRight <= bLeft + 1.0f && curRight >= bLeft)
         {
-            // 横方向に押し出す
-            if (dx > 0.0f)
-                player->posX += overlapX;
-            else
-                player->posX -= overlapX;
+            player->posX = bLeft - pW * 0.5f;
+            pc.left = player->posX - pW * 0.5f;
+            pc.top = player->posY - pH;
+            return;
         }
-        else
+        if (player->velocityX < 0.0f && prevLeft >= bRight - 1.0f && curLeft <= bRight)
         {
-            // 縦方向に押し出す
-            if (dy > 0.0f) // プレイヤーが下側 -> 下へ押し出し（天井ヒット）
-            {
-                player->posY += overlapY;
-                if (player->velocityY < 0.0f)
-                {
-                    player->velocityY = 0.0f;
-                }
-            }
-            else // プレイヤーが上側 -> ブロック上に着地
-            {
-                player->posY -= overlapY;
-                player->velocityY = 0.0f;
-                player->isGrounded = true;
-                player->jumpCount = 0;
-            }
+            player->posX = bRight + pW * 0.5f;
+            pc.left = player->posX - pW * 0.5f;
+            pc.top = player->posY - pH;
+            return;
         }
-
-        pc.left = player->posX - pc.width * 0.5f;
-        pc.top = player->posY - pc.height;
     }
+
+    // 4) 最後の保険: 重なりが小さい軸へ押し出し
+    const float pCenterX = curLeft + pW * 0.5f;
+    const float pCenterY = curTop + pH * 0.5f;
+    const float bCenterX = (bLeft + bRight) * 0.5f;
+    const float bCenterY = (bTop + bBottom) * 0.5f;
+    const float dx = pCenterX - bCenterX;
+    const float dy = pCenterY - bCenterY;
+    const float penX = (pW * 0.5f + block.width * 0.5f) - std::fabs(dx);
+    const float penY = (pH * 0.5f + block.height * 0.5f) - std::fabs(dy);
+
+    const bool airborneWallClimbRisk = (!player->isGrounded && player->velocityY < 0.0f);
+    if (airborneWallClimbRisk)
+    {
+        // 上昇中はジャンプ継続を優先し、常に横方向へ逃がす
+        if (dx >= 0.0f) player->posX += penX;
+        else player->posX -= penX;
+    }
+    else if (penX < penY)
+    {
+        player->posX += (dx >= 0.0f) ? penX : -penX;
+    }
+    else
+    {
+        player->posY += (dy >= 0.0f) ? penY : -penY;
+    }
+
+    pc.left = player->posX - pW * 0.5f;
+    pc.top = player->posY - pH;
 }
 
 // 衝突解決メイン（シンプルな O(n^2)）
