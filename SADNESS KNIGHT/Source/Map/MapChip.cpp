@@ -120,6 +120,32 @@ int DecideNormalBlockVisual(int x, int y)
     return v;
 }
 
+int DecideSemiSolidVisual(int x, int y)
+{
+    auto isSame = [&](int tx, int ty)
+    {
+        if (tx < 0 || tx >= g_MapChipXNum ||
+            ty < 0 || ty >= g_MapChipYNum)
+        {
+            return false; // 範囲外は「繋がらない」
+        }
+
+        MapChipData* mc = GetMapChipData(tx, ty);
+        return mc && mc->mapChip == SEMI_SOLID_BLOCK;
+    };
+
+    bool left = isSame(x - 1, y);
+    bool right = isSame(x + 1, y);
+
+    // visual決定
+    if (!left && !right) return 0; // 単体
+    if (!left && right)  return 1; // 左端
+    if (left && right)   return 2; // 中央
+    if (left && !right)  return 3; // 右端
+
+    return 0;
+}
+
 // ============================
 // マップ作成（BlockData生成）
 // ============================
@@ -155,6 +181,11 @@ void CreateMap()
             if (type == NORMAL_BLOCK)
             {
                 visual = DecideNormalBlockVisual(x, y);
+            }
+
+            if (type == SEMI_SOLID_BLOCK)
+            {
+                visual = DecideSemiSolidVisual(x, y);
             }
 
             g_MapChip[y][x].data = CreateBlock(type, pos, visual);

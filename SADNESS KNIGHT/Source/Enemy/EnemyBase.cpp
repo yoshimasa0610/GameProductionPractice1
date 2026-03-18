@@ -7,9 +7,81 @@
 #include "DxLib.h"
 #include <cmath>
 #include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include "../Map/MapParameter.h"
 
+EnemyType StringToEnemyType(const std::string& str)
+{
+    if (str == "Slime") return EnemyType::Slime;
+    if (str == "Skeleton") return EnemyType::Skeleton;
+    if (str == "Cultists") return EnemyType::Cultists;
+    if (str == "AssassinCultist") return EnemyType::AssassinCultist;
+    if (str == "BigQuartist") return EnemyType::BigQuartist;
+    if (str == "TwistedCaltis") return EnemyType::TwistedCaltis;
+    printf("Unknown enemy type: %s\n", str.c_str());
+    return EnemyType::Slime; // fallback
+}
 
+void LoadEnemiesFromCSV(const char* stageName)
+{
+    // CSVファイルのパスを構築
+    std::string path = "Data/Map/";
+    path += stageName;
+    path += "/Enemy.csv";
+    // CSVファイルを開く
+    std::ifstream file(path);
+    if (!file.is_open())
+    {
+        printf("Enemy CSV not found: %s\n", path.c_str());
+        return;
+    }
+    // CSVの各行を読み取るための変数
+    std::string line;
 
+    // 1行目スキップ（ヘッダー）
+    std::getline(file, line);
+
+    while (std::getline(file, line))
+    {
+        // 空行スキップ
+        if (line.empty()) continue;
+        // 行をカンマで分割
+        std::stringstream ss(line);
+        // CSVの各列を読み取る
+        std::string typeStr;
+        std::string xStr, yStr;
+        // CSVのフォーマット: Type,X,Y
+        std::getline(ss, typeStr, ',');
+        std::getline(ss, xStr, ',');
+        std::getline(ss, yStr, ',');
+        // 必須項目がない行はスキップ
+        if (typeStr.empty() || xStr.empty() || yStr.empty()) continue;
+
+        // Excelの行列番号をゲーム座標に変換
+        try
+        {
+            EnemyType type = StringToEnemyType(typeStr);
+
+            float gridX = std::stof(xStr);
+            float gridY = std::stof(yStr);
+
+            float x = gridX * MAP_CHIP_WIDTH;
+            float y = gridY * MAP_CHIP_HEIGHT;
+
+            SpawnEnemy(type, x, y);
+        }
+        // 例外キャッチ（数値変換失敗など）
+        catch (...)
+        {
+            printf("Invalid CSV line skipped: %s\n", line.c_str());
+            continue;
+        }
+    }
+
+    file.close();
+}
 
 namespace
 {
