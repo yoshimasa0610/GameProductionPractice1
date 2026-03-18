@@ -18,7 +18,8 @@ int g_NormalTileHandles[49];                       // 通常ブロックのタイル画像 (
 int g_PropHandles[32];
 // オブジェクト全般のシート（必要に応じて増やす）
 int objectSheet;
-// オートタイル変換テーブル（内部用）
+int g_SemiSolidHandles[4];
+
 // visual(0～15) → タイルシート番号に変換
 int g_AutoTileTable[16] =
 {
@@ -101,6 +102,34 @@ void LoadBlock()
 		35, 77,
 		objectSheet
 	);
+
+	// 単体
+	g_SemiSolidHandles[0] = DerivationGraph(
+		60, 382,
+		32, 32,
+		objectSheet
+	);
+
+	// 左端
+	g_SemiSolidHandles[1] = DerivationGraph(
+		92, 382,
+		32, 32,
+		objectSheet
+	);
+
+	// 中央
+	g_SemiSolidHandles[2] = DerivationGraph(
+		124, 382,
+		32, 32,
+		objectSheet
+	);
+
+	// 右端
+	g_SemiSolidHandles[3] = DerivationGraph(
+		156, 382,
+		32, 32,
+		objectSheet
+	);
 }
 
 //============================================================
@@ -179,7 +208,7 @@ void FinBlock()
 			g_BlockHandle[i] = 0;
 		}
 	}
-	
+
 	// タイル画像の解放
 	for (int i = 0; i < 49; i++)
 	{
@@ -267,6 +296,19 @@ BlockData* CreateBlock(MapChipType type, VECTOR pos, int visual)
 
 				block.collisionW = MAP_CHIP_WIDTH;
 				block.collisionH = MAP_CHIP_HEIGHT;
+			}
+			else if (type == SEMI_SOLID_BLOCK)
+			{
+				int index = visual;
+
+				// 安全対策（念のため）
+				if (index < 0 || index > 3) index = 0;
+
+				block.handle = g_SemiSolidHandles[index];
+
+				block.imageSize = 32.0f;
+				block.collisionW = MAP_CHIP_WIDTH;
+				block.collisionH = 8.0f;
 			}
 			else
 			{
