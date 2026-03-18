@@ -182,7 +182,5 @@ EnemyAnimations* LoadEnemyAnimations(EnemyType type);
 // 敵のアニメーションを解放
 void UnloadEnemyAnimations(EnemyAnimations* anims);
 
-
-
-
-
+// CSVから敵を読み込む
+void LoadEnemiesFromCSV(const char* stageName);

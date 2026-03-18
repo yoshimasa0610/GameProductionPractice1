@@ -7,6 +7,7 @@
 #include "../Scene/Play/Play.h"
 #include "../Fade/Fade.h"
 #include "../Map/Checkpoint/Checkpoint.h"
+#include "../Enemy/EnemyBase.h"
 //ステージの背景
 int g_BackgroundFar = -1; // 遠景
 int g_BackgroundMid = -1; // 中景
@@ -99,7 +100,7 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 
 	StartFadeOutEx(FadeType::Stage);
 	SetCurrentStage(stageName);
-	//ClearAllEnemies();
+	ClearEnemies();
 	FinMap();
 	DestroyCollidersByTag(ColliderTag::Block);
 	DestroyCollidersByTag(ColliderTag::Exit);
@@ -110,32 +111,7 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	LoadBackground(stageName);
 	StartMap();
 	LoadExitInfo(stageName);
-	//OnStageLoaded();
-	
-		// 敵スポーンCSVを読み込む
-	char csvPath[256];
-	sprintf_s(csvPath, "Data/EnemySpawn/%s_Spawn.csv", GetCurrentStageName());
-	// ログ：実際に開くパスを出す（画面上）
-	{
-		char dbg[256];
-		sprintf_s(dbg, "[SpawnCSV] Attempting load: %s", csvPath);
-		AddDebugLog(dbg);
-	}
-	/*
-	if (!g_EnemySpawnSystem.LoadSpawnCSV(csvPath))
-	{
-		char buf[256];
-		sprintf_s(buf, "[SpawnCSV] LOAD FAILED : %s", csvPath);
-		AddDebugLog(buf);
-	}
-	else
-	{
-		char buf[256];
-		sprintf_s(buf, "[SpawnCSV] LOAD SUCCESS : %s", csvPath);
-		AddDebugLog(buf);
-	}
-	*/
-
+	LoadEnemiesFromCSV(stageName);
 	// プレイヤーのスポーン位置を反映
 	PlayerData& player = GetPlayerData();
 	player.posX = playerSpawnX;
