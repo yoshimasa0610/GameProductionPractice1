@@ -8,6 +8,8 @@
 #include "../Camera/Camera.h"
 #include "../Enemy/EnemyBase.h"
 #include "../Scene/Play/Play.h"
+#include "../Collision/Collision.h"
+#include "../BigBoss/BigBossBase.h"
 
 // HPÉoÅ[âÊëú
 static int g_HPBarFrame = -1;
@@ -228,27 +230,20 @@ void DrawUIImage()
     }
 
     // =====================
-    // ìGHPÉQÅ[ÉW
-    // =====================
-    CameraData cam = GetCamera();
-
-    for (int i = 0; i < GetEnemyCount(); i++)
+// É{ÉXHPÉQÅ[ÉW
+// =====================
+    if (IsBigBossAlive())
     {
-        EnemyData* enemy = GetEnemy(i);
-        if (enemy == nullptr) continue;
-        //if (!enemy->active) continue;
-        //if (enemy->currentHP <= 0) continue;
+        int hp = GetBigBossHP();
+        int maxHp = GetBigBossMaxHP();
 
-        float rate = (float)enemy->currentHP / enemy->maxHP;
+        float rate = (float)hp / (float)maxHp;
 
-        int barWidth = 50;
-        int barHeight = 6;
+        int barWidth = 400;
+        int barHeight = 20;
 
-        int screenX = (int)WorldToScreenX(enemy->posX, cam);
-        int screenY = (int)WorldToScreenY(enemy->posY, cam);
-
-        int x = screenX - barWidth / 2;
-        int y = screenY - (int)enemy->height - 10;
+        int x = 300;
+        int y = 50;
 
         // îwåi
         DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
@@ -259,11 +254,13 @@ void DrawUIImage()
             y,
             x + (int)(barWidth * rate),
             y + barHeight,
-            GetColor(255, 0, 0),
+            GetColor(255, 50, 50),
             TRUE
         );
+
+        // ògÅiîíÅj
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(255, 255, 255), FALSE);
     }
-    DrawBox(100, 100, 200, 110, GetColor(255, 0, 0), TRUE);
 }
 
 void UnloadUIImage()
