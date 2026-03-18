@@ -90,9 +90,10 @@ namespace
 
     std::vector<BigBossData> g_bigBosses;
 
-    const float KETHER_BODY_HALF_WIDTH_RATIO = 0.15f;
-    const float KETHER_BODY_WIDTH_RATIO = 0.30f;
-    const float KETHER_BODY_HEIGHT_RATIO = 0.52f;
+    const float KETHER_BODY_HALF_WIDTH_RATIO = 0.09f;
+    const float KETHER_BODY_WIDTH_RATIO = 0.18f;
+    const float KETHER_BODY_HEIGHT_RATIO = 0.45f;
+    const float KETHER_BODY_TOP_OFFSET_RATIO = 0.82f;
 
     void ReleaseAnim(FrameAnim& a)
     {
@@ -462,7 +463,7 @@ namespace
         if (b.colliderId != -1)
         {
             const float left = b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO);
-            const float top = b.posY - (b.height * KETHER_BODY_HEIGHT_RATIO);
+            const float top = b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO);
             const float w = b.width * KETHER_BODY_WIDTH_RATIO;
             const float h = b.height * KETHER_BODY_HEIGHT_RATIO;
             UpdateCollider(b.colliderId, left, top, w, h);
@@ -540,6 +541,35 @@ namespace
     }
 }
 
+int GetBigBossHP()
+{
+    for (const auto& b : g_bigBosses)
+    {
+        if (!b.active) continue;
+        return b.hp;
+    }
+    return 0;
+}
+
+int GetBigBossMaxHP()
+{
+    for (const auto& b : g_bigBosses)
+    {
+        if (!b.active) continue;
+        return b.maxHP;
+    }
+    return 1;
+}
+
+bool IsBigBossAlive()
+{
+    for (const auto& b : g_bigBosses)
+    {
+        if (b.active) return true;
+    }
+    return false;
+}
+
 void InitBigBossSystem()
 {
     g_bigBosses.clear();
@@ -566,7 +596,7 @@ int SpawnBigBoss(BigBossType type, float x, float y)
     }
 
     const float left = b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO);
-    const float top = b.posY - (b.height * KETHER_BODY_HEIGHT_RATIO);
+    const float top = b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO);
     const float w = b.width * KETHER_BODY_WIDTH_RATIO;
     const float h = b.height * KETHER_BODY_HEIGHT_RATIO;
     b.colliderId = CreateCollider(ColliderTag::Enemy, left, top, w, h, nullptr);
@@ -632,9 +662,9 @@ void DrawBigBosses()
         DrawAnimFit(camera, b.posX, b.posY, b.width, b.height, body);
 
         const int cLeft = static_cast<int>(((b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO)) - camera.posX) * camera.scale);
-        const int cTop = static_cast<int>(((b.posY - (b.height * KETHER_BODY_HEIGHT_RATIO)) - camera.posY) * camera.scale);
+        const int cTop = static_cast<int>(((b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO)) - camera.posY) * camera.scale);
         const int cRight = static_cast<int>(((b.posX + (b.width * KETHER_BODY_HALF_WIDTH_RATIO)) - camera.posX) * camera.scale);
-        const int cBottom = static_cast<int>(((b.posY) - camera.posY) * camera.scale);
+        const int cBottom = static_cast<int>(((b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO) + (b.height * KETHER_BODY_HEIGHT_RATIO)) - camera.posY) * camera.scale);
         DrawBox(cLeft, cTop, cRight, cBottom, GetColor(255, 80, 80), FALSE);
 
         if (fx != -1)

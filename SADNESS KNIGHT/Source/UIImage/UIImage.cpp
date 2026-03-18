@@ -8,6 +8,8 @@
 #include "../Camera/Camera.h"
 #include "../Enemy/EnemyBase.h"
 #include "../Scene/Play/Play.h"
+#include "../Collision/Collision.h"
+#include "../BigBoss/BigBossBase.h"
 
 // HPバー画像
 static int g_HPBarFrame = -1;
@@ -175,10 +177,7 @@ void DrawUIImage()
     }
     //DrawGraph(300, 300, g_HealIcon, TRUE);
 
-    // =====================
-// スキルUI
-// =====================
-
+    // スキルUI
     int currentSet = g_SkillManager.GetCurrentSet();
 
     for (int i = 0; i < 3; i++)
@@ -226,18 +225,15 @@ void DrawUIImage()
             );
         }
     }
-
-    // =====================
+    
     // 敵HPゲージ
-    // =====================
     CameraData cam = GetCamera();
 
     for (int i = 0; i < GetEnemyCount(); i++)
     {
         EnemyData* enemy = GetEnemy(i);
         if (enemy == nullptr) continue;
-        //if (!enemy->active) continue;
-        //if (enemy->currentHP <= 0) continue;
+        if (!enemy->active) continue;
 
         float rate = (float)enemy->currentHP / enemy->maxHP;
 
@@ -254,16 +250,37 @@ void DrawUIImage()
         DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
 
         // HP
-        DrawBox(
-            x,
-            y,
-            x + (int)(barWidth * rate),
-            y + barHeight,
-            GetColor(255, 0, 0),
-            TRUE
-        );
+        DrawBox(x,y,x + (int)(barWidth * rate),y + barHeight,GetColor(255, 0, 0),TRUE);
+
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(255, 255, 255), FALSE);
     }
-    DrawBox(100, 100, 200, 110, GetColor(255, 0, 0), TRUE);
+    
+    // ボスHPゲージ
+    if (IsBigBossAlive())
+    {
+        int hp = GetBigBossHP();
+        int maxHp = GetBigBossMaxHP();
+
+        float rate = (float)hp / (float)maxHp;
+
+        int barWidth = 400;
+        int barHeight = 20;
+
+        int screenW, screenH;
+        GetScreenState(&screenW, &screenH, NULL);
+
+        int x = screenW - barWidth - 20;
+        int y = screenH - barHeight - 20;
+
+        // 背景
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
+
+        // HP
+        DrawBox(x,y,x + (int)(barWidth * rate),y + barHeight,GetColor(255, 50, 50),TRUE);
+
+        // 枠
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(255, 255, 255), FALSE);
+    }
 }
 
 void UnloadUIImage()

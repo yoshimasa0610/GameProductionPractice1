@@ -14,3 +14,7 @@ void ClearBigBosses();
 int SpawnBigBoss(BigBossType type, float x, float y);
 
 bool DamageBigBossByColliderId(int colliderId, int damage);
+
+int GetBigBossHP();
+int GetBigBossMaxHP();
+bool IsBigBossAlive();
