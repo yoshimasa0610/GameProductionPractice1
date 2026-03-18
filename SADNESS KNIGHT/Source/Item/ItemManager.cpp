@@ -55,6 +55,10 @@ bool ItemManager::EquipItem(int itemId, PlayerData* player)
     if (found->ownedCount <= 0) return false;
     if (found->isEquipped) return false;
 
+    if (found->type != ItemType::Equip)
+    {
+        return false;
+    }
     // スロットチェック：playerが渡されている場合のみ正確にチェックする
     if (player)
     {

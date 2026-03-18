@@ -96,6 +96,40 @@ void Skill::Activate(PlayerData* player)
         return;
     }
 
+    if (m_data.type == SkillType::Follow)
+    {
+        if (!CanUse()) return;
+
+        m_isActive = true;
+        m_activeTimer = m_data.duration;
+
+        StartCoolTime();
+
+        m_followAttackTimer = 0;
+
+        // 初期位置（プレイヤーの横）
+        float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
+
+        m_followPosX = player->posX + offset;
+        m_followPosY = player->posY - PLAYER_HEIGHT;
+
+        // 本体コライダー生成
+        if (m_followCollider == -1)
+        {
+            m_followCollider = CreateCollider(
+                ColliderTag::Other,
+                m_followPosX,
+                m_followPosY,
+                60,
+                60,
+                this
+            );
+        }
+
+        return;
+    }
+
+
     if (!CanUse()) return;
 
     // ...existing code...
@@ -225,6 +259,18 @@ void Skill::Update(PlayerData* player)
             return;
         }
 
+        // ===== 攻撃コライダー寿命 =====
+        if (m_followAttackCollider != -1)
+        {
+            m_followAttackLife--;
+
+            if (m_followAttackLife <= 0)
+            {
+                DestroyCollider(m_followAttackCollider);
+                m_followAttackCollider = -1;
+            }
+        }
+
         // プレイヤーに追従
         float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
 
@@ -239,14 +285,65 @@ void Skill::Update(PlayerData* player)
 
         // 攻撃間隔
         if (m_followAttackTimer > 0)
-            m_followAttackTimer--;
-
-        if (m_followAttackTimer <= 0)
         {
-            ClearHitTargets();
-            m_followAttackTimer = m_followAttackInterval;
-            if (m_onConsumeUse)
-                m_onConsumeUse(m_data.id);
+            m_followAttackTimer--;
+        }
+        else
+        {
+            // 溜め開始
+            if (m_followAttackDelay <= 0)
+            {
+                m_followAttackDelay = m_followAttackCharge;
+            }
+			// 溜め中
+            m_followAttackDelay--;
+			// 攻撃開始
+            if (m_followAttackDelay <= 0)
+            {
+                // 弾発射
+                float dir = player->isFacingRight ? 1.0f : -1.0f;
+
+                FollowBullet b;
+                b.x = m_followPosX;
+                b.y = m_followPosY - 20;
+                b.vx = dir * 8.0f;
+                b.vy = 0;
+                b.life = 60;
+				// コライダー生成
+                b.collider = CreateCollider(
+                    ColliderTag::Other,
+                    b.x,
+                    b.y,
+                    20,
+                    20,
+                    this
+                );
+				
+                m_followBullets.push_back(b);
+				// 攻撃コライダー生成
+                m_followAttackTimer = m_followAttackInterval;
+				// 弾薬消費
+                if (m_onConsumeUse)
+                    m_onConsumeUse(m_data.id);
+            }
+        }
+
+        // ===== 弾更新 =====
+        for (int i = (int)m_followBullets.size() - 1; i >= 0; --i)
+        {
+            auto& b = m_followBullets[i];
+
+            b.x += b.vx;
+            b.y += b.vy;
+            b.life--;
+
+            UpdateCollider(b.collider, b.x, b.y, 20, 20);
+
+            if (b.life <= 0)
+            {
+                DestroyCollider(b.collider);
+                m_followBullets.erase(m_followBullets.begin() + i);
+            }
         }
     }
 	// 召喚型の処理
@@ -330,14 +427,15 @@ void Skill::Update(PlayerData* player)
 // スキルの攻撃倍率の取得
 float Skill::GetCurrentAttackRate() const
 {
-    if (m_data.type != SkillType::Attack)
-        return 0.0f;
-
-    if (!m_data.comboSteps.empty())
+    if (m_data.type == SkillType::Attack)
     {
-        return m_data.comboSteps[m_comboIndex].attackRate;
+        if (!m_data.comboSteps.empty())
+            return m_data.comboSteps[m_comboIndex].attackRate;
+
+        return m_data.attackRate;
     }
 
+    // これ追加
     return m_data.attackRate;
 }
 
@@ -367,6 +465,12 @@ void Skill::ForceEnd()
         m_followCollider = -1;
     }
 
+    if (m_followAttackCollider != -1)
+    {
+        DestroyCollider(m_followAttackCollider);
+        m_followAttackCollider = -1;
+    }
+
     if (m_summonCollider != -1)
     {
         DestroyCollider(m_summonCollider);
@@ -381,4 +485,14 @@ void Skill::ForceEnd()
             DestroyCollider(s.attackCollider);
     }
     m_summons.clear();
+}
+
+Skill::FollowBullet* Skill::FindBulletByCollider(ColliderId id)
+{
+    for (auto& b : m_followBullets)
+    {
+        if (b.collider == id)
+            return &b;
+    }
+    return nullptr;
 }

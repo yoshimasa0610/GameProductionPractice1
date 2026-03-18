@@ -36,13 +36,13 @@ void RegisterSkills()
     {
         "前方に対して近接攻撃を行う。\n",
         "連続して攻撃を行うとコンボ攻撃に派生。\n"
-        "徐々にダメージ画高くなる\n"
+        "徐々にダメージが高くなる\n"
         "攻撃力25 / CT120"
     };
 
     Slash->flavorDesc =
     {
-        "騎士の剣。",
+        "\n\n騎士の剣。",
     };
 
     g_SkillDatabase.push_back(std::move(Slash));

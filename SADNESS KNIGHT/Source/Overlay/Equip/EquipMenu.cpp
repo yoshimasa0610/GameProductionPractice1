@@ -116,7 +116,7 @@ static void BuildOwnedIndexList(const std::vector<std::unique_ptr<Item>>& items,
     outIndices.clear();
     for (size_t i = 0; i < items.size(); ++i)
     {
-        if (items[i]->ownedCount > 0)
+        if (items[i]->ownedCount > 0 && items[i]->type == ItemType::Equip)
             outIndices.push_back((int)i);
     }
 }

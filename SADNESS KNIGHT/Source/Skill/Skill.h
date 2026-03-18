@@ -20,13 +20,31 @@ private:
     bool m_hitActive = false;
     bool m_comboQueued = false;
     // Follow用
-    float m_followOffsetX = 60.0f;
-    int m_followAttackInterval = 60;
-    int m_followAttackTimer = 0;
+	float m_followOffsetX = 60.0f; // プレイヤーからの横距離
+	int m_followAttackInterval = 60; // 攻撃間隔（フレーム）
+	int m_followAttackTimer = 0; // 攻撃タイマー
+    ColliderId m_followAttackCollider = -1;
+	int m_followAttackLife = 0; // 攻撃の寿命（フレーム）
+	int m_followAttackDuration = 10; // 攻撃の持続時間（フレーム）
+	float m_followAttackWidth = 80; // 攻撃判定の幅
+	float m_followAttackHeight = 80; // 攻撃判定の高さ
     ColliderId m_followCollider = -1;
     float m_followPosX = 0;
     float m_followPosY = 0;
     float m_followLerpSpeed = 0.15f; // 追従速度
+    int m_followAttackDelay = 0;
+    int m_followAttackCharge = 15; // 溜め時間
+    struct FollowBullet
+    {
+        float x, y;
+        float vx, vy;
+        int life;
+        ColliderId collider;
+        std::unordered_set<void*> hitTargets;
+    };
+
+    std::vector<FollowBullet> m_followBullets;
+
     //　Summon型の処理
     float m_summonX = 0;
     float m_summonY = 0;
@@ -83,4 +101,5 @@ public:
     int GetComboIndex() const { return m_comboIndex; }
     int GetFrame() const { return m_frame; }
     bool IsHitActive() const { return m_hitActive; }
+    FollowBullet* FindBulletByCollider(ColliderId id);
 };
