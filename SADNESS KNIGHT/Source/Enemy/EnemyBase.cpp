@@ -698,6 +698,9 @@ void LoadEnemiesFromCSV(const char* stageName)
             float gridX = std::stof(xStr);
             float gridY = std::stof(yStr);
 
+            gridX -= 1;
+            gridY -= 1;
+
             float x = gridX * MAP_CHIP_WIDTH;
             float y = gridY * MAP_CHIP_HEIGHT;
 
