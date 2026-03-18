@@ -86,14 +86,25 @@ namespace
         float fistTargetX = 0.0f;
         float fistTargetY = 0.0f;
         bool fistSlamDone = false;
+
+        float bookTargetX = 0.0f;
+        float bookTargetY = 0.0f;
+        float bookStartX = 0.0f;
+        float bookStartY = 0.0f;
     };
 
     std::vector<BigBossData> g_bigBosses;
 
     const float KETHER_BODY_HALF_WIDTH_RATIO = 0.09f;
     const float KETHER_BODY_WIDTH_RATIO = 0.18f;
-    const float KETHER_BODY_HEIGHT_RATIO = 0.45f;
-    const float KETHER_BODY_TOP_OFFSET_RATIO = 0.82f;
+    const float KETHER_BODY_HEIGHT_RATIO = 0.62f;
+    const float KETHER_BODY_TOP_OFFSET_RATIO = 0.84f;
+
+    const float KETHER_FLAME_ORIGIN_X_RATIO = 0.00f;
+    const float KETHER_FLAME_ORIGIN_Y_RATIO = 0.685f;
+    const float KETHER_BOOK_ORIGIN_X_RATIO = -0.26f;
+    const float KETHER_BOOK_ORIGIN_Y_RATIO = 0.34f;
+    const bool KETHER_DEBUG_DRAW = true;
 
     void ReleaseAnim(FrameAnim& a)
     {
@@ -180,6 +191,30 @@ namespace
         const int startY = static_cast<int>(fallbackY / block);
 
         for (int y = startY; y < startY + 12; ++y)
+        {
+            MapChipData* mc = GetMapChipData(gridX, y);
+            if (mc != nullptr && (mc->mapChip == NORMAL_BLOCK || mc->mapChip == SEMI_SOLID_BLOCK))
+            {
+                return y * block;
+            }
+        }
+
+        const float mapBottom = static_cast<float>(GetMapHeight());
+        return (mapBottom > 0.0f) ? mapBottom : fallbackY;
+    }
+
+    float GetGroundYBelowX(float worldX, float startY, float fallbackY)
+    {
+        const float block = 32.0f;
+        const int gridX = static_cast<int>(worldX / block);
+
+        int startGridY = static_cast<int>(startY / block);
+        if (startGridY < 0) startGridY = 0;
+
+        int maxGridY = static_cast<int>(GetMapHeight() / block) + 2;
+        if (maxGridY < startGridY + 1) maxGridY = startGridY + 1;
+
+        for (int y = startGridY; y <= maxGridY; ++y)
         {
             MapChipData* mc = GetMapChipData(gridX, y);
             if (mc != nullptr && (mc->mapChip == NORMAL_BLOCK || mc->mapChip == SEMI_SOLID_BLOCK))
@@ -351,6 +386,11 @@ namespace
                     ResetAnim(b.throwBook);
                     ResetAnim(b.bookFx);
                     b.bookProjectileAnim = 0;
+
+                    b.bookTargetX = player.posX;
+                    b.bookTargetY = player.posY - PLAYER_HEIGHT * 0.35f;
+                    b.bookStartX = b.posX + b.width * KETHER_BOOK_ORIGIN_X_RATIO;
+                    b.bookStartY = b.posY - b.height * KETHER_BOOK_ORIGIN_Y_RATIO;          // 胴体中央より少し下
                 }
                 else
                 {
@@ -365,8 +405,12 @@ namespace
 
         case KetherState::ThrowBook:
             UpdateAnim(b.throwBook, false);
-            UpdateAnim(b.bookFx, true);
-            if (b.stateTimer > 1.0f)
+            // 投擲までの遅延を短縮
+            if (b.stateTimer >= 0.80f)
+            {
+                UpdateAnim(b.bookFx, true);
+            }
+            if (b.stateTimer > 1.70f)
             {
                 b.state = b.phase2 ? KetherState::Idle2 : KetherState::Idle1;
                 b.stateTimer = 0.0f;
@@ -374,9 +418,13 @@ namespace
             break;
 
         case KetherState::Fire1:
-            UpdateAnim(b.fire1, true);
-            UpdateAnim(b.fireFx1, true);
-            if (b.stateTimer > 2.6f)
+            // 大きく吸い込んでから1回長く吐く
+            UpdateAnim(b.fire1, false);
+            if (b.stateTimer >= 0.90f)
+            {
+                // 連続噴射感を優先してFXフレームは固定表示（更新しない）
+            }
+            if (b.stateTimer > 3.4f)
             {
                 b.showFireEffect = false;
                 b.state = b.phase2 ? KetherState::Idle2 : KetherState::Idle1;
@@ -418,9 +466,12 @@ namespace
             break;
 
         case KetherState::Fire2:
-            UpdateAnim(b.fire2, true);
-            UpdateAnim(b.fireFx2, true);
-            if (b.stateTimer > 3.4f)
+            UpdateAnim(b.fire2, false);
+            if (b.stateTimer >= 0.80f)
+            {
+                // 連続噴射感を優先してFXフレームは固定表示（更新しない）
+            }
+            if (b.stateTimer > 4.0f)
             {
                 b.showFireEffect = false;
                 b.state = KetherState::Idle2;
@@ -469,9 +520,10 @@ namespace
             UpdateCollider(b.colliderId, left, top, w, h);
         }
 
+        const bool bookState = (b.state == KetherState::ThrowBook);
         const bool fireState = (b.state == KetherState::Fire1 || b.state == KetherState::Fire2);
         const bool fistState = (b.state == KetherState::Fist2);
-        if (fireState || fistState)
+        if (fireState || fistState || b.state == KetherState::ThrowBook)
         {
             float atkW = 0.0f;
             float atkH = 0.0f;
@@ -481,31 +533,65 @@ namespace
 
             if (fireState)
             {
-                atkW = (b.state == KetherState::Fire2) ? 92.0f : 78.0f;
-                atkH = (b.state == KetherState::Fire2) ? 220.0f : 185.0f;
-                atkY = b.posY + (atkH * 0.62f);
+                atkW = (b.state == KetherState::Fire2) ? 180.0f : 150.0f;
+                atkX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
+
+                const float breathStart = (b.state == KetherState::Fire2) ? 0.80f : 0.90f;
+                const float breathEnd = (b.state == KetherState::Fire2) ? 3.95f : 3.35f;
+                enableAttack = (b.stateTimer >= breathStart && b.stateTimer <= breathEnd);
+
+                const float flameTop = b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO;
+                const float groundY = GetGroundYBelowX(atkX, flameTop, player.posY);
+
+                float fullH = (groundY > flameTop)
+                    ? ((groundY - flameTop) + 24.0f)
+                    : ((b.state == KetherState::Fire2) ? 260.0f : 220.0f);
+
+                float sustainH = fullH * 0.72f;
+
+                const float breathProgress = (b.stateTimer - breathStart) / (breathEnd - breathStart);
+                const bool isEnding = (breathProgress >= 0.88f);
+
+                atkH = isEnding ? fullH : sustainH;
+                atkY = flameTop + atkH * 0.5f;
             }
             else
             {
-                atkW = b.phase2 ? 128.0f : 96.0f;
-                atkH = b.phase2 ? 52.0f : 64.0f;
-                if (b.phase2)
+                if (b.state == KetherState::ThrowBook)
                 {
-                    atkX = b.fistTargetX;
-                    atkY = b.fistTargetY + 14.0f;
-                    enableAttack = b.fistSlamDone && (b.stateTimer >= 0.30f && b.stateTimer <= 1.00f);
+                    const float throwDelay = 0.80f;
+                    const float flightDuration = 0.65f;
+                    const float t = (b.stateTimer - throwDelay) / flightDuration;
+                    const float clampedT = (t < 0.0f) ? 0.0f : ((t > 1.0f) ? 1.0f : t);
+
+                    atkW = 140.0f;
+                    atkH = 120.0f;
+                    atkX = b.bookStartX + (b.bookTargetX - b.bookStartX) * clampedT;
+                    atkY = b.bookStartY + (b.bookTargetY - b.bookStartY) * clampedT;
+                    enableAttack = (b.stateTimer >= throwDelay && b.stateTimer <= (throwDelay + flightDuration));
                 }
                 else
                 {
-                    atkX = b.posX + (b.isFacingRight ? b.width * 0.45f : -b.width * 0.45f);
-                    atkY = b.posY - b.height * 0.35f;
+                    atkW = b.phase2 ? 128.0f : 96.0f;
+                    atkH = b.phase2 ? 52.0f : 64.0f;
+                    if (b.phase2)
+                    {
+                        atkX = b.fistTargetX;
+                        atkY = b.fistTargetY + 14.0f;
+                        enableAttack = b.fistSlamDone && (b.stateTimer >= 0.30f && b.stateTimer <= 1.00f);
+                    }
+                    else
+                    {
+                        atkX = b.posX + (b.isFacingRight ? b.width * 0.45f : -b.width * 0.45f);
+                        atkY = b.posY - b.height * 0.35f;
+                    }
                 }
             }
 
             const float left = atkX - atkW * 0.5f;
             const float top = atkY - atkH * 0.5f;
 
-            b.attackOwner.attackPower = fireState ? (b.state == KetherState::Fire2 ? 22 : 14) : 18;
+            b.attackOwner.attackPower = (b.state == KetherState::ThrowBook) ? 20 : (fireState ? (b.state == KetherState::Fire2 ? 22 : 14) : 18);
             if (!enableAttack)
             {
                 if (b.attackColliderId != -1)
@@ -639,7 +725,7 @@ void DrawBigBosses()
             break;
         case KetherState::Fire1:
             body = GetAnimHandle(b.fire1);
-            fx = GetAnimHandle(b.fireFx1);
+            fx = !b.fireFx1.frames.empty() ? b.fireFx1.frames[0] : -1;
             break;
         case KetherState::Transform:
             body = GetAnimHandle(b.transform);
@@ -649,7 +735,7 @@ void DrawBigBosses()
             break;
         case KetherState::Fire2:
             body = GetAnimHandle(b.fire2);
-            fx = GetAnimHandle(b.fireFx2);
+            fx = !b.fireFx2.frames.empty() ? b.fireFx2.frames[0] : -1;
             break;
         case KetherState::Fist2:
             body = GetAnimHandle(b.fist2);
@@ -667,6 +753,25 @@ void DrawBigBosses()
         const int cBottom = static_cast<int>(((b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO) + (b.height * KETHER_BODY_HEIGHT_RATIO)) - camera.posY) * camera.scale);
         DrawBox(cLeft, cTop, cRight, cBottom, GetColor(255, 80, 80), FALSE);
 
+        if (KETHER_DEBUG_DRAW)
+        {
+            const float flameOX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
+            const float flameOY = b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO;
+            const float bookOX = b.posX + b.width * KETHER_BOOK_ORIGIN_X_RATIO;
+            const float bookOY = b.posY - b.height * KETHER_BOOK_ORIGIN_Y_RATIO;
+
+            const int flameX = static_cast<int>((flameOX - camera.posX) * camera.scale);
+            const int flameY = static_cast<int>((flameOY - camera.posY) * camera.scale);
+            const int bookX = static_cast<int>((bookOX - camera.posX) * camera.scale);
+            const int bookY = static_cast<int>((bookOY - camera.posY) * camera.scale);
+
+            DrawCircle(flameX, flameY, 8, GetColor(255, 120, 0), FALSE);
+            DrawCircle(bookX, bookY, 8, GetColor(80, 220, 255), FALSE);
+            DrawFormatString(flameX + 10, flameY - 10, GetColor(255, 120, 0), "FLAME_ORIGIN");
+            DrawFormatString(bookX + 10, bookY - 10, GetColor(80, 220, 255), "BOOK_ORIGIN");
+            DrawFormatString(cLeft, cTop - 20, GetColor(255, 255, 0), "state=%d t=%.2f", static_cast<int>(b.state), b.stateTimer);
+        }
+
         if (fx != -1)
         {
             const float dir = (GetPlayerData().posX >= b.posX) ? 1.0f : -1.0f;
@@ -677,19 +782,75 @@ void DrawBigBosses()
 
             if (b.state == KetherState::ThrowBook)
             {
-                fxW = 88.0f;
-                fxH = 60.0f;
-                fxX = b.posX + dir * (8.0f + b.stateTimer * 20.0f);
-                fxY = b.posY - b.height * 0.68f + b.stateTimer * 220.0f;
+                fxW = 130.0f;
+                fxH = 100.0f;
+
+                const float throwDelay = 0.80f;
+                const float flightDuration = 0.65f;
+                const float t = (b.stateTimer - throwDelay) / flightDuration;
+                const float clampedT = (t < 0.0f) ? 0.0f : ((t > 1.0f) ? 1.0f : t);
+
+                fxX = b.bookStartX + (b.bookTargetX - b.bookStartX) * clampedT;
+                fxY = b.bookStartY + (b.bookTargetY - b.bookStartY) * clampedT;
             }
             else if (b.state == KetherState::Fire1 || b.state == KetherState::Fire2)
             {
                 fxW = (b.state == KetherState::Fire2) ? 112.0f : 94.0f;
-                fxH = (b.state == KetherState::Fire2) ? 225.0f : 190.0f;
-                fxX = b.posX;
-                fxY = b.posY + fxH * 0.60f;
-                const float pulse = 1.0f + 0.08f * std::sin(b.stateTimer * 18.0f);
-                fxW *= pulse;
+                const float breathStart = (b.state == KetherState::Fire2) ? 0.80f : 0.90f;
+                const float breathEnd = (b.state == KetherState::Fire2) ? 3.95f : 3.35f;
+                const float breathProgress = (b.stateTimer - breathStart) / (breathEnd - breathStart);
+                const bool isEnding = (breathProgress >= 0.88f);
+
+                const float flameTop = b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO;
+                fxX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
+                const float groundY = GetGroundYBelowX(fxX, flameTop, GetPlayerData().posY);
+
+                const float fullH = (groundY > flameTop)
+                    ? (groundY - flameTop)
+                    : ((b.state == KetherState::Fire2) ? 230.0f : 200.0f);
+
+                const float sustainH = fullH * 0.72f;
+                fxH = isEnding ? fullH : sustainH;
+                fxY = flameTop + fxH * 0.5f;
+
+                const std::vector<int>& flameFrames = (b.state == KetherState::Fire2) ? b.fireFx2.frames : b.fireFx1.frames;
+                if (!flameFrames.empty())
+                {
+                    const int frameCount = static_cast<int>(flameFrames.size());
+                    const int loopCount = (frameCount >= 5) ? 5 : frameCount;
+                    int frameIdx = 0;
+                    if (!isEnding)
+                    {
+                        frameIdx = static_cast<int>((b.stateTimer - breathStart) * 20.0f) % loopCount;
+                        if (frameIdx < 0) frameIdx = 0;
+                    }
+                    else
+                    {
+                        const int endStartIdx = (frameCount >= 6) ? 5 : (frameCount - 1);
+                        const int endFrameCount = frameCount - endStartIdx;
+                        if (endFrameCount > 1)
+                        {
+                            float endT = (breathProgress - 0.88f) / 0.12f;
+                            if (endT < 0.0f) endT = 0.0f;
+                            if (endT > 1.0f) endT = 1.0f;
+                            frameIdx = endStartIdx + static_cast<int>(endT * static_cast<float>(endFrameCount - 1));
+                        }
+                        else
+                        {
+                            frameIdx = endStartIdx;
+                        }
+                    }
+                    fx = flameFrames[frameIdx];
+                }
+            }
+
+            if (b.state == KetherState::ThrowBook && b.stateTimer < 0.80f)
+            {
+                fx = -1;
+            }
+            if ((b.state == KetherState::Fire1 && b.stateTimer < 0.90f) || (b.state == KetherState::Fire2 && b.stateTimer < 0.80f))
+            {
+                fx = -1;
             }
 
             DrawAnimFit(camera, fxX, fxY, fxW, fxH, fx);
@@ -767,5 +928,3 @@ bool DamageBigBossByColliderId(int colliderId, int damage)
 
     return false;
 }
-
-
