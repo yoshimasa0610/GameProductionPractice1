@@ -540,6 +540,35 @@ namespace
     }
 }
 
+int GetBigBossHP()
+{
+    for (const auto& b : g_bigBosses)
+    {
+        if (!b.active) continue;
+        return b.hp;
+    }
+    return 0;
+}
+
+int GetBigBossMaxHP()
+{
+    for (const auto& b : g_bigBosses)
+    {
+        if (!b.active) continue;
+        return b.maxHP;
+    }
+    return 1;
+}
+
+bool IsBigBossAlive()
+{
+    for (const auto& b : g_bigBosses)
+    {
+        if (b.active) return true;
+    }
+    return false;
+}
+
 void InitBigBossSystem()
 {
     g_bigBosses.clear();
