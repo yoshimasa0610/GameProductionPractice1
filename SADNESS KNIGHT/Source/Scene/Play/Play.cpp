@@ -38,6 +38,14 @@ static char g_SpawnLoadDebug[256] = { 0 };
 static float g_ElapsedTime = 0.0f;
 static bool g_IsPaused = false;
 static bool g_EnemySpawned = false;
+static bool g_BossCameraLocked = false;
+
+static const float FOREST5_BOSS_X = 992.0f;
+static const float FOREST5_BOSS_Y = 352.0f;
+static const float FOREST5_BOSS_AREA_LEFT = 760.0f;
+static const float FOREST5_BOSS_AREA_RIGHT = 1240.0f;
+static const float FOREST5_BOSS_AREA_TOP = 80.0f;
+static const float FOREST5_BOSS_AREA_BOTTOM = 760.0f;
 
 void InitPlayScene()
 {
@@ -47,6 +55,9 @@ void InitPlayScene()
 	InitEnemySystem();
 	InitBigBossSystem();
 	InitPlayer(544.0f, 384.0f);
+	g_EnemySpawned = false;
+	g_BossCameraLocked = false;
+	SetCameraFixed(false);
 }
 
 void LoadPlayScene()
@@ -61,6 +72,14 @@ void LoadPlayScene()
 		g_SaveData.checkpointX = 544.0f;
 		g_SaveData.checkpointY = 384.0f;
 	}
+	
+#ifdef _DEBUG
+	// デバッグ用：forest_5ステージでボスの近くにスポーン
+	strcpy_s(g_SaveData.stageName, "forest_5");
+	g_SaveData.checkpointX = 960.0f;
+	g_SaveData.checkpointY = 352.0f;
+#endif
+	
 	InitStage();
 	LoadStage(
 		g_SaveData.stageName,
@@ -107,6 +126,8 @@ void StartPlayScene()
 	PlayBGM(bgm);
 	
 	g_EnemySpawned = false;
+	g_BossCameraLocked = false;
+	SetCameraFixed(false);
 }
 
 
@@ -215,15 +236,47 @@ void UpdatePlayScene()
 
 	if (!g_EnemySpawned && IsPlayerAlive() && IsPlayerGrounded())
 	{
-		const float oneBlock = 32.0f;
-		const bool facingRight = IsPlayerFacingRight();
-		const float playerX = GetPlayerPosX();
-		const float playerY = GetPlayerPosY();
-		const float spawnX = playerX + (facingRight ? oneBlock : -oneBlock);
-		const float spawnY = playerY;
+		const char* stageName = GetCurrentStageName();
+		if (stageName != nullptr && strcmp(stageName, "forest_5") == 0)
+		{
+			SpawnKether(FOREST5_BOSS_X, FOREST5_BOSS_Y);
+			g_EnemySpawned = true;
+		}
+	}
 
-		SpawnKether(spawnX, spawnY);
-		g_EnemySpawned = true;
+	const char* currentStage = GetCurrentStageName();
+	const bool isForest5 = (currentStage != nullptr && strcmp(currentStage, "forest_5") == 0);
+	if (isForest5)
+	{
+		const float playerCenterX = player.posX + player.width * 0.5f;
+		const float playerCenterY = player.posY + player.height * 0.5f;
+		const bool inBossArea =
+			(playerCenterX >= FOREST5_BOSS_AREA_LEFT && playerCenterX <= FOREST5_BOSS_AREA_RIGHT &&
+			 playerCenterY >= FOREST5_BOSS_AREA_TOP && playerCenterY <= FOREST5_BOSS_AREA_BOTTOM);
+
+		if (!g_BossCameraLocked && inBossArea)
+		{
+			g_BossCameraLocked = true;
+		}
+
+		if (g_BossCameraLocked)
+		{
+			SetCameraFixed(true, FOREST5_BOSS_X, FOREST5_BOSS_Y);
+			if (!IsBigBossAlive())
+			{
+				g_BossCameraLocked = false;
+				SetCameraFixed(false);
+			}
+		}
+		else
+		{
+			SetCameraFixed(false);
+		}
+	}
+	else
+	{
+		g_BossCameraLocked = false;
+		SetCameraFixed(false);
 	}
 
 	UpdateCamera();
@@ -274,6 +327,8 @@ void FinPlayScene()
 	// マップ終了
 	FinStage();
 	ClearBigBosses();
+	g_BossCameraLocked = false;
+	SetCameraFixed(false);
 
 }
 

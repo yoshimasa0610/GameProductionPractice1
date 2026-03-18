@@ -13,6 +13,10 @@ void UpdateCamera();
 void DrawCamera();
 void FinalCamera();
 
+// カメラ固定制御API
+void SetCameraFixed(bool enabled, float centerX = 0.0f, float centerY = 0.0f);
+bool IsCameraFixed();
+
 // カメラ位置とスケールを考慮した変換関数
 float WorldToScreenX(float worldX, const CameraData& camera);
 float WorldToScreenY(float worldY, const CameraData& camera);

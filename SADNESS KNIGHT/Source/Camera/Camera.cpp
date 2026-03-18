@@ -1,10 +1,13 @@
-#include "Camera.h"
-#include "DxLib.h"
+#include "../Map/MapManager.h"
 #include "../Player/Player.h"
 #include "../GameSetting/GameSetting.h"
-#include "../Map/MapManager.h"
+#include "Camera.h"
+#include <algorithm>
 
 static CameraData camera;
+static bool g_IsFixed = false;
+static float g_FixedCenterX = 0.0f;
+static float g_FixedCenterY = 0.0f;
 
 static const float CAMERA_SPEED = 0.1f;
 
@@ -13,6 +16,9 @@ void InitCamera()
 	camera.posX = 0.0f;
 	camera.posY = 0.0f;
 	camera.scale = 1.0f;
+	g_IsFixed = false;
+	g_FixedCenterX = 0.0f;
+	g_FixedCenterY = 0.0f;
 }
 
 void StepCamera()
@@ -24,14 +30,27 @@ void UpdateCamera()
 {
     PlayerData& player = GetPlayerData();
 
-    float playerCenterX = player.posX + player.width / 2;
-    float playerCenterY = player.posY + player.height / 2;
+    float targetX = 0.0f;
+    float targetY = 0.0f;
 
-    float targetX = playerCenterX - SCREEN_WIDTH / 2;
-    float targetY = playerCenterY - SCREEN_HEIGHT / 2;
+    if (g_IsFixed)
+    {
+        targetX = g_FixedCenterX - SCREEN_WIDTH / 2.0f;
+        targetY = g_FixedCenterY - SCREEN_HEIGHT / 2.0f;
+        camera.posX = targetX;
+        camera.posY = targetY;
+    }
+    else
+    {
+        float playerCenterX = player.posX + player.width / 2;
+        float playerCenterY = player.posY + player.height / 2;
 
-    camera.posX += (targetX - camera.posX) * CAMERA_SPEED;
-    camera.posY += (targetY - camera.posY) * CAMERA_SPEED;
+        targetX = playerCenterX - SCREEN_WIDTH / 2;
+        targetY = playerCenterY - SCREEN_HEIGHT / 2;
+
+        camera.posX += (targetX - camera.posX) * CAMERA_SPEED;
+        camera.posY += (targetY - camera.posY) * CAMERA_SPEED;
+    }
 
     float mapWidth = (float)GetMapWidth();
     float mapHeight = (float)GetMapHeight();
@@ -43,7 +62,7 @@ void UpdateCamera()
     else
     {
         float maxX = mapWidth - SCREEN_WIDTH;
-        camera.posX = max(0.0f, min(camera.posX, maxX));
+        camera.posX = (std::max)(0.0f, (std::min)(camera.posX, maxX));
     }
 
     if (mapHeight <= SCREEN_HEIGHT)
@@ -53,7 +72,7 @@ void UpdateCamera()
     else
     {
         float maxY = mapHeight - SCREEN_HEIGHT;
-        camera.posY = max(0.0f, min(camera.posY, maxY));
+        camera.posY = (std::max)(0.0f, (std::min)(camera.posY, maxY));
     }
 }
 
@@ -76,6 +95,18 @@ float WorldToScreenX(float worldX, const CameraData& camera)
 float WorldToScreenY(float worldY, const CameraData& camera)
 {
 	return (worldY - camera.posY) * camera.scale;
+}
+
+void SetCameraFixed(bool enabled, float centerX, float centerY)
+{
+    g_IsFixed = enabled;
+    g_FixedCenterX = centerX;
+    g_FixedCenterY = centerY;
+}
+
+bool IsCameraFixed()
+{
+    return g_IsFixed;
 }
 
 CameraData GetCamera()
