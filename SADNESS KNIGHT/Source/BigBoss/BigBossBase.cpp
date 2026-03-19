@@ -3,6 +3,7 @@
 #include "../Collision/Collision.h"
 #include "../Player/Player.h"
 #include "../Map/MapManager.h"
+#include "../Map/StageManager.h"
 #include "../Enemy/EnemyBase.h"
 #include "DxLib.h"
 #include <vector>
@@ -775,9 +776,14 @@ void DrawBigBosses()
 {
     const CameraData camera = GetCamera();
 
+    const char* stageName = GetCurrentStageName();
+    bool isForest5 = (stageName && strcmp(stageName, "forest_5") == 0);
+
     for (const auto& b : g_bigBosses)
     {
         if (!b.active) continue;
+        // ボスが死亡済みかつforest_5以外のステージなら描画しない
+        if (!isForest5 && b.state == KetherState::Died) continue;
 
         int body = -1;
         int fx = -1;
