@@ -53,7 +53,7 @@ void FinStage()
 	FinMap();
 	g_ExitPoints.clear();
 	FinCheckpoint();
-	ClearBigBosses(); // ステージ終了時にボスも必ず消す
+	ClearBigBosses(); // ステージ終了時に必ずボスも消す
 }
 
 // -------------------------------------
