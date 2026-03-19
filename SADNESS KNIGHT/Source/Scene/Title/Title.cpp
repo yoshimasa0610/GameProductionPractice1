@@ -100,6 +100,7 @@ void StepTitleScene()
 
 static void StartNewGame(int slot)
 {
+    if (IsStageLocked()) return; // ボスエリアロック中は遷移禁止
 	SaveData data{};
 
 	data.maxHP = PLAYER_INIT_HP;
@@ -114,6 +115,8 @@ static void StartNewGame(int slot)
 
 static void UpdateSlotSelect(bool isNewGame)
 {
+    if (IsStageLocked()) return; // ボスエリアロック中は遷移禁止
+
 	if (IsTriggerKey(KEY_UP))
 	{
 		g_SelectedSlot = (g_SelectedSlot + SAVE_SLOT_MAX - 1) % SAVE_SLOT_MAX;

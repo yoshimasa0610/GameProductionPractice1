@@ -42,10 +42,17 @@ static bool g_BossCameraLocked = false;
 
 static const float FOREST5_BOSS_X = 992.0f;
 static const float FOREST5_BOSS_Y = 352.0f;
-static const float FOREST5_BOSS_AREA_LEFT = 760.0f;
-static const float FOREST5_BOSS_AREA_RIGHT = 1240.0f;
-static const float FOREST5_BOSS_AREA_TOP = 80.0f;
-static const float FOREST5_BOSS_AREA_BOTTOM = 760.0f;
+// ボスエリアロック範囲をさらに広げる
+static const float FOREST5_BOSS_AREA_LEFT = 0.0f;
+static const float FOREST5_BOSS_AREA_RIGHT = 1920.0f;
+static const float FOREST5_BOSS_AREA_TOP = 0.0f;
+static const float FOREST5_BOSS_AREA_BOTTOM = 1080.0f;
+
+// --- ボスエリア遷移ロック ---
+static bool g_StageLocked = false;
+void LockStageTransition() { g_StageLocked = true; }
+void UnlockStageTransition() { g_StageLocked = false; }
+bool IsStageLocked() { return g_StageLocked; }
 
 void InitPlayScene()
 {
@@ -240,37 +247,49 @@ void UpdatePlayScene()
 	const char* currentStage = GetCurrentStageName();
 	const bool isForest5 = (currentStage != nullptr && strcmp(currentStage, "forest_5") == 0);
 	if (isForest5)
-	{
-		const float playerCenterX = player.posX + player.width * 0.5f;
-		const float playerCenterY = player.posY + player.height * 0.5f;
-		const bool inBossArea =
-			(playerCenterX >= FOREST5_BOSS_AREA_LEFT && playerCenterX <= FOREST5_BOSS_AREA_RIGHT &&
-			 playerCenterY >= FOREST5_BOSS_AREA_TOP && playerCenterY <= FOREST5_BOSS_AREA_BOTTOM);
+    {
+        const float playerCenterX = player.posX + player.width * 0.5f;
+        const float playerCenterY = player.posY + player.height * 0.5f;
+        const bool inBossArea =
+            (playerCenterX >= FOREST5_BOSS_AREA_LEFT && playerCenterX <= FOREST5_BOSS_AREA_RIGHT &&
+             playerCenterY >= FOREST5_BOSS_AREA_TOP && playerCenterY <= FOREST5_BOSS_AREA_BOTTOM);
 
-		if (!g_BossCameraLocked && inBossArea)
-		{
-			g_BossCameraLocked = true;
-		}
-
-		if (g_BossCameraLocked)
-		{
-			SetCameraFixed(true, FOREST5_BOSS_X, FOREST5_BOSS_Y);
-			if (!IsBigBossAlive())
-			{
-				g_BossCameraLocked = false;
-				SetCameraFixed(false);
-			}
-		}
-		else
-		{
-			SetCameraFixed(false);
-		}
-	}
-	else
-	{
-		g_BossCameraLocked = false;
-		SetCameraFixed(false);
-	}
+        static bool bossLockActive = false;
+        if (!bossLockActive && inBossArea && IsBigBossAlive())
+        {
+            bossLockActive = true;
+            LockStageTransition(); // ボスエリア突入でロック
+        }
+        if (bossLockActive && !IsBigBossAlive())
+        {
+            bossLockActive = false;
+            UnlockStageTransition(); // ボス撃破でロック解除
+        }
+        // カメラ固定ロジックはそのまま
+        if (!g_BossCameraLocked && inBossArea)
+        {
+            g_BossCameraLocked = true;
+        }
+        if (g_BossCameraLocked)
+        {
+            SetCameraFixed(true, FOREST5_BOSS_X, FOREST5_BOSS_Y);
+            if (!IsBigBossAlive())
+            {
+                g_BossCameraLocked = false;
+                SetCameraFixed(false);
+            }
+        }
+        else
+        {
+            SetCameraFixed(false);
+        }
+    }
+    else
+    {
+        g_BossCameraLocked = false;
+        SetCameraFixed(false);
+        UnlockStageTransition(); // 念のため
+    }
 
 	UpdateCamera();
 	UpdateFade();
@@ -351,3 +370,14 @@ static void RespawnFromCheckpoint()
 
 	SetPaused(false);
 }
+
+// --- ステージ切替禁止ガード ---
+#define GUARD_BOSS_STAGE_LOCK if (g_BossStageLocked) return;
+// 例: ChangeScene, ChangeStage, LoadStage, FinStage などの直前で
+// GUARD_BOSS_STAGE_LOCK
+// --- ステージ切替系関数の冒頭に以下を追加してください ---
+// void ChangeScene(...) { GUARD_BOSS_STAGE_LOCK; ... }
+// void ChangeStage(...) { GUARD_BOSS_STAGE_LOCK; ... }
+// void LoadStage(...) { GUARD_BOSS_STAGE_LOCK; ... }
+// void FinStage(...) { GUARD_BOSS_STAGE_LOCK; ... }
+// ...既存のChangeSceneやChangeStage呼び出しの直前に挿入してください...

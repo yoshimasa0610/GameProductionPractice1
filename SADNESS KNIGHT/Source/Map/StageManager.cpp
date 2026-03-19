@@ -50,10 +50,11 @@ void InitStage()
 
 void FinStage()
 {
+	if (IsStageLocked()) return; // ボスエリアロック中は遷移禁止
 	FinMap();
 	g_ExitPoints.clear();
 	FinCheckpoint();
-	ClearBigBosses(); // ステージ終了時に必ずボスも消す
+	ClearBigBosses(); // ステージ終了時はボスが生きていても必ず消す
 }
 
 // -------------------------------------
@@ -95,6 +96,7 @@ static void LoadExitInfo(const char* stageName)
 // -------------------------------------
 void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 {
+	if (IsStageLocked()) return; // ボスエリアロック中は遷移禁止
 	// 既にロード中なら無視（再入防止）
 	static bool s_loading = false;
 	if (s_loading) return;

@@ -20,3 +20,13 @@ void FinPlayScene();
 // --- ポーズ制御用を追加 ---
 void SetPaused(bool paused); // ポーズ状態を設定する
 bool IsPaused();             // 現在ポーズ中かどうかを取得する
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+void LockStageTransition();
+void UnlockStageTransition();
+bool IsStageLocked();
+#ifdef __cplusplus
+}
+#endif
