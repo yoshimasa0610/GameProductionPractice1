@@ -114,7 +114,7 @@ namespace
     const float KETHER_PHASE_SHOCKWAVE_DURATION = 0.45f;
     const float KETHER_TRANSFORM_END_HOLD = 0.35f;
     const float KETHER_DIED_DRAW_OFFSET_Y = 18.0f;
-    const bool KETHER_DEBUG_DRAW = true;
+    const bool KETHER_DEBUG_DRAW = false;
 
     void ReleaseAnim(FrameAnim& a)
     {
