@@ -114,7 +114,7 @@ namespace
     const float KETHER_PHASE_SHOCKWAVE_DURATION = 0.45f;
     const float KETHER_TRANSFORM_END_HOLD = 0.35f;
     const float KETHER_DIED_DRAW_OFFSET_Y = 18.0f;
-    const bool KETHER_DEBUG_DRAW = false;
+    const bool KETHER_DEBUG_DRAW = true;
 
     void ReleaseAnim(FrameAnim& a)
     {
@@ -843,29 +843,22 @@ void DrawBigBosses()
             SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
         }
 
-        const int cLeft = static_cast<int>(((b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO)) - camera.posX) * camera.scale);
-        const int cTop = static_cast<int>(((b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO)) - camera.posY) * camera.scale);
-        const int cRight = static_cast<int>(((b.posX + (b.width * KETHER_BODY_HALF_WIDTH_RATIO)) - camera.posX) * camera.scale);
-        const int cBottom = static_cast<int>(((b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO) + (b.height * KETHER_BODY_HEIGHT_RATIO)) - camera.posY) * camera.scale);
-        DrawBox(cLeft, cTop, cRight, cBottom, GetColor(255, 80, 80), FALSE);
-
         if (KETHER_DEBUG_DRAW)
         {
-            const float flameOX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
-            const float flameOY = b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO;
-            const float bookOX = b.posX + b.width * KETHER_BOOK_ORIGIN_X_RATIO;
-            const float bookOY = b.posY - b.height * KETHER_BOOK_ORIGIN_Y_RATIO;
-
-            const int flameX = static_cast<int>((flameOX - camera.posX) * camera.scale);
-            const int flameY = static_cast<int>((flameOY - camera.posY) * camera.scale);
-            const int bookX = static_cast<int>((bookOX - camera.posX) * camera.scale);
-            const int bookY = static_cast<int>((bookOY - camera.posY) * camera.scale);
-
-            DrawCircle(flameX, flameY, 8, GetColor(255, 120, 0), FALSE);
-            DrawCircle(bookX, bookY, 8, GetColor(80, 220, 255), FALSE);
-            DrawFormatString(flameX + 10, flameY - 10, GetColor(255, 120, 0), "FLAME_ORIGIN");
-            DrawFormatString(bookX + 10, bookY - 10, GetColor(80, 220, 255), "BOOK_ORIGIN");
-            DrawFormatString(cLeft, cTop - 20, GetColor(255, 255, 0), "state=%d t=%.2f", static_cast<int>(b.state), b.stateTimer);
+            // デバッグ用の円や文字列も非表示に
+            // const float flameOX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
+            // const float flameOY = b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO;
+            // const float bookOX = b.posX + b.width * KETHER_BOOK_ORIGIN_X_RATIO;
+            // const float bookOY = b.posY - b.height * KETHER_BOOK_ORIGIN_Y_RATIO;
+            // const int flameX = static_cast<int>((flameOX - camera.posX) * camera.scale);
+            // const int flameY = static_cast<int>((flameOY - camera.posY) * camera.scale);
+            // const int bookX = static_cast<int>((bookOX - camera.posX) * camera.scale);
+            // const int bookY = static_cast<int>((bookOY - camera.posY) * camera.scale);
+            // DrawCircle(flameX, flameY, 8, GetColor(255, 120, 0), FALSE);
+            // DrawCircle(bookX, bookY, 8, GetColor(80, 220, 255), FALSE);
+            // DrawFormatString(flameX + 10, flameY - 10, GetColor(255, 120, 0), "FLAME_ORIGIN");
+            // DrawFormatString(bookX + 10, bookY - 10, GetColor(80, 220, 255), "BOOK_ORIGIN");
+            // DrawFormatString(cLeft, cTop - 20, GetColor(255, 255, 0), "state=%d t=%.2f", static_cast<int>(b.state), b.stateTimer);
         }
 
         if (fx != -1)
