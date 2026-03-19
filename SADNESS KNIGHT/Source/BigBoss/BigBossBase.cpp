@@ -715,7 +715,11 @@ bool IsBigBossAlive()
 {
     for (const auto& b : g_bigBosses)
     {
-        if (b.active) return true;
+        if (!b.active) continue;
+
+        if (b.state == KetherState::Died) continue;
+
+        return true;
     }
     return false;
 }
