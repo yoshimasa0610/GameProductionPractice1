@@ -13,6 +13,7 @@
 #include "../../Item/Item.h"
 #include "../../Overlay/Option/Option.h"
 #include "../../Animation/Animation.h"
+#include "../../Sound/Sound.h"
 
 #define TITLE_POS_X 280
 #define TITLE_POS_Y 130

@@ -73,13 +73,6 @@ void LoadPlayScene()
 		g_SaveData.checkpointY = 384.0f;
 	}
 	
-#ifdef _DEBUG
-	// デバッグ用：forest_5ステージでボスの近くにスポーン
-	strcpy_s(g_SaveData.stageName, "forest_5");
-	g_SaveData.checkpointX = 960.0f;
-	g_SaveData.checkpointY = 352.0f;
-#endif
-	
 	InitStage();
 	LoadStage(
 		g_SaveData.stageName,
@@ -237,7 +230,7 @@ void UpdatePlayScene()
 	if (!g_EnemySpawned && IsPlayerAlive() && IsPlayerGrounded())
 	{
 		const char* stageName = GetCurrentStageName();
-		if (stageName != nullptr && strcmp(stageName, "forest_5") == 0)
+		if (stageName && strcmp(stageName, "forest_5") == 0)
 		{
 			SpawnKether(FOREST5_BOSS_X, FOREST5_BOSS_Y);
 			g_EnemySpawned = true;
