@@ -3,6 +3,7 @@
 #include "../Collision/Collision.h"
 #include "../Player/Player.h"
 #include "../Map/MapManager.h"
+#include "../Map/StageManager.h"
 #include "../Enemy/EnemyBase.h"
 #include "DxLib.h"
 #include <vector>
@@ -113,7 +114,7 @@ namespace
     const float KETHER_PHASE_SHOCKWAVE_DURATION = 0.45f;
     const float KETHER_TRANSFORM_END_HOLD = 0.35f;
     const float KETHER_DIED_DRAW_OFFSET_Y = 18.0f;
-    const bool KETHER_DEBUG_DRAW = true;
+    const bool KETHER_DEBUG_DRAW = false;
 
     void ReleaseAnim(FrameAnim& a)
     {
@@ -775,9 +776,14 @@ void DrawBigBosses()
 {
     const CameraData camera = GetCamera();
 
+    const char* stageName = GetCurrentStageName();
+    bool isForest5 = (stageName && strcmp(stageName, "forest_5") == 0);
+
     for (const auto& b : g_bigBosses)
     {
         if (!b.active) continue;
+        // ボスが死亡済みかつforest_5以外のステージなら描画しない
+        if (!isForest5 && b.state == KetherState::Died) continue;
 
         int body = -1;
         int fx = -1;

@@ -8,6 +8,7 @@
 #include "../Fade/Fade.h"
 #include "../Map/Checkpoint/Checkpoint.h"
 #include "../Enemy/EnemyBase.h"
+#include "../BigBoss/BigBossBase.h"
 //ステージの背景
 int g_BackgroundFar = -1; // 遠景
 int g_BackgroundMid = -1; // 中景
@@ -52,6 +53,7 @@ void FinStage()
 	FinMap();
 	g_ExitPoints.clear();
 	FinCheckpoint();
+	ClearBigBosses(); // ステージ終了時にボスも必ず消す
 }
 
 // -------------------------------------

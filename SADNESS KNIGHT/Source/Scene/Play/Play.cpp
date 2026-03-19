@@ -226,17 +226,6 @@ void UpdatePlayScene()
 	if (g_IsPaused) return;
 
 	UpdatePlayer();
-
-	if (!g_EnemySpawned && IsPlayerAlive() && IsPlayerGrounded())
-	{
-		const char* stageName = GetCurrentStageName();
-		if (stageName && strcmp(stageName, "forest_5") == 0)
-		{
-			SpawnKether(FOREST5_BOSS_X, FOREST5_BOSS_Y);
-			g_EnemySpawned = true;
-		}
-	}
-
 	const char* currentStage = GetCurrentStageName();
 	const bool isForest5 = (currentStage != nullptr && strcmp(currentStage, "forest_5") == 0);
 	if (isForest5)
