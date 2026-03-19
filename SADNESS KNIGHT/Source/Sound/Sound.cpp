@@ -1,5 +1,6 @@
 #include "DxLib.h"
 #include "Sound.h"
+#include "../Scene/Title/Title.h"
 
 int g_BGMHandle[BGM_TYPE_MAX] = { 0 };
 int g_SEHandle[SE_TYPE_MAX] = { 0 };
