@@ -103,9 +103,9 @@ void LoadPlayScene()
 	ItemManager_AddItem(11);
 	ItemManager_AddItem(12);
 	g_SkillManager.AddSkill(GetSkillData(1), &player);
-	g_SkillManager.AddSkill(GetSkillData(2), &player);
+	//g_SkillManager.AddSkill(GetSkillData(2), &player);
 	g_SkillManager.EquipSkill(0, 0, 1);
-	g_SkillManager.EquipSkill(0, 1, 2);
+	//g_SkillManager.EquipSkill(0, 1, 2);
 	// ƒoƒtÄŒvZ
 	g_ItemManager.ApplyBuffsToPlayer(&player);
 
