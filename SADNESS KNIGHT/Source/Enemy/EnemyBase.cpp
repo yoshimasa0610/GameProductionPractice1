@@ -32,6 +32,9 @@ namespace
     std::vector<EnemyData> g_enemies;
     static int g_EnemyDebugFrame = 0;
 
+    // デバッグ用グローバルバッファ
+    char g_enemyDebugInfo[256] = "";
+
     float GetEnemyBodyColliderScale(EnemyType type)
     {
         (void)type;
@@ -482,12 +485,13 @@ namespace
         {
             float checkX = checkLeft + (checkRight - checkLeft) * (i / 2.0f);
             int gridX = static_cast<int>(checkX / BLOCK_SIZE);
+            // 足元の少し下をチェック
             int gridY = static_cast<int>((checkBottom + 1.0f) / BLOCK_SIZE);
-            
             MapChipData* mc = GetMapChipData(gridX, gridY);
             if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
             {
                 float blockTop = gridY * BLOCK_SIZE;
+                // 足元が地面より下にめり込みた場合のみ補正
                 if (e.posY > blockTop && e.velocityY >= 0.0f)
                 {
                     e.posY = blockTop;
@@ -1088,38 +1092,49 @@ void UpdateEnemies()
             }
         }
 
+        // --- 近接敵の追跡・攻撃ロジック（整理版） ---
         const bool approachMode = (e.type == EnemyType::AssassinCultist && e.behaviorPattern == 1 && !e.isInvisible) || (e.type == EnemyType::BigQuartist);
-        if (!e.isAttacking && !e.isInvisible && !approachMode && e.cooldownTimer <= 0.0f)
-        {
-            if (e.isAggro)
-            {
-                const float chaseSpeed = e.moveSpeed;
-                if (std::fabs(dx) > e.attackRange * 0.5f)
-                {
-                    e.velocityX = (dx > 0.0f) ? chaseSpeed : -chaseSpeed;
+        if (e.isAggro && !e.isAttacking && !e.isInvisible && !approachMode && e.cooldownTimer <= 0.0f) {
+            const bool inAttackRange = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height);
+            if (!inAttackRange) {
+                // 攻撃範囲外なら必ず近づく
+                e.velocityX = (dx > 0.0f) ? e.moveSpeed : -e.moveSpeed;
+                e.isFacingRight = (dx > 0.0f);
+            } else {
+                // 攻撃範囲内なら攻撃
+                e.velocityX = 0.0f;
+                e.isFacingRight = (dx > 0.0f);
+                e.isAttacking = true;
+                e.attackTimer = e.attackDuration;
+                e.cooldownTimer = e.attackCooldown;
+                if (e.attackColliderId != -1) {
+                    DestroyCollider(e.attackColliderId);
+                    e.attackColliderId = -1;
                 }
-                else
-                {
-                    e.velocityX = 0.0f;
+                const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
+                const float attackWidth = isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * 1.3f);
+                const float attackHeight = isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : e.height;
+                const float attackFrontOffset = isTwisted ? (e.width * TWISTED_ATTACK_FRONT_OFFSET_RATIO) : (e.width * 0.5f);
+                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
+                const float attackLeft = e.posX + attackOffsetX;
+                const float attackCenterY = isTwisted ? (e.posY - e.height * TWISTED_ATTACK_CENTER_Y_RATIO) : (e.posY - attackHeight * 0.5f);
+                const float attackTop = attackCenterY - attackHeight * 0.5f;
+                e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
+                if (e.animations != nullptr) {
+                    ResetAnimation(e.animations->attack);
                 }
             }
-            else if (e.isGrounded)
-            {
-                float distFromStart = e.posX - e.patrolStartX;
-                if (distFromStart > e.patrolRange) e.patrolDirection = -1;
-                else if (distFromStart < -e.patrolRange) e.patrolDirection = 1;
+        } else if (!e.isAttacking && !e.isInvisible && !approachMode && e.cooldownTimer <= 0.0f && e.isGrounded) {
+            float distFromStart = e.posX - e.patrolStartX;
+            if (distFromStart > e.patrolRange) e.patrolDirection = -1;
+            else if (distFromStart < -e.patrolRange) e.patrolDirection = 1;
 
-                e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
-                e.isFacingRight = (e.patrolDirection > 0);
-            }
+            e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
+            e.isFacingRight = (e.patrolDirection > 0);
         }
-        else if (!e.isAttacking && !e.isInvisible && !approachMode)
-        {
-            e.velocityX = 0.0f;
-        }
-
-        if (!e.isGrounded && e.type != EnemyType::BigQuartist)
-        {
+        
+        // --- 重力適用（全員分） ---
+        if (!e.isGrounded) {
             e.velocityY += GRAVITY * slowMoScale;
             if (e.velocityY > MAX_FALL_SPEED) e.velocityY = MAX_FALL_SPEED;
         }
@@ -1236,6 +1251,15 @@ void UpdateEnemies()
                 UpdateAnimation(e.animations->idle);
             }
         }
+
+        // --- デバッグ出力（最初のアクティブな敵のみ） ---
+        static int debugEnemyIdx = -1;
+        if (debugEnemyIdx == -1 && e.active) debugEnemyIdx = &e - &g_enemies[0];
+        if ((&e - &g_enemies[0]) == debugEnemyIdx) {
+            snprintf(g_enemyDebugInfo, sizeof(g_enemyDebugInfo),
+                "[EnemyDebug] type=%d pos=(%.1f,%.1f) vX=%.2f vY=%.2f isAggro=%d isAttacking=%d isGrounded=%d dist=%.1f atkRange=%.1f detect=%.1f",
+                (int)e.type, e.posX, e.posY, e.velocityX, e.velocityY, e.isAggro, e.isAttacking, e.isGrounded, dist, e.attackRange, e.detectRange);
+        }
     }
 
     UpdateEnemyProjectiles(slowMoScale);
@@ -1351,6 +1375,11 @@ void DrawEnemies()
     }
 
     DrawEnemyProjectiles(camera);
+
+    // デバッグ情報を画面左上に表示
+    if (g_enemyDebugInfo[0] != '\0') {
+        DrawFormatString(16, 16, GetColor(255,255,0), "%s", g_enemyDebugInfo);
+    }
 }
 
 // アクセサ
