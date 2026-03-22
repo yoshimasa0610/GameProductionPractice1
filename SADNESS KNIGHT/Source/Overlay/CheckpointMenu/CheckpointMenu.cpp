@@ -64,16 +64,16 @@ void CloseCheckpointMenu()
 
 static void EnterCurrentMenu()
 {
-    g_IsInSubMenu = true;
-
     switch (g_CurrentItem)
     {
     case CheckpointMenuItem::Equip:
         OpenEquipMenu(g_PlayerRef);
+        g_IsInSubMenu = true;
         break;
 
     case CheckpointMenuItem::Skill:
         OpenSkillMenu(g_PlayerRef);
+        g_IsInSubMenu = true;
         break;
 
     case CheckpointMenuItem::Leave:
@@ -161,7 +161,7 @@ static void DrawBackground()
     int sw, sh;
     GetScreenState(&sw, &sh, nullptr);
 
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 180);
+    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 120);
     DrawBox(0, 0, sw, sh, GetColor(0, 0, 0), TRUE);
     SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
 }
@@ -171,11 +171,11 @@ static void DrawLeftMenu()
     int sw, sh;
     GetScreenState(&sw, &sh, nullptr);
 
-    int startX = 80;
-    int startY = 140;
-    int lineH = 60;
+    int startX = 40;
+    int startY = 200;
+    int lineH = 80;
 
-    DrawString(startX, 60, "レストポイント", GetColor(255, 255, 255));
+    DrawString(startX, 100, "レストポイント", GetColor(255, 255, 255));
 
     for (int i = 0; i < (int)CheckpointMenuItem::Count; i++)
     {
@@ -184,11 +184,11 @@ static void DrawLeftMenu()
 
         if (selected)
         {
-            DrawString(startX - 24, y, "●", GetColor(255, 80, 80));
+            DrawString(startX - 24 + 80, y, "●", GetColor(255, 80, 80));
         }
 
         int color = selected ? GetColor(255, 255, 255) : GetColor(180, 180, 180);
-        DrawString(startX, y, GetItemName((CheckpointMenuItem)i), color);
+        DrawString(startX + 80, y, GetItemName((CheckpointMenuItem)i), color);
     }
 }
 
