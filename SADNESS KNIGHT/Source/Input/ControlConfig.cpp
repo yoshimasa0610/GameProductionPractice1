@@ -19,6 +19,8 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_DOWN].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_DOWN };
     m_Binds[KEY_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_LEFT };
     m_Binds[KEY_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_RIGHT };
+    m_Binds[KEY_UI_UP].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_UP };
+    m_Binds[KEY_UI_DOWN].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_DOWN };
     m_Binds[KEY_UI_LEFT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_A };
     m_Binds[KEY_UI_RIGHT].keyboard = { DEVICE_KEYBOARD, KEY_INPUT_D };
 
@@ -43,6 +45,10 @@ void ControlConfig::InitDefault()
     m_Binds[KEY_DOWN].pad = { DEVICE_PAD, PAD_INPUT_DOWN };
     m_Binds[KEY_LEFT].pad = { DEVICE_PAD, PAD_INPUT_LEFT };
     m_Binds[KEY_RIGHT].pad = { DEVICE_PAD, PAD_INPUT_RIGHT };
+    m_Binds[KEY_UI_UP].pad = { DEVICE_PAD, PAD_INPUT_UP };
+    m_Binds[KEY_UI_DOWN].pad = { DEVICE_PAD, PAD_INPUT_DOWN };
+    m_Binds[KEY_UI_LEFT].pad = { DEVICE_PAD, PAD_INPUT_LEFT };
+    m_Binds[KEY_UI_RIGHT].pad = { DEVICE_PAD, PAD_INPUT_RIGHT };
 
     m_Binds[KEY_JUMP].pad = { DEVICE_PAD, PAD_INPUT_A };
     m_Binds[KEY_SKILL1].pad = { DEVICE_PAD, PAD_INPUT_X };

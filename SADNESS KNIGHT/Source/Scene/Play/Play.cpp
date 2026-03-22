@@ -25,6 +25,7 @@
 #include "../../Enemy/EnemyBase.h"
 #include "../../BigBoss/BigBossBase.h"
 #include "../../BigBoss/Kether/Kether.h"
+#include "../../Overlay/CheckpointMenu/CheckpointMenu.h"
 
 static ItemField g_ItemField;
 
@@ -181,7 +182,10 @@ static void RespawnFromCheckpoint();
 
 void UpdatePlayScene()
 {
-	if (g_IsPaused && !IsOverlayOpen() && !g_IsMenuOpen && !IsOptionOpen())
+	if (g_IsPaused && !IsCheckpointMenuOpen() &&
+		!IsOverlayOpen() &&
+		!g_IsMenuOpen &&
+		!IsOptionOpen())
 	{
 		g_IsPaused = false;
 	}
@@ -198,6 +202,12 @@ void UpdatePlayScene()
 		return;
 	}
 
+	if (IsCheckpointMenuOpen())
+	{
+		UpdateCheckpointMenu();
+		return;
+	}
+
 	if (IsOverlayOpen())
 	{
 		UpdateOverlayMenu();
@@ -210,7 +220,7 @@ void UpdatePlayScene()
 		return;
 	}
 
-	if (IsTriggerKey(KEY_INVENTORY))
+	if (IsTriggerKey(KEY_INVENTORY) && !IsPlayerSitting())
 	{
 		SetPaused(true);
 		OpenOverlayMenu(&player);
@@ -315,10 +325,14 @@ void DrawPlayScene()
 	g_MoneyManager.Draw();
 
 	if (IsOptionOpen())
-
 	{
 		DrawOption();
 		return;
+	}
+
+	if (IsCheckpointMenuOpen())
+	{
+		DrawCheckpointMenu();
 	}
 
 	if (g_IsMenuOpen)

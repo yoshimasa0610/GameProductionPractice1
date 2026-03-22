@@ -13,6 +13,7 @@
 #include <cstdio>
 #include "../../Camera/Camera.h"
 #include "../../Skill/SkillManager.h"
+#include "../../Overlay/CheckpointMenu/CheckpointMenu.h"
 
 static const int INTERACTION_KEY = KEY_UP;
 static std::vector<Checkpoint> g_Checkpoints;
@@ -142,6 +143,7 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
     ExportSaveData(save);
     SaveGame(save, 0); // âºÇ…ÉXÉçÉbÉg0Ç…å≈íË
     */
+    OpenCheckpointMenu(&player);
 }
 
 // ===============================
@@ -199,6 +201,12 @@ void UpdateCheckpoint(
     int playerX, int playerY, int pw, int ph
 )
 {
+    if (IsCheckpointMenuOpen())
+    {
+        UpdateCheckpointMenu();
+        return;
+    }
+
     for (auto& cp : g_Checkpoints)
     {
         CheckpointInteraction(
