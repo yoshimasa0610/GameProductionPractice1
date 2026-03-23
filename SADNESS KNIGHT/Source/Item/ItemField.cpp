@@ -52,7 +52,7 @@ void ItemField::LoadForStage(const char* stageName)
 
     if (fieldItemGraph < 0)
     {
-        fieldItemGraph = LoadGraph("Data/Item/ItemField/ItemField.png");
+        fieldItemGraph = LoadGraph("Data/ItemField/ItemField.png");
     }
 
     const char* fieldName = GetFieldName(stageName);

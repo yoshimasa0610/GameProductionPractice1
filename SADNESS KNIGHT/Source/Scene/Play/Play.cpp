@@ -311,9 +311,9 @@ void DrawPlayScene()
 	DrawBackgroundFar();
 	DrawBackgroundMid();
 
+	g_ItemField.Draw();
 	DrawMap();
 	DrawCheckpoint();
-	g_ItemField.Draw();
 	DrawMoneyDrops();
 	DrawMapOutsideMask();
 	DrawForeground();
