@@ -44,7 +44,7 @@ void OpenCheckpointMenu(PlayerData* player)
 
     if (g_MenuFont == -1)
     {
-        g_MenuFont = CreateFontToHandle(nullptr, 32, 3);
+        g_MenuFont = CreateFontToHandle("Ÿà–¾’©", 28, 3);
     }
 
     if (g_TitleFont == -1)
@@ -233,8 +233,11 @@ void DrawCheckpointMenu()
 {
     if (!g_IsCheckpointMenuOpen) return;
 
-    DrawBackground();
-    DrawLeftMenu();
+    if (!g_IsInSubMenu)
+    {
+        DrawBackground();
+        DrawLeftMenu();
+    }
 
     OverlayArea area = GetOverlayContentArea();
 
@@ -242,12 +245,18 @@ void DrawCheckpointMenu()
     {
     case CheckpointMenuItem::Equip:
         if (g_IsInSubMenu)
+        {
+            DrawOverlayBackground();
             DrawEquipMenuScene(area);
+        }
         break;
 
     case CheckpointMenuItem::Skill:
         if (g_IsInSubMenu)
+        {
+            DrawOverlayBackground();
             DrawSkillMenuScene(area);
+        }
         break;
 
     default:

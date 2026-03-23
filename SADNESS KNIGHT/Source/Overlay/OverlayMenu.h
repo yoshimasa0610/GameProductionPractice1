@@ -32,6 +32,8 @@ void CloseOverlayMenu();
 void NextOverlayTab();
 void PrevOverlayTab();
 
+void DrawOverlayBackground();
+
 // Sceneライフサイクル
 void UpdateOverlayMenu();
 void DrawOverlayMenu();

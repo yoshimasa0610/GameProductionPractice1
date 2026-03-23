@@ -10,7 +10,7 @@ static bool g_IsOverlayOpen = false;
 // ‘O•ûéŒ¾
 static void OnTabChanged();
 OverlayArea GetOverlayContentArea();
-static void DrawOverlayBackground();
+void DrawOverlayBackground();
 
 void OpenOverlayMenu(PlayerData* player)
 {
@@ -186,7 +186,7 @@ OverlayArea GetOverlayContentArea()
     return area;
 }
 
-static void DrawOverlayBackground()
+void DrawOverlayBackground()
 {
     int w, h;
     GetScreenState(&w, &h, nullptr);
