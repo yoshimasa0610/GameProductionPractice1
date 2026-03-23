@@ -103,7 +103,7 @@ void InitAllItems()
         item->iconSmallPath = "Data/Item/Icon/charm_guard_small.png";
         item->iconLargePath = "Data/Item/Icon/charm_guard_large.png";
 
-        item->buff.damageTakenRate = -0.10f; // 10%ŒyŒ¸
+        item->buff.damageTakenRate = -0.15f; // 10%ŒyŒ¸
 
         item->systemDesc = {
             "Žó‚¯‚éƒ_ƒ[ƒW‚ª15%Œ¸­‚·‚é",
