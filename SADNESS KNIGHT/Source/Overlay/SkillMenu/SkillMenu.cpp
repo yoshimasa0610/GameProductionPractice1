@@ -6,6 +6,7 @@
 #include "../../Map/Checkpoint/CheckpointManager.h"
 #include "../OverlayMenu.h"
 #include <algorithm>
+#include <string>
 
 extern SkillManager g_SkillManager;
 
@@ -17,10 +18,14 @@ enum class SkillMenuMode
 bool g_IsSkillMenuOpen = false;
 static SkillMenuMode g_Mode = SkillMenuMode::SlotSelect;
 static PlayerData* g_Player = nullptr;
-
+// スロット選択での選択スロット（0-5番）
 static int g_SelectedSlot = 0;
 static int g_SelectedSkillIndex = 0;
 static int g_EditSet = 0;
+// メッセージ表示用
+static int g_MessageTimer = 0;
+static std::string g_Message;
+
 // スキルメニューを開く
 void OpenSkillMenu(PlayerData* player)
 {
@@ -30,6 +35,8 @@ void OpenSkillMenu(PlayerData* player)
     g_SelectedSlot = 0;
     g_SelectedSkillIndex = 0;
     g_EditSet = g_SkillManager.GetCurrentSet();
+    g_MessageTimer = 0;
+    g_Message.clear();
 }
 // スキルメニュー閉じる
 void CloseSkillMenu()
@@ -49,16 +56,8 @@ static void BuildOwnedSkills(std::vector<int>& out)
 // スキルメニューの更新
 void UpdateSkillMenuScene()
 {
-    //if (!g_IsSkillMenuOpen) return;
-    /*
-    // 閉じる
-    if (IsTriggerKey(KEY_CANCEL))
-    {
-        CloseSkillMenu();
-        return;
-    }
-    */
-    //if (!IsPlayerSitting()) return;
+    if (g_MessageTimer > 0)
+        g_MessageTimer--;
 
     if (g_Mode == SkillMenuMode::SlotSelect)
     {
@@ -74,6 +73,13 @@ void UpdateSkillMenuScene()
 
         if (IsTriggerKey(KEY_OK))
         {
+            if (!IsPlayerSitting())
+            {
+                g_Message = "スキル変更は休憩中のみ可能です。";
+                g_MessageTimer = 90;
+                return;
+            }
+
             g_Mode = SkillMenuMode::SkillSelect;
             g_SelectedSkillIndex = 0;
         }
@@ -81,8 +87,14 @@ void UpdateSkillMenuScene()
         // 解除
         if (IsTriggerKey(KEY_CANCEL))
         {
-            int slot = g_SelectedSlot % 3;
+            if (!IsPlayerSitting())
+            {
+                g_Message = "スキル変更は休憩中のみ可能です。";
+                g_MessageTimer = 90;
+                return;
+            }
 
+            int slot = g_SelectedSlot % 3;
             g_SkillManager.UnequipSkill(
                 g_EditSet,
                 slot
@@ -111,8 +123,14 @@ void UpdateSkillMenuScene()
 
         if (IsTriggerKey(KEY_OK))
         {
-            int slot = g_SelectedSlot % 3;
+            if (!IsPlayerSitting())
+            {
+                g_Message = "スキル変更は休憩中のみ可能です。";
+                g_MessageTimer = 90;
+                return;
+            }
 
+            int slot = g_SelectedSlot % 3;
             g_SkillManager.EquipSkill(
                 g_EditSet,
                 slot,
@@ -396,5 +414,15 @@ void DrawSkillMenuScene(const OverlayArea& area)
             GetColor(180, 180, 180));
 
         textY += SS(20);
+    }
+
+    if (g_MessageTimer > 0)
+    {
+        DrawString(
+            area.x + 40,
+            area.y + area.h - 40,
+            g_Message.c_str(),
+            GetColor(255, 120, 120)
+        );
     }
 }

@@ -7,10 +7,17 @@
 #include "../OverlayMenu.h"
 #include "../../Map/Checkpoint/CheckpointManager.h"
 
+// チェックポイントメニューの実装
 static bool g_IsCheckpointMenuOpen = false;
+// プレイヤーデータへの参照（装備やスキルメニューで使用）
 static PlayerData* g_PlayerRef = nullptr;
+// メインメニューの現在選択されている項目
 static CheckpointMenuItem g_CurrentItem = CheckpointMenuItem::Equip;
+// サブメニュー（装備やスキル選択）に入っているかどうか
 static bool g_IsInSubMenu = false;
+// フォントを大きくするための変数
+static int g_MenuFont = -1;
+static int g_TitleFont = -1;
 
 static const char* GetItemName(CheckpointMenuItem item)
 {
@@ -34,6 +41,17 @@ void OpenCheckpointMenu(PlayerData* player)
     g_PlayerRef = player;
     g_CurrentItem = CheckpointMenuItem::Equip;
     g_IsInSubMenu = false;
+
+    if (g_MenuFont == -1)
+    {
+        g_MenuFont = CreateFontToHandle(nullptr, 32, 3);
+    }
+
+    if (g_TitleFont == -1)
+    {
+        g_TitleFont = CreateFontToHandle(nullptr, 24, 3);
+    }
+
     SetPaused(true);
 }
 
@@ -175,7 +193,13 @@ static void DrawLeftMenu()
     int startY = 200;
     int lineH = 80;
 
-    DrawString(startX, 100, "レストポイント", GetColor(255, 255, 255));
+    DrawStringToHandle(
+        startX,
+        100,
+        "レストポイント",
+        GetColor(255, 255, 255),
+        g_TitleFont
+    );
 
     for (int i = 0; i < (int)CheckpointMenuItem::Count; i++)
     {
@@ -184,11 +208,24 @@ static void DrawLeftMenu()
 
         if (selected)
         {
-            DrawString(startX - 24 + 80, y, "●", GetColor(255, 80, 80));
+            DrawStringToHandle(
+                startX + 40,
+                y,
+                "●",
+                GetColor(255, 80, 80),
+                g_MenuFont
+            );
         }
 
         int color = selected ? GetColor(255, 255, 255) : GetColor(180, 180, 180);
-        DrawString(startX + 80, y, GetItemName((CheckpointMenuItem)i), color);
+
+        DrawStringToHandle(
+            startX + 80,
+            y,
+            GetItemName((CheckpointMenuItem)i),
+            color,
+            g_MenuFont
+        );
     }
 }
 
