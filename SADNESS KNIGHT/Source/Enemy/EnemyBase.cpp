@@ -33,7 +33,7 @@ namespace
     static int g_EnemyDebugFrame = 0;
 
     // デバッグ用グローバルバッファ
-    char g_enemyDebugInfo[256] = "";
+    char g_enemyDebugInfo[512] = "";
 
     float GetEnemyBodyColliderScale(EnemyType type)
     {
@@ -120,7 +120,7 @@ namespace
 
     const float CULTIST_FIREBALL_SPEED = 4.8f;
     const float CULTIST_FIREBALL_LIFE = 2.0f;
-    const float CULTIST_FIREBALL_SIZE = 34.0f;
+    const float CULTIST_FIREBALL_SIZE = 170.0f;
 
     void DestroyProjectile(EnemyProjectile& p)
     {
@@ -143,18 +143,35 @@ namespace
 
     void InitCultistFireballAssets()
     {
-        const char* paths[4] = {
-            "Data/Enemy/cultists/Cultist-Attack_FireBall_1.png",
-            "Data/Enemy/cultists/Cultist-Attack_FireBall_2.png",
-            "Data/Enemy/cultists/Cultist-Attack_FireBall_3.png",
-            "Data/Enemy/cultists/Cultist-Attack_FireBall_4.png"
-        };
-
         for (int i = 0; i < 4; i++)
         {
+            if (g_cultistFireballFrames[i] != -1)
+            {
+                continue;
+            }
+
+            const int index = i + 1;
+            char path[256];
+
+            sprintf_s(path, sizeof(path), "Data/Enemy/cultists/Cultist-Attack_FireBall_%d.png", index);
+            g_cultistFireballFrames[i] = LoadGraph(path);
+
             if (g_cultistFireballFrames[i] == -1)
             {
-                g_cultistFireballFrames[i] = LoadGraph(paths[i]);
+                sprintf_s(path, sizeof(path), "Data/Enemy/Cultists/Cultist-Attack_FireBall_%d.png", index);
+                g_cultistFireballFrames[i] = LoadGraph(path);
+            }
+
+            if (g_cultistFireballFrames[i] == -1)
+            {
+                sprintf_s(path, sizeof(path), "Data/Enemy/cultists/Cultist-Attack_Fireball_%d.png", index);
+                g_cultistFireballFrames[i] = LoadGraph(path);
+            }
+
+            if (g_cultistFireballFrames[i] == -1)
+            {
+                sprintf_s(path, sizeof(path), "Data/Enemy/Cultists/Cultist-Attack_Fireball_%d.png", index);
+                g_cultistFireballFrames[i] = LoadGraph(path);
             }
         }
     }
@@ -173,6 +190,8 @@ namespace
 
     void SpawnCultistFireball(EnemyData& e, const PlayerData& player)
     {
+        InitCultistFireballAssets();
+
         float dx = player.posX - e.posX;
         float dy = (player.posY - PLAYER_HEIGHT * 0.5f) - (e.posY - e.height * 0.65f);
         float len = std::sqrt(dx * dx + dy * dy);
@@ -279,6 +298,8 @@ namespace
 
     void DrawEnemyProjectiles(const CameraData& camera)
     {
+        InitCultistFireballAssets();
+
         for (const auto& p : g_enemyProjectiles)
         {
             if (!p.active) continue;
@@ -295,7 +316,7 @@ namespace
             const int frameHandle = g_cultistFireballFrames[p.animFrame % 4];
             if (frameHandle != -1)
             {
-                if (p.velocityX > 0.0f)
+                if (p.velocityX >= 0.0f)
                 {
                     DrawExtendGraph(right, top, left, bottom, frameHandle, TRUE);
                 }
@@ -404,6 +425,9 @@ namespace
     const float TWISTED_ATTACK_HEIGHT_SCALE = 0.45f;
     const float TWISTED_ATTACK_FRONT_OFFSET_RATIO = 0.65f;
     const float TWISTED_ATTACK_CENTER_Y_RATIO = 0.62f;
+    const float ENEMY_ATTACK_PREPARE_TIME = 0.5f;
+    const float ASSASSIN_TELEPORT_TRIGGER_RANGE = BLOCK_SIZE * 3.0f;
+    const float ASSASSIN_TELEPORT_OFFSET = 36.0f;
 
     // レイキャストによる視線判定（ブロックを透視できない）
     bool HasLineOfSight(float fromX, float fromY, float toX, float toY)
@@ -457,42 +481,39 @@ namespace
         const float checkTop = e.posY - e.height;
         const float checkLeft = e.posX - halfW;
         const float checkRight = e.posX + halfW;
-        
+
         e.isGrounded = false;
-        
+
         // 上方向の当たり判定（複数点チェック）
         for (int i = 0; i < 3; i++)
         {
             float checkX = checkLeft + (checkRight - checkLeft) * (i / 2.0f);
             int gridX = static_cast<int>(checkX / BLOCK_SIZE);
             int gridY = static_cast<int>((checkTop - 1.0f) / BLOCK_SIZE);
-            
+
             MapChipData* mc = GetMapChipData(gridX, gridY);
             if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
             {
-                float blockBottom = gridY * BLOCK_SIZE;
-                if (e.posY < blockBottom && e.velocityY <= 0.0f)
+                float blockBottom = (gridY + 1) * BLOCK_SIZE;
+                if (e.posY - e.height < blockBottom && e.velocityY < 0.0f)
                 {
-                    e.posY = blockBottom;
+                    e.posY = blockBottom + e.height;
                     e.velocityY = 0.0f;
-                    e.isGrounded = true;
                 }
             }
         }
-        
+
         // 下方向の当たり判定（複数点チェック）
         for (int i = 0; i < 3; i++)
         {
             float checkX = checkLeft + (checkRight - checkLeft) * (i / 2.0f);
             int gridX = static_cast<int>(checkX / BLOCK_SIZE);
-            // 足元の少し下をチェック
             int gridY = static_cast<int>((checkBottom + 1.0f) / BLOCK_SIZE);
             MapChipData* mc = GetMapChipData(gridX, gridY);
             if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
             {
                 float blockTop = gridY * BLOCK_SIZE;
-                // 足元が地面より下にめり込みた場合のみ補正
-                if (e.posY > blockTop && e.velocityY >= 0.0f)
+                if (e.posY <= blockTop + 4.0f && e.velocityY >= 0.0f)
                 {
                     e.posY = blockTop;
                     e.velocityY = 0.0f;
@@ -500,9 +521,9 @@ namespace
                 }
             }
         }
-        
-        // 左右の壁判定
-        if (e.velocityX < 0.0f) // 左移動
+
+        // 左右の壁判定（足元の床を壁扱いしないよう中央?上側のみ確認）
+        if (e.velocityX < 0.0f)
         {
             int gridX = static_cast<int>((checkLeft - 1.0f) / BLOCK_SIZE);
             bool hitWall = false;
@@ -510,13 +531,13 @@ namespace
 
             for (int i = 0; i < 3; i++)
             {
-                const float sampleY = (e.posY - e.height) + (e.height * (i / 2.0f));
+                const float sampleY = checkTop + (e.height * (i / 3.0f));
                 int gridY = static_cast<int>(sampleY / BLOCK_SIZE);
                 MapChipData* mc = GetMapChipData(gridX, gridY);
                 if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
                 {
                     hitWall = true;
-                    nearestBlockRight = (gridX + 1) * BLOCK_SIZE;
+                    nearestBlockRight = (gridY + 1) * BLOCK_SIZE;
                     break;
                 }
             }
@@ -525,10 +546,9 @@ namespace
             {
                 e.posX = nearestBlockRight + halfW;
                 e.velocityX = 0.0f;
-                e.patrolDirection = 1; // 方向転換
             }
         }
-        else if (e.velocityX > 0.0f) // 右移動
+        else if (e.velocityX > 0.0f)
         {
             int gridX = static_cast<int>((checkRight + 1.0f) / BLOCK_SIZE);
             bool hitWall = false;
@@ -536,7 +556,7 @@ namespace
 
             for (int i = 0; i < 3; i++)
             {
-                const float sampleY = (e.posY - e.height) + (e.height * (i / 2.0f));
+                const float sampleY = checkTop + (e.height * (i / 3.0f));
                 int gridY = static_cast<int>(sampleY / BLOCK_SIZE);
                 MapChipData* mc = GetMapChipData(gridX, gridY);
                 if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
@@ -550,23 +570,6 @@ namespace
             if (hitWall && e.posX + halfW > nearestBlockLeft)
             {
                 e.posX = nearestBlockLeft - halfW;
-                e.velocityX = 0.0f;
-                e.patrolDirection = -1; // 方向転換
-            }
-        }
-        
-        // 崖検出（徘徊中に落ちないように）
-        if (!e.isAggro && e.isGrounded && std::fabs(e.velocityX) > 0.01f)
-        {
-            float frontX = e.posX + (e.velocityX > 0 ? halfW + 4.0f : -halfW - 4.0f);
-            int gridX = static_cast<int>(frontX / BLOCK_SIZE);
-            int gridY = static_cast<int>((e.posY + 8.0f) / BLOCK_SIZE);
-            
-            MapChipData* mcFront = GetMapChipData(gridX, gridY);
-            if (mcFront == nullptr || mcFront->mapChip == MAP_CHIP_NONE)
-            {
-                // 前方が崖なので方向転換
-                e.patrolDirection *= -1;
                 e.velocityX = 0.0f;
             }
         }
@@ -620,6 +623,9 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.jumpPower = config.jumpPower;
     e.isAttacking = false;
     e.attackColliderId = -1;
+    e.isAttackPreparing = false;
+    e.attackPrepareTimer = 0.0f;
+    e.pendingAttackKind = 0;
     e.behaviorPattern = -1;
     e.isInvisible = false;
     e.specialTimer = 0.0f;
@@ -802,6 +808,9 @@ void UpdateEnemies()
         {
             e.isDying = true;
             e.isAttacking = false;
+            e.isAttackPreparing = false;
+            e.attackPrepareTimer = 0.0f;
+            e.pendingAttackKind = 0;
             e.isInvisible = false;
             e.velocityX = 0.0f;
             e.velocityY = 0.0f;
@@ -883,6 +892,112 @@ void UpdateEnemies()
 
         if (e.cooldownTimer > 0.0f) e.cooldownTimer -= effectiveFrameTime;
 
+        const bool specialType = (e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist);
+
+        auto BeginAttackPrepare = [&](int kind)
+        {
+            if (e.isAttacking || e.isAttackPreparing || e.cooldownTimer > 0.0f)
+            {
+                return;
+            }
+
+            e.isAttackPreparing = true;
+            e.attackPrepareTimer = ENEMY_ATTACK_PREPARE_TIME;
+            e.pendingAttackKind = kind;
+            e.velocityX = 0.0f;
+        };
+
+        auto StartPreparedAttack = [&]()
+        {
+            const int kind = e.pendingAttackKind;
+            e.pendingAttackKind = 0;
+
+            if (kind <= 0) return;
+
+            if (e.attackColliderId != -1)
+            {
+                DestroyCollider(e.attackColliderId);
+                e.attackColliderId = -1;
+            }
+
+            if (kind == 2)
+            {
+                e.isAttacking = true;
+                e.attackTimer = 0.32f;
+                e.cooldownTimer = e.attackCooldown;
+                e.velocityX = 0.0f;
+                SpawnCultistFireball(e, player);
+            }
+            else if (kind == 3)
+            {
+                const float warpOffset = (dx >= 0.0f) ? -ASSASSIN_TELEPORT_OFFSET : ASSASSIN_TELEPORT_OFFSET;
+                e.posX = player.posX + warpOffset;
+                e.posY = player.posY;
+                e.isFacingRight = (player.posX >= e.posX);
+
+                e.isAttacking = true;
+                e.attackTimer = e.attackDuration;
+                e.cooldownTimer = e.attackCooldown;
+                e.velocityX = 0.0f;
+
+                const float attackWidth = e.width * ENEMY_ATTACK_WIDTH_SCALE;
+                const float attackHeight = e.height * ENEMY_ATTACK_HEIGHT_SCALE;
+                const float attackFrontOffset = e.width * ENEMY_ATTACK_FRONT_OFFSET_RATIO;
+                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
+                const float attackLeft = e.posX + attackOffsetX;
+                const float attackTop = e.posY - attackHeight;
+                e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
+            }
+            else if (kind == 4)
+            {
+                e.isAttacking = true;
+                e.attackTimer = e.attackDuration;
+                e.cooldownTimer = e.attackCooldown;
+                e.velocityX = 0.0f;
+            }
+            else
+            {
+                const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
+
+                e.isAttacking = true;
+                e.attackTimer = e.attackDuration;
+                e.cooldownTimer = e.attackCooldown;
+
+                const float lungeSpeed = e.moveSpeed * 5.0f;
+                e.velocityX = (dx >= 0.0f) ? lungeSpeed : -lungeSpeed;
+
+                const float attackWidth = isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * ENEMY_ATTACK_WIDTH_SCALE);
+                const float attackHeight = isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : (e.height * ENEMY_ATTACK_HEIGHT_SCALE);
+                const float attackFrontOffset = isTwisted ? (e.width * TWISTED_ATTACK_FRONT_OFFSET_RATIO) : (e.width * ENEMY_ATTACK_FRONT_OFFSET_RATIO);
+                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
+                const float attackLeft = e.posX + attackOffsetX;
+                const float attackCenterY = isTwisted ? (e.posY - e.height * TWISTED_ATTACK_CENTER_Y_RATIO) : (e.posY - attackHeight * 0.5f);
+                const float attackTop = attackCenterY - attackHeight * 0.5f;
+                e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
+            }
+
+            if (e.animations != nullptr)
+            {
+                ResetAnimation(e.animations->attack);
+            }
+        };
+
+        if (e.isAttackPreparing)
+        {
+            e.attackPrepareTimer -= effectiveFrameTime;
+            e.velocityX = 0.0f;
+            if (std::fabs(dx) > FACE_TURN_DEADZONE)
+            {
+                e.isFacingRight = (dx >= 0.0f);
+            }
+
+            if (e.attackPrepareTimer <= 0.0f)
+            {
+                e.isAttackPreparing = false;
+                StartPreparedAttack();
+            }
+        }
+
         if (e.isAttacking)
         {
             e.attackTimer -= effectiveFrameTime;
@@ -899,7 +1014,7 @@ void UpdateEnemies()
                     e.attackColliderId = -1;
                 }
 
-                if (e.type == EnemyType::AssassinCultist && !e.isInvisible)
+                if (e.type == EnemyType::AssassinCultist)
                 {
                     e.behaviorPattern = -1;
                 }
@@ -910,123 +1025,49 @@ void UpdateEnemies()
             }
         }
 
-        const bool specialType = (e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist);
-        if (specialType)
+        if (e.type == EnemyType::AssassinCultist)
         {
-            const bool isBig = (e.type == EnemyType::BigQuartist);
-            const float warpWait = 0.25f;
-            const float warpOffsetDist = 36.0f;
-            const float warpLungeMul = 6.0f;
-            const float approachMul = isBig ? 1.05f : 1.8f;
-            const float attackWScale = isBig ? BIG_ATTACK_WIDTH_SCALE : ENEMY_ATTACK_WIDTH_SCALE;
-            const float attackFrontOffset = isBig ? (e.width * 0.2f) : (e.width * ENEMY_ATTACK_FRONT_OFFSET_RATIO);
-
-            if (!isBig && e.isInvisible)
+            if (e.isAggro && !e.isAttacking && !e.isAttackPreparing)
             {
-                e.specialTimer -= effectiveFrameTime;
-                e.velocityX = 0.0f;
+                e.behaviorPattern = 1;
+                e.isFacingRight = (dx >= 0.0f);
 
-                if (e.specialTimer <= 0.0f)
+                const bool closeEnough = (std::fabs(dx) <= ASSASSIN_TELEPORT_TRIGGER_RANGE) && (std::fabs(dy) <= e.height * 1.5f);
+                if (closeEnough)
                 {
-                    const float warpOffset = (dx >= 0.0f) ? -warpOffsetDist : warpOffsetDist;
-                    e.posX = player.posX + warpOffset;
-                    e.posY = player.posY;
-                    e.isFacingRight = (player.posX >= e.posX);
-                    e.isInvisible = false;
-
-                    if (e.cooldownTimer <= 0.0f)
-                    {
-                        e.isAttacking = true;
-                        e.attackTimer = e.attackDuration;
-                        e.cooldownTimer = e.attackCooldown;
-                        e.behaviorPattern = 0;
-
-                        const float lungeSpeed = e.moveSpeed * warpLungeMul;
-                        e.velocityX = e.isFacingRight ? lungeSpeed : -lungeSpeed;
-
-                        if (e.attackColliderId != -1)
-                        {
-                            DestroyCollider(e.attackColliderId);
-                            e.attackColliderId = -1;
-                        }
-
-                        const float attackWidth = e.width * attackWScale;
-                        const float attackHeight = e.height * ENEMY_ATTACK_HEIGHT_SCALE;
-                        const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
-                        const float attackLeft = e.posX + attackOffsetX;
-                        const float attackTop = e.posY - attackHeight;
-                        e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
-
-                        if (e.animations != nullptr)
-                        {
-                            ResetAnimation(e.animations->attack);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (e.behaviorPattern == 1 && !e.isAttacking)
-                {
-                    e.isFacingRight = (dx >= 0.0f);
-                    const bool closeEnough = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height * 1.2f);
-                    if (!closeEnough)
-                    {
-                        const float approachSpeed = e.moveSpeed * approachMul;
-                        e.velocityX = (dx >= 0.0f) ? approachSpeed : -approachSpeed;
-                    }
-                    else if (e.cooldownTimer <= 0.0f)
-                    {
-                        e.isAttacking = true;
-                        e.attackTimer = e.attackDuration;
-                        e.cooldownTimer = e.attackCooldown;
-                        e.velocityX = 0.0f;
-
-                        if (e.attackColliderId != -1)
-                        {
-                            DestroyCollider(e.attackColliderId);
-                            e.attackColliderId = -1;
-                        }
-
-                        const float attackWidth = e.width * attackWScale;
-                        const float attackHeight = e.height * ENEMY_ATTACK_HEIGHT_SCALE;
-                        const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
-                        const float attackLeft = e.posX + attackOffsetX;
-                        const float attackTop = e.posY - attackHeight;
-                        if (!isBig)
-                        {
-                            e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
-                        }
-
-                        if (e.animations != nullptr)
-                        {
-                            ResetAnimation(e.animations->attack);
-                        }
-                    }
+                    BeginAttackPrepare(3);
                 }
                 else
                 {
-                    const bool canStart = (!e.isAttacking && e.cooldownTimer <= 0.0f && e.isAggro);
-                    const bool inWarpTrigger = (!isBig) && (std::fabs(dx) <= e.detectRange * 0.9f) && (std::fabs(dy) <= e.height * 1.5f);
-                    const bool inApproachTrigger = (std::fabs(dx) <= e.detectRange) && (std::fabs(dy) <= e.height * 1.5f);
-
-                    if (canStart && (inWarpTrigger || inApproachTrigger))
-                    {
-                        const int action = isBig ? 1 : GetRand(1);
-                        e.behaviorPattern = action;
-
-                        if (action == 0)
-                        {
-                            e.isInvisible = true;
-                            e.specialTimer = warpWait;
-                            e.velocityX = 0.0f;
-                        }
-                        else
-                        {
-                            e.velocityX = 0.0f;
-                        }
-                    }
+                    e.velocityX = (dx >= 0.0f) ? (e.moveSpeed * 1.8f) : (-e.moveSpeed * 1.8f);
                 }
+            }
+            else if (!e.isAttacking && !e.isAttackPreparing)
+            {
+                e.velocityX = 0.0f;
+            }
+        }
+        else if (e.type == EnemyType::BigQuartist)
+        {
+            if (e.isAggro && !e.isAttacking && !e.isAttackPreparing)
+            {
+                e.behaviorPattern = 1;
+                e.isFacingRight = (dx >= 0.0f);
+
+                const bool closeEnough = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height * 1.2f);
+                if (closeEnough)
+                {
+                    BeginAttackPrepare(4);
+                }
+                else
+                {
+                    const float approachSpeed = e.moveSpeed * 1.05f;
+                    e.velocityX = (dx >= 0.0f) ? approachSpeed : -approachSpeed;
+                }
+            }
+            else if (!e.isAttacking && !e.isAttackPreparing)
+            {
+                e.velocityX = 0.0f;
             }
         }
         else
@@ -1038,119 +1079,37 @@ void UpdateEnemies()
                 (std::fabs(dx) <= e.detectRange) &&
                 (std::fabs(dy) <= e.height * 1.3f);
 
-            if (!e.isAttacking && e.cooldownTimer <= 0.0f && inAttackRange)
+            if (e.isAggro && !e.isAttacking && !e.isAttackPreparing)
             {
-                e.isAttacking = true;
-                e.attackTimer = e.attackDuration;
-                e.cooldownTimer = e.attackCooldown;
-
-                const float lungeSpeed = e.moveSpeed * 5.0f;
-                e.velocityX = (dx >= 0.0f) ? lungeSpeed : -lungeSpeed;
                 e.isFacingRight = (dx >= 0.0f);
 
-                if (e.attackColliderId != -1)
+                if (canShootFireball)
                 {
-                    DestroyCollider(e.attackColliderId);
-                    e.attackColliderId = -1;
+                    BeginAttackPrepare(2);
                 }
-
-                const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
-                const float attackWidth = isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * 1.3f);
-                const float attackHeight = isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : e.height;
-                const float attackFrontOffset = isTwisted ? (e.width * TWISTED_ATTACK_FRONT_OFFSET_RATIO) : (e.width * 0.5f);
-                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
-                const float attackLeft = e.posX + attackOffsetX;
-                const float attackCenterY = isTwisted ? (e.posY - e.height * TWISTED_ATTACK_CENTER_Y_RATIO) : (e.posY - attackHeight * 0.5f);
-                const float attackTop = attackCenterY - attackHeight * 0.5f;
-                e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
-
-                if (e.animations != nullptr)
+                else if (inAttackRange)
                 {
-                    ResetAnimation(e.animations->attack);
+                    BeginAttackPrepare(1);
+                }
+                else
+                {
+                    e.velocityX = (dx >= 0.0f) ? e.moveSpeed : -e.moveSpeed;
                 }
             }
-            else if (!e.isAttacking && e.cooldownTimer <= 0.0f && canShootFireball)
+            else if (!e.isAggro && !e.isAttacking && !e.isAttackPreparing)
             {
-                e.isAttacking = true;
-                e.attackTimer = 0.32f;
-                e.cooldownTimer = e.attackCooldown;
                 e.velocityX = 0.0f;
-                e.isFacingRight = (dx >= 0.0f);
-
-                if (e.attackColliderId != -1)
-                {
-                    DestroyCollider(e.attackColliderId);
-                    e.attackColliderId = -1;
-                }
-
-                SpawnCultistFireball(e, player);
-
-                if (e.animations != nullptr)
-                {
-                    ResetAnimation(e.animations->attack);
-                }
             }
         }
 
-        // --- 近接敵の追跡・攻撃ロジック（整理版） ---
-        const bool approachMode = (e.type == EnemyType::AssassinCultist && e.behaviorPattern == 1 && !e.isInvisible) || (e.type == EnemyType::BigQuartist);
-        if (e.isAggro && !e.isAttacking && !e.isInvisible && !approachMode && e.cooldownTimer <= 0.0f) {
-            const bool inAttackRange = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height);
-            if (!inAttackRange) {
-                // 攻撃範囲外なら必ず近づく
-                e.velocityX = (dx > 0.0f) ? e.moveSpeed : -e.moveSpeed;
-                e.isFacingRight = (dx > 0.0f);
-            } else {
-                // 攻撃範囲内なら攻撃
-                e.velocityX = 0.0f;
-                e.isFacingRight = (dx > 0.0f);
-                e.isAttacking = true;
-                e.attackTimer = e.attackDuration;
-                e.cooldownTimer = e.attackCooldown;
-                if (e.attackColliderId != -1) {
-                    DestroyCollider(e.attackColliderId);
-                    e.attackColliderId = -1;
-                }
-                const bool isTwisted = (e.type == EnemyType::TwistedCaltis);
-                const float attackWidth = isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * 1.3f);
-                const float attackHeight = isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : e.height;
-                const float attackFrontOffset = isTwisted ? (e.width * TWISTED_ATTACK_FRONT_OFFSET_RATIO) : (e.width * 0.5f);
-                const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
-                const float attackLeft = e.posX + attackOffsetX;
-                const float attackCenterY = isTwisted ? (e.posY - e.height * TWISTED_ATTACK_CENTER_Y_RATIO) : (e.posY - attackHeight * 0.5f);
-                const float attackTop = attackCenterY - attackHeight * 0.5f;
-                e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
-                if (e.animations != nullptr) {
-                    ResetAnimation(e.animations->attack);
-                }
-            }
-        } else if (!e.isAttacking && !e.isInvisible && !approachMode && e.cooldownTimer <= 0.0f && e.isGrounded) {
-            float distFromStart = e.posX - e.patrolStartX;
-            if (distFromStart > e.patrolRange) e.patrolDirection = -1;
-            else if (distFromStart < -e.patrolRange) e.patrolDirection = 1;
-
-            e.velocityX = e.patrolDirection * (e.moveSpeed * 0.5f);
-            e.isFacingRight = (e.patrolDirection > 0);
-        }
-        
         // --- 重力適用（全員分） ---
         if (!e.isGrounded) {
             e.velocityY += GRAVITY * slowMoScale;
             if (e.velocityY > MAX_FALL_SPEED) e.velocityY = MAX_FALL_SPEED;
         }
 
-        e.posX += e.velocityX * slowMoScale;
-        e.posY += e.velocityY * slowMoScale;
-
-        const float mapBottom = static_cast<float>(GetMapHeight());
-        if (mapBottom > 0.0f && e.posY > mapBottom)
-        {
-            e.posY = mapBottom;
-            e.velocityY = 0.0f;
-            e.isGrounded = true;
-        }
-
-        ResolveEnemyMapCollision(e);
+        const float debugVelocityXBeforeMove = e.velocityX;
+        const float debugVelocityYBeforeMove = e.velocityY;
 
         const float moveX = e.velocityX * slowMoScale;
         const float moveY = e.velocityY * slowMoScale;
@@ -1256,9 +1215,28 @@ void UpdateEnemies()
         static int debugEnemyIdx = -1;
         if (debugEnemyIdx == -1 && e.active) debugEnemyIdx = &e - &g_enemies[0];
         if ((&e - &g_enemies[0]) == debugEnemyIdx) {
+            const bool inAttackRangeDebug = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height);
+            const bool canChaseDebug = e.isAggro && !e.isAttacking && !e.isInvisible;
             snprintf(g_enemyDebugInfo, sizeof(g_enemyDebugInfo),
-                "[EnemyDebug] type=%d pos=(%.1f,%.1f) vX=%.2f vY=%.2f isAggro=%d isAttacking=%d isGrounded=%d dist=%.1f atkRange=%.1f detect=%.1f",
-                (int)e.type, e.posX, e.posY, e.velocityX, e.velocityY, e.isAggro, e.isAttacking, e.isGrounded, dist, e.attackRange, e.detectRange);
+                "[EnemyDebug] type=%d pos=(%.1f,%.1f) v=(%.2f,%.2f) preMove=(%.2f,%.2f) aggro=%d atk=%d grd=%d los=%d invis=%d pattern=%d special=%d dx=%.1f dy=%.1f dist=%.1f atkR=%.1f det=%.1f inAtk=%d canChase=%d",
+                (int)e.type,
+                e.posX, e.posY,
+                e.velocityX, e.velocityY,
+                debugVelocityXBeforeMove, debugVelocityYBeforeMove,
+                e.isAggro,
+                e.isAttacking,
+                e.isGrounded,
+                e.hasLineOfSight,
+                e.isInvisible,
+                e.behaviorPattern,
+                specialType,
+                dx,
+                dy,
+                dist,
+                e.attackRange,
+                e.detectRange,
+                inAttackRangeDebug,
+                canChaseDebug);
         }
     }
 
@@ -1356,6 +1334,15 @@ void DrawEnemies()
                         SetDrawBlendMode(DX_BLENDMODE_ALPHA, 96);
                     }
 
+                    if (e.isAttackPreparing)
+                    {
+                        SetDrawBright(255, 96, 96);
+                    }
+                    else
+                    {
+                        SetDrawBright(255, 255, 255);
+                    }
+
                     if (e.isFacingRight)
                     {
                         DrawExtendGraph(right, top, left, bottom, frameHandle, TRUE);
@@ -1364,6 +1351,8 @@ void DrawEnemies()
                     {
                         DrawExtendGraph(left, top, right, bottom, frameHandle, TRUE);
                     }
+
+                    SetDrawBright(255, 255, 255);
 
                     if ((e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist) && e.isInvisible)
                     {
@@ -1444,9 +1433,9 @@ EnemyAnimations* LoadEnemyAnimations(EnemyType type)
     {
         const bool okIdle = LoadAnimationFromFiles_Indexed(anims->idle, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_ilde", 1, 8, 6, AnimationMode::Loop);
         const bool okMove = LoadAnimationFromFiles_Indexed(anims->move, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_Run", 1, 8, 5, AnimationMode::Loop);
-        const bool okAttack = LoadAnimationFromFiles_Indexed(anims->attack, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_Jump", 1, 3, 4, AnimationMode::Once);
+        const bool okAttack = LoadAnimationFromFiles_Indexed(anims->attack, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_Attack", 1, 13, 4, AnimationMode::Once);
         const bool okHurt = LoadAnimationFromFiles_Indexed(anims->hurt, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_Jump", 1, 3, 4, AnimationMode::Once);
-        const bool okDie = LoadAnimationFromFiles_Indexed(anims->die, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_Death", 1, 9, 5, AnimationMode::Once);
+        const bool okDie = LoadAnimationFromFiles_Indexed(anims->die, "Data/Enemy/Assassin Cultist/", "Cultist-Assassin_Death", 1, 16, 5, AnimationMode::Once);
 
         if (!okIdle) InitAnimation(anims->idle);
         if (!okMove) InitAnimation(anims->move);

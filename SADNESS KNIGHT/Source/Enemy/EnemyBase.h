@@ -104,6 +104,9 @@ struct EnemyData
     // 攻撃状態
     bool isAttacking;       // 攻撃モーション再生中か
     int attackColliderId;   // 攻撃判定コライダー
+    bool isAttackPreparing; // 攻撃予備動作中か
+    float attackPrepareTimer; // 攻撃予備動作タイマー
+    int pendingAttackKind;  // 0:none 1:melee 2:fireball 3:assassin teleport 4:big melee
 
     // 特殊AI状態（主にアサシン用）
     int behaviorPattern;    // 0:透明ワープ型, 1:突進型

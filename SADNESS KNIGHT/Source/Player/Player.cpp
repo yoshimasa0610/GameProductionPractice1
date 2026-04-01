@@ -40,6 +40,12 @@ namespace
     const int DIVE_ATTACK_DRAW_OFFSET_Y = 0;
     const int DIVE_ATTACK_LANDED_EXTRA_OFFSET_Y = 70;
     const bool DEBUG_UNLOCK_DIVE_ATTACK = true;
+    const int SLASH1_FORWARD_DRAW_OFFSET = 40;
+    const int SLASH2_FORWARD_DRAW_OFFSET = 18;
+    const int SLASH3_FORWARD_DRAW_OFFSET = 24;
+    const int SLASH1_FRAME_COMPENSATE = 0;
+    const int SLASH2_FRAME_COMPENSATE = 1;
+    const int SLASH3_FRAME_COMPENSATE = 1;
 }
 
 // プレイヤーデータとアニメーション
@@ -255,11 +261,12 @@ void DrawPlayer()
         if (activeSlashSkill != nullptr)
         {
             AnimationData* slashAnim = nullptr;
+            int slashCombo = 0;
             switch (activeSlashSkill->GetComboIndex())
             {
-            case 0: slashAnim = &playerAnims.slash1; break;
-            case 1: slashAnim = &playerAnims.slash2; break;
-            default: slashAnim = &playerAnims.slash3; break;
+            case 0: slashAnim = &playerAnims.slash1; slashCombo = 0; break;
+            case 1: slashAnim = &playerAnims.slash2; slashCombo = 1; break;
+            default: slashAnim = &playerAnims.slash3; slashCombo = 2; break;
             }
 
             if (slashAnim != nullptr && slashAnim->frames != nullptr && slashAnim->frameCount > 0)
@@ -268,7 +275,14 @@ void DrawPlayer()
                 if (animFrame >= slashAnim->frameCount) animFrame = slashAnim->frameCount - 1;
                 if (animFrame < 0) animFrame = 0;
                 SetAnimationFrame(*slashAnim, animFrame);
-                DrawAnimationAligned(*slashAnim, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+
+                int forwardOffset = 0;
+                if (slashCombo == 0) forwardOffset = SLASH1_FORWARD_DRAW_OFFSET + (animFrame * SLASH1_FRAME_COMPENSATE);
+                else if (slashCombo == 1) forwardOffset = SLASH2_FORWARD_DRAW_OFFSET + (animFrame * SLASH2_FRAME_COMPENSATE);
+                else if (slashCombo == 2) forwardOffset = SLASH3_FORWARD_DRAW_OFFSET + (animFrame * SLASH3_FRAME_COMPENSATE);
+                const int drawOffsetX = playerData.isFacingRight ? forwardOffset : -forwardOffset;
+
+                DrawAnimationAlignedOffset(*slashAnim, baseX, baseY, flip, drawOffsetX, 0);
                 return;
             }
         }
@@ -326,11 +340,12 @@ void DrawPlayer()
             if (activeAttackSkill != nullptr && activeAttackSkill->GetID() == 1)
             {
                 AnimationData* slashAnim = nullptr;
+                int slashCombo = 0;
                 switch (activeAttackSkill->GetComboIndex())
                 {
-                case 0: slashAnim = &playerAnims.slash1; break;
-                case 1: slashAnim = &playerAnims.slash2; break;
-                default: slashAnim = &playerAnims.slash3; break;
+                case 0: slashAnim = &playerAnims.slash1; slashCombo = 0; break;
+                case 1: slashAnim = &playerAnims.slash2; slashCombo = 1; break;
+                default: slashAnim = &playerAnims.slash3; slashCombo = 2; break;
                 }
 
                 if (slashAnim != nullptr && slashAnim->frames != nullptr && slashAnim->frameCount > 0)
@@ -339,7 +354,14 @@ void DrawPlayer()
                     if (animFrame >= slashAnim->frameCount) animFrame = slashAnim->frameCount - 1;
                     if (animFrame < 0) animFrame = 0;
                     SetAnimationFrame(*slashAnim, animFrame);
-                    DrawAnimationAligned(*slashAnim, baseX, baseY, flip, PLAYER_WIDTH, PLAYER_HEIGHT);
+
+                    int forwardOffset = 0;
+                    if (slashCombo == 0) forwardOffset = SLASH1_FORWARD_DRAW_OFFSET + (animFrame * SLASH1_FRAME_COMPENSATE);
+                    else if (slashCombo == 1) forwardOffset = SLASH2_FORWARD_DRAW_OFFSET + (animFrame * SLASH2_FRAME_COMPENSATE);
+                    else if (slashCombo == 2) forwardOffset = SLASH3_FORWARD_DRAW_OFFSET + (animFrame * SLASH3_FRAME_COMPENSATE);
+                    const int drawOffsetX = playerData.isFacingRight ? forwardOffset : -forwardOffset;
+
+                    DrawAnimationAlignedOffset(*slashAnim, baseX, baseY, flip, drawOffsetX, 0);
                 }
                 else
                 {
