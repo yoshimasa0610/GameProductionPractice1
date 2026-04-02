@@ -8,6 +8,7 @@
 #include "Item/ItemManager.h"
 #include "Item/ItemData.h"
 #include "Skill/SkillData.h"
+#include "Sound/Sound.h"
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
@@ -35,6 +36,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
     // 入力システム初期化
     InitInput();
+
+    LoadBGM();       // サウンドロード
+    LoadSE();
     // アイテムのデータを読み込む
     InitAllItems();
 
@@ -55,7 +59,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
         UpdateInput();
         UpdateFPS();
         SceneManagerUpdate();
-
+        UpdateBGMFade();
         FPSWait();
         // 裏画面を表画面に反映
         ScreenFlip();
@@ -123,7 +127,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
     // リソース解放
     UnloadPlayer();
-
+    FinBGM();
+    FinSE();
     // DXライブラリ終了
     DxLib_End();
 

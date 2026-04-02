@@ -11,9 +11,7 @@
 #include "../../Player/Player.h"
 #include "../../Sound/Sound.h"
 #include "../../Item/Item.h"
-#include "../../Overlay/Option/Option.h"
 #include "../../Animation/Animation.h"
-#include "../../Sound/Sound.h"
 
 #define TITLE_POS_X 280
 #define TITLE_POS_Y 130
@@ -182,8 +180,7 @@ void UpdateTitleScene()
 
 		if (IsFadeOutFinished())
 		{
-			StopBGM(BGM_TITLE);
-			PlayBGM(BGM_PLAY);
+			FadeChangeBGM(BGM_PLAY, 60);
 			ResetInput();
 			ChangeScene(SCENE_PLAY);
 		}

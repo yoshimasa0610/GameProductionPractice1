@@ -7,6 +7,9 @@ enum BGMType
 {
 	BGM_TITLE,
 	BGM_PLAY,
+	BGM_KETHER,
+	BGM_CARCOMBAT,
+	BGM_TIPHERETH,
 	BGM_TYPE_MAX
 };
 
@@ -14,6 +17,13 @@ enum BGMType
 void LoadBGM();
 // BGM再生
 void PlayBGM(BGMType type);
+// フェード切り替え
+void FadeChangeBGM(BGMType next, int frame);
+// フェード更新（毎フレーム呼び出す）
+void UpdateBGMFade();
+// BGM再生中か
+BGMType GetCurrentBGM();
+bool IsFadingBGM();
 // BGM停止
 void StopBGM(BGMType type);
 // BGM終了

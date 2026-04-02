@@ -48,7 +48,7 @@ static const float FOREST5_BOSS_AREA_LEFT = 0.0f;
 static const float FOREST5_BOSS_AREA_RIGHT = 1920.0f;
 static const float FOREST5_BOSS_AREA_TOP = 0.0f;
 static const float FOREST5_BOSS_AREA_BOTTOM = 1080.0f;
-
+static bool g_IsBossBGMPlaying = false;
 // --- ボスエリア遷移ロック ---
 static bool g_StageLocked = false;
 void LockStageTransition() { g_StageLocked = true; }
@@ -124,7 +124,12 @@ void StartPlayScene()
 	InitFade();
 
 	BGMType bgm = GetStageBGM(GetCurrentStageName());
-	PlayBGM(bgm);
+	// 現在のBGMで判定
+	if (!IsFadingBGM() && GetCurrentBGM() != bgm)
+	{
+		PlayBGM(bgm);
+	}
+
 	
 	g_EnemySpawned = false;
 	g_BossCameraLocked = false;
@@ -270,11 +275,28 @@ void UpdatePlayScene()
             bossLockActive = true;
             LockStageTransition(); // ボスエリア突入でロック
         }
+		// ボスエリア侵入時にBGM切り替え
+		if (inBossArea && IsBigBossAlive() && !g_IsBossBGMPlaying)
+		{
+			if (!IsFadingBGM())
+			{
+				FadeChangeBGM(BGM_KETHER, 60);
+				g_IsBossBGMPlaying = true;
+			}
+		}
         if (bossLockActive && !IsBigBossAlive())
         {
             bossLockActive = false;
             UnlockStageTransition(); // ボス撃破でロック解除
         }
+		if (g_IsBossBGMPlaying && !IsBigBossAlive())
+		{
+			if (!IsFadingBGM())
+			{
+				FadeChangeBGM(BGM_PLAY, 60);
+				g_IsBossBGMPlaying = false;
+			}
+		}
         // カメラ固定ロジックはそのまま
         if (!g_BossCameraLocked && inBossArea)
         {
