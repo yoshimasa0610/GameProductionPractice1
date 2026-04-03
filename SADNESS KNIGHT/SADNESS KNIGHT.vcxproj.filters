@@ -115,6 +115,12 @@
     <Filter Include="Source\Overlay\SkillMenu">
       <UniqueIdentifier>{105d7c23-a3f6-412a-a444-92e52789aa19}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Scene\ClearScene">
+      <UniqueIdentifier>{7900bde3-02fe-4c34-b3a5-cea6c228dc5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Scene\Loading">
+      <UniqueIdentifier>{90f19a24-a514-4cd5-816c-eeeed350a2d4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Scene\SceneManager.cpp">
@@ -268,6 +274,12 @@
       <Filter>Source\Overlay\SkillMenu</Filter>
     </ClCompile>
     <ClCompile Include="Source\Enemy\EnemySpawnSamples.cpp" />
+    <ClCompile Include="Source\Scene\ClearScene\ClearScene.cpp">
+      <Filter>Source\Scene\ClearScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scene\Loading\Loading.cpp">
+      <Filter>Source\Scene\Loading</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\GameSetting\GameSetting.h">
@@ -419,6 +431,12 @@
     </ClInclude>
     <ClInclude Include="Source\Config\GameConfig.h" />
     <ClInclude Include="Source\BigBoss\Kether\Kether.h" />
+    <ClInclude Include="Source\Scene\ClearScene\ClearScene.h">
+      <Filter>Source\Scene\ClearScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Scene\Loading\Loading.h">
+      <Filter>Source\Scene\Loading</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source\Enemy\README.md" />

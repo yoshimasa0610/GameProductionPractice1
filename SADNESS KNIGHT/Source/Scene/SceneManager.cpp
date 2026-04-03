@@ -4,6 +4,8 @@
 #include <DxLib.h>
 #include "../Input/Input.h"
 #include "ClearScene/ClearScene.h"
+#include "Loading/Loading.h"
+#include "../Fade/Fade.h"
 
 // 最初に開かれるシーンを初期値にする
 Scene g_NowScene = SCENE_TITLE;
@@ -72,6 +74,10 @@ void InitScene()
 		InitTitleScene();
 		break;
 
+	case SCENE_LOADING:
+		InitLoadingScene();
+		break;
+
 	case SCENE_PLAY:	// プレイ
 		InitPlayScene();
 		break;
@@ -89,6 +95,10 @@ void LoadScene()
 	{
 	case SCENE_TITLE:	// タイトル
 		LoadTitleScene();
+		break;
+
+	case SCENE_LOADING:
+		LoadLoadingScene();
 		break;
 
 	case SCENE_PLAY:	// プレイ
@@ -110,6 +120,10 @@ void StartScene()
 		StartTitleScene();
 		break;
 
+	case SCENE_LOADING:
+		StartLoadingScene();
+		break;
+
 	case SCENE_PLAY:	// プレイ
 		StartPlayScene();
 		break;
@@ -127,6 +141,10 @@ void StepScene()
 	{
 	case SCENE_TITLE:	// タイトル
 		StepTitleScene();
+		break;
+
+	case SCENE_LOADING:
+		StepLoadingScene();
 		break;
 
 	case SCENE_PLAY:	// プレイ
@@ -148,6 +166,10 @@ void UpdateScene()
 		UpdateTitleScene();
 		break;
 
+	case SCENE_LOADING:
+		UpdateLoadingScene();
+		break;
+
 	case SCENE_PLAY:	// プレイ
 		UpdatePlayScene();
 		break;
@@ -167,6 +189,10 @@ void DrawScene()
 		DrawTitleScene();
 		break;
 
+	case SCENE_LOADING:
+		DrawLoadingScene();
+		break;
+
 	case SCENE_PLAY:	// プレイ
 		DrawPlayScene();
 		break;
@@ -175,6 +201,8 @@ void DrawScene()
 		DrawClearScene();
 		break;
 	}
+
+	DrawFade();
 }
 
 void FinScene()
@@ -184,6 +212,10 @@ void FinScene()
 	{
 	case SCENE_TITLE:	// タイトル
 		FinTitleScene();
+		break;
+
+	case SCENE_LOADING:
+		FinLoadingScene();
 		break;
 
 	case SCENE_PLAY:	// プレイ

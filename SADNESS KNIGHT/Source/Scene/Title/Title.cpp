@@ -182,7 +182,7 @@ void UpdateTitleScene()
 		{
 			FadeChangeBGM(BGM_PLAY, 60);
 			ResetInput();
-			ChangeScene(SCENE_PLAY);
+			ChangeScene(SCENE_LOADING);
 		}
 		return;
 	}
