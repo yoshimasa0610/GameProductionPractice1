@@ -25,6 +25,7 @@ void LoadBGM()
 {
 	g_BGMHandle[BGM_TITLE] = LoadSoundMem("Data/Sound/BGM/Title.ogg");
 	g_BGMHandle[BGM_PLAY] = LoadSoundMem("Data/Sound/BGM/Play.ogg");
+	g_BGMHandle[BGM_FOREST_DEEP] = LoadSoundMem("Data/Sound/BGM/ForestDeep.ogg");
 	g_BGMHandle[BGM_KETHER] = LoadSoundMem("Data/Sound/BGM/Kether.ogg");
 	g_BGMHandle[BGM_CARCOMBAT] = LoadSoundMem("Data/Sound/BGM/Catcombat.ogg");
 	g_BGMHandle[BGM_TIPHERETH] = LoadSoundMem("Data/Sound/BGM/Tiphereth.ogg");

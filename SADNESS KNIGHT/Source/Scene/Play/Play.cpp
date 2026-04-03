@@ -115,6 +115,22 @@ void LoadPlayScene()
 
 static BGMType GetStageBGM(const char* stageName)
 {
+	if (!stageName) return BGM_PLAY;
+
+	// 深層森（11と12と13）
+	if (strcmp(stageName, "forest_11") == 0 ||
+		strcmp(stageName, "forest_12") == 0 ||
+		strcmp(stageName, "forest_13") == 0)
+	{
+		return BGM_FOREST_DEEP;
+	}
+
+	// ボスステージ（念のため）
+	if (strcmp(stageName, "forest_5") == 0)
+	{
+		return BGM_PLAY; // 通常はこれ（ボスは別処理）
+	}
+
 	// デフォルト
 	return BGM_PLAY;
 }
@@ -293,6 +309,7 @@ void UpdatePlayScene()
 		{
 			if (!IsFadingBGM())
 			{
+				BGMType stageBGM = GetStageBGM(GetCurrentStageName());
 				FadeChangeBGM(BGM_PLAY, 60);
 				g_IsBossBGMPlaying = false;
 			}
