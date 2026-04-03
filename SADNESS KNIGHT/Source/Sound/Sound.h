@@ -39,10 +39,16 @@ int  GetBGMVolumeLevel();
 
 enum SEType
 {
-	SE_PLAYRE_ATTACK,
-	SE_PLAYRE_WEAK_SHOT, //遠距離攻撃（弱）のSE
-	SE_PLAYRE_SHOT, //遠距離攻撃（強）のSE
-	SE_PLAYRE_SHOT_HIT, //その遠距離攻撃が当たった際のSE（今は共通）
+	// ==== Player系 ====
+	SE_PLAYER_DASH,
+	SE_PLAYER_ATTACK1,
+	SE_PLAYER_ATTACK2,
+	SE_PLAYER_ATTACK3,
+	SE_PLAYER_RUN,
+	SE_PLAYER_JUMP,
+	SE_PLAYER_FALL_ATTACK,
+	SE_PLAYER_HEAL,
+
 	SE_PLAYER_DAMAGE,
 	SE_PLAYER_DEAD,
 	SE_ENEMY_DEAD,
@@ -65,7 +71,9 @@ enum SEType
 // SEロード
 void LoadSE();
 // SE再生
-void PlaySE(SEType type);
+void PlaySE(SEType type, bool loop = false);
+// SE停止
+void StopSE(SEType type);
 // SE終了
 void FinSE();
 // SE音量調整

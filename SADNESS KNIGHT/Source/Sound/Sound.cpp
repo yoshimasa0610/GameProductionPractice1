@@ -184,10 +184,15 @@ int GetBGMVolumeLevel()
 // SEロード
 void LoadSE()
 {
-	g_SEHandle[SE_PLAYRE_ATTACK] = LoadSoundMem("Data/Sound/SE/PlayerAttack.ogg");
-	g_SEHandle[SE_PLAYRE_WEAK_SHOT] = LoadSoundMem("Data/Sound/SE/PlayerWeakShot.ogg");
-	g_SEHandle[SE_PLAYRE_SHOT] = LoadSoundMem("Data/Sound/SE/PlayerShot.ogg");
-	g_SEHandle[SE_PLAYRE_SHOT_HIT] = LoadSoundMem("Data/Sound/SE/PlayerShotHit.ogg");
+	// ==== Player ====
+	g_SEHandle[SE_PLAYER_DASH] = LoadSoundMem("Data/Sound/SE/PlayerDash.ogg");
+	g_SEHandle[SE_PLAYER_ATTACK1] = LoadSoundMem("Data/Sound/SE/PlayerAttack1.ogg");
+	g_SEHandle[SE_PLAYER_ATTACK2] = LoadSoundMem("Data/Sound/SE/PlayerAttack2.ogg");
+	g_SEHandle[SE_PLAYER_ATTACK3] = LoadSoundMem("Data/Sound/SE/PlayerAttack3.ogg");
+	g_SEHandle[SE_PLAYER_RUN] = LoadSoundMem("Data/Sound/SE/PlayerRun.ogg");
+	g_SEHandle[SE_PLAYER_JUMP] = LoadSoundMem("Data/Sound/SE/PlayerJump.ogg");
+	g_SEHandle[SE_PLAYER_FALL_ATTACK] = LoadSoundMem("Data/Sound/SE/PlayerFallAttack.ogg");
+	g_SEHandle[SE_PLAYER_HEAL] = LoadSoundMem("Data/Sound/SE/PlayerHeal.ogg");
 	g_SEHandle[SE_PLAYER_DAMAGE] = LoadSoundMem("Data/Sound/SE/PlayerDamage.ogg");
 	g_SEHandle[SE_PLAYER_DEAD] = LoadSoundMem("Data/Sound/SE/PlayerDead.ogg");
 	g_SEHandle[SE_ENEMY_DEAD] = LoadSoundMem("Data/Sound/SE/EnemyDead.ogg");
@@ -205,10 +210,25 @@ void LoadSE()
 }
 
 // SE再生
-void PlaySE(SEType type)
+void PlaySE(SEType type, bool loop)
 {
-	PlaySoundMem(g_SEHandle[type], DX_PLAYTYPE_BACK);
+	if (loop)
+	{
+		// 既に再生中なら再生しない（足音用）
+		if (CheckSoundMem(g_SEHandle[type]) == 1) return;
+
+		PlaySoundMem(g_SEHandle[type], DX_PLAYTYPE_LOOP);
+	}
+	else
+	{
+		PlaySoundMem(g_SEHandle[type], DX_PLAYTYPE_BACK);
+	}
 	ChangeVolumeSoundMem(g_SEVolume, g_SEHandle[type]); // 再生時に音量適用
+}
+
+void StopSE(SEType type)
+{
+	StopSoundMem(g_SEHandle[type]);
 }
 
 // SE終了

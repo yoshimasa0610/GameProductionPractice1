@@ -9,6 +9,7 @@
 #include "../Map/MapManager.h"
 #include "../Camera/Camera.h"
 #include "../Map/Checkpoint/CheckpointManager.h"
+#include "../Sound/Sound.h"
 
 // プレイヤーのパラメータ定数
 namespace
@@ -155,6 +156,7 @@ void UpdatePlayer()
     if (playerData.currentHP <= 0 && !g_IsPlayerDead)
     {
         g_IsPlayerDead = true;
+        PlaySE(SE_PLAYER_DEAD);
         playerData.state = PlayerState::Death;
         playerData.isInvincible = true;
         playerData.velocityX = playerData.isFacingRight ? -DEATH_KNOCKBACK_SPEED : DEATH_KNOCKBACK_SPEED;
@@ -540,6 +542,7 @@ void DamagePlayerHP(int damage)
 
     if (playerData.currentHP > 0)
     {
+        PlaySE(SE_PLAYER_DAMAGE);
         playerData.isInvincible = true;
         playerData.invincibleTimer = 90; // 1.5秒 (60fps)
 
@@ -631,6 +634,7 @@ void TryDodge()
     }
 
     playerData.state = PlayerState::Dodging;
+    PlaySE(SE_PLAYER_DASH);
     ResetAnimation(playerAnims.dodge);
     playerData.isInvincible = true;
     
@@ -707,6 +711,7 @@ namespace
         if (playerData.hasDiveAttack && !playerData.isGrounded && IsInputKey(KEY_DOWN) && IsTriggerKey(KEY_DIVE_ATTACK))
         {
             playerData.state = PlayerState::DiveAttack;
+            PlaySE(SE_PLAYER_FALL_ATTACK);
             playerData.isDiveAttacking = true;
             playerData.velocityX = 0.0f;
             playerData.velocityY = playerData.diveAttackSpeed;
@@ -739,6 +744,10 @@ namespace
                 if (activeSlash != nullptr)
                 {
                     playerData.state = PlayerState::UsingSkill;
+                    int combo = activeSlash->GetComboIndex();
+                    if (combo == 0) PlaySE(SE_PLAYER_ATTACK1);
+                    else if (combo == 1) PlaySE(SE_PLAYER_ATTACK2);
+                    else PlaySE(SE_PLAYER_ATTACK3);
                 }
                 else if (g_SkillManager.GetSkillTypeInSlot(0) == SkillType::Attack)
                 {
@@ -1051,6 +1060,7 @@ namespace
                 {
                     HealPlayerHP(playerData.basehealPower);
                     playerData.healCount--;
+                    PlaySE(SE_PLAYER_HEAL);
                 }
                 playerData.healExecuted = true;
             }
@@ -1211,6 +1221,10 @@ namespace
         }
         else if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
         {
+            if (!wasMoving)
+            {
+                PlaySE(SE_PLAYER_RUN, true);
+            }
             if (!wasMoving && playerAnims.runStart.frames != nullptr)
             {
                 runAnimState = RunAnimState::Start;
@@ -1240,6 +1254,9 @@ namespace
         }
         else
         {
+			// SEを止める
+            StopSE(SE_PLAYER_RUN);
+
             if (playerData.isGrounded && wasMoving && playerAnims.runStop.frames != nullptr)
             {
                 runAnimState = RunAnimState::Stop;
@@ -1296,6 +1313,7 @@ namespace
             playerData.velocityY = -JUMP_POWER;
             playerData.isGrounded = false;
             playerData.jumpCount++;
+            PlaySE(SE_PLAYER_JUMP);
             lastJumpInputFrame = inputFrame;
             ResetAnimation(playerAnims.jump);
         }
