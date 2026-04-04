@@ -29,6 +29,8 @@ bool IsFadingBGM();
 void StopBGM(BGMType type);
 // BGMèIóπ
 void FinBGM();
+
+BGMType GetStageBGM(const char* stageName);
 // BGMâπó ê›íËÅi0Å`10Åj
 void SetBGMVolumeLevel(int level);
 int  GetBGMVolumeLevel();

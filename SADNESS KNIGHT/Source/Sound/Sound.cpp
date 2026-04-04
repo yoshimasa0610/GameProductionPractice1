@@ -137,6 +137,25 @@ void FinBGM()
 	}
 }
 
+BGMType GetStageBGM(const char* stageName)
+{
+	if (!stageName) return BGM_PLAY;
+
+	if (strcmp(stageName, "forest_11") == 0 ||
+		strcmp(stageName, "forest_12") == 0 ||
+		strcmp(stageName, "forest_13") == 0)
+	{
+		return BGM_FOREST_DEEP;
+	}
+
+	if (strcmp(stageName, "forest_5") == 0)
+	{
+		return BGM_PLAY;
+	}
+
+	return BGM_PLAY;
+}
+
 // ‘SBGM’âŽ~
 void StopAllBGM()
 {

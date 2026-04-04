@@ -1221,9 +1221,14 @@ namespace
         }
         else if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
         {
-            if (!wasMoving)
+            if (playerData.state == PlayerState::Walk &&
+                currentMoveDir != 0 &&
+                playerData.isGrounded)
             {
-                PlaySE(SE_PLAYER_RUN, true);
+                if (!wasMoving)
+                {
+                    PlaySE(SE_PLAYER_RUN, true);
+                }
             }
             if (!wasMoving && playerAnims.runStart.frames != nullptr)
             {
@@ -1255,7 +1260,19 @@ namespace
         else
         {
 			// SEを止める
-            StopSE(SE_PLAYER_RUN);
+            bool shouldPlayRunSE = (playerData.isGrounded && currentMoveDir != 0);
+
+            if (shouldPlayRunSE)
+            {
+                if (!wasMoving)
+                {
+                    PlaySE(SE_PLAYER_RUN, true);
+                }
+            }
+            else
+            {
+                StopSE(SE_PLAYER_RUN);
+            }
 
             if (playerData.isGrounded && wasMoving && playerAnims.runStop.frames != nullptr)
             {

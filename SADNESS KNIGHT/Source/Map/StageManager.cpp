@@ -9,6 +9,7 @@
 #include "../Map/Checkpoint/Checkpoint.h"
 #include "../Enemy/EnemyBase.h"
 #include "../BigBoss/BigBossBase.h"
+#include "../Sound/Sound.h"
 //ステージの背景
 int g_BackgroundFar = -1; // 遠景
 int g_BackgroundMid = -1; // 中景
@@ -116,6 +117,15 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	StartMap();
 	LoadExitInfo(stageName);
 	LoadEnemiesFromCSV(GetCurrentStageName());
+	if (!IsBigBossAlive())
+	{
+		BGMType bgm = GetStageBGM(GetCurrentStageName());
+
+		if (!IsFadingBGM() && GetCurrentBGM() != bgm)
+		{
+			FadeChangeBGM(bgm, 60);
+		}
+	}
 	// プレイヤーのスポーン位置を反映
 	PlayerData& player = GetPlayerData();
 	player.posX = playerSpawnX;
