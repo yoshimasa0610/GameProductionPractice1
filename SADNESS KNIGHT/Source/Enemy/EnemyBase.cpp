@@ -19,6 +19,7 @@ EnemyType StringToEnemyType(const std::string& str)
     if (str == "AssassinCultist") return EnemyType::AssassinCultist;
     if (str == "BigQuartist") return EnemyType::BigQuartist;
     if (str == "TwistedCaltis") return EnemyType::TwistedCaltis;
+    if (str == "StoneGolem") return EnemyType::StoneGolem;
     printf("Unknown enemy type: %s\n", str.c_str());
     return EnemyType::Slime; // fallback
 }
@@ -93,7 +94,9 @@ namespace
         ProjectileCultistFireball = 0,
         ProjectileBigBook = 1,
         ProjectileBigFlame = 2,
-        ProjectileBigShockwave = 3
+        ProjectileBigShockwave = 3,
+        ProjectileStoneGolemBullet = 4,
+        ProjectileStoneGolemBeam = 5
     };
 
     struct EnemyProjectile
@@ -106,6 +109,8 @@ namespace
         float velocityY;
         float width;
         float height;
+        float colliderWidth;
+        float colliderHeight;
         float lifeTimer;
         int colliderId;
         int animFrame;
@@ -113,14 +118,28 @@ namespace
         int kind;
         float traveledDistance;
         float maxTravelDistance;
+        bool homing;
+        float speed;
+        float homingTurnRate;
+        bool isFacingRight;
     };
 
     std::vector<EnemyProjectile> g_enemyProjectiles;
     int g_cultistFireballFrames[4] = { -1, -1, -1, -1 };
+    int g_stoneGolemBulletHandle = -1;
+    int g_stoneGolemBeamHandle = -1;
 
     const float CULTIST_FIREBALL_SPEED = 4.8f;
     const float CULTIST_FIREBALL_LIFE = 2.0f;
-    const float CULTIST_FIREBALL_SIZE = 170.0f;
+    const float CULTIST_FIREBALL_SIZE = 48.0f;
+    const float CULTIST_FIREBALL_HITBOX_SIZE = 28.0f;
+    const float STONE_GOLEM_BULLET_SPEED = 6.0f;
+    const float STONE_GOLEM_BULLET_LIFE = 4.0f;
+    const float STONE_GOLEM_BULLET_SIZE = 48.0f;
+    const float STONE_GOLEM_BULLET_HITBOX_SIZE = 28.0f;
+    const float STONE_GOLEM_BEAM_DURATION = 1.0f;
+    const float STONE_GOLEM_BEAM_WIDTH = 340.0f;
+    const float STONE_GOLEM_BEAM_HEIGHT = 96.0f;
 
     void DestroyProjectile(EnemyProjectile& p)
     {
@@ -188,6 +207,39 @@ namespace
         }
     }
 
+    void InitStoneGolemProjectileAssets()
+    {
+        if (g_stoneGolemBulletHandle == -1)
+        {
+            g_stoneGolemBulletHandle = LoadGraph("Data/Enemy/Stone Golem/StoneGolem_Bullet.png");
+            if (g_stoneGolemBulletHandle == -1) g_stoneGolemBulletHandle = LoadGraph("Data/Enemy/Stone Golem/StoneGolemBullet.png");
+            if (g_stoneGolemBulletHandle == -1) g_stoneGolemBulletHandle = LoadGraph("Data/Enemy/StoneGolem/StoneGolem_Bullet.png");
+            if (g_stoneGolemBulletHandle == -1) g_stoneGolemBulletHandle = LoadGraph("Data/Enemy/StoneGolem/Bullet.png");
+        }
+
+        if (g_stoneGolemBeamHandle == -1)
+        {
+            g_stoneGolemBeamHandle = LoadGraph("Data/Enemy/Stone Golem/StoneGolem_Beam.png");
+            if (g_stoneGolemBeamHandle == -1) g_stoneGolemBeamHandle = LoadGraph("Data/Enemy/Stone Golem/StoneGolemBeam.png");
+            if (g_stoneGolemBeamHandle == -1) g_stoneGolemBeamHandle = LoadGraph("Data/Enemy/StoneGolem/StoneGolem_Beam.png");
+            if (g_stoneGolemBeamHandle == -1) g_stoneGolemBeamHandle = LoadGraph("Data/Enemy/StoneGolem/Beam.png");
+        }
+    }
+
+    void ReleaseStoneGolemProjectileAssets()
+    {
+        if (g_stoneGolemBulletHandle != -1)
+        {
+            DeleteGraph(g_stoneGolemBulletHandle);
+            g_stoneGolemBulletHandle = -1;
+        }
+        if (g_stoneGolemBeamHandle != -1)
+        {
+            DeleteGraph(g_stoneGolemBeamHandle);
+            g_stoneGolemBeamHandle = -1;
+        }
+    }
+
     void SpawnCultistFireball(EnemyData& e, const PlayerData& player)
     {
         InitCultistFireballAssets();
@@ -207,6 +259,8 @@ namespace
         p.owner = &e;
         p.width = CULTIST_FIREBALL_SIZE;
         p.height = CULTIST_FIREBALL_SIZE;
+        p.colliderWidth = CULTIST_FIREBALL_HITBOX_SIZE;
+        p.colliderHeight = CULTIST_FIREBALL_HITBOX_SIZE;
         p.posX = e.posX + (e.isFacingRight ? e.width * 0.4f : -e.width * 0.4f);
         p.posY = e.posY - e.height * 0.6f;
         p.velocityX = (dx / len) * CULTIST_FIREBALL_SPEED;
@@ -214,16 +268,100 @@ namespace
         p.lifeTimer = CULTIST_FIREBALL_LIFE;
         p.colliderId = CreateCollider(
             ColliderTag::Attack,
-            p.posX - p.width * 0.5f,
-            p.posY - p.height * 0.5f,
-            p.width,
-            p.height,
+            p.posX - p.colliderWidth * 0.5f,
+            p.posY - p.colliderHeight * 0.5f,
+            p.colliderWidth,
+            p.colliderHeight,
             p.owner);
         p.animFrame = 0;
         p.animCounter = 0;
         p.kind = ProjectileCultistFireball;
         p.traveledDistance = 0.0f;
         p.maxTravelDistance = 0.0f;
+        p.homing = false;
+        p.speed = CULTIST_FIREBALL_SPEED;
+        p.homingTurnRate = 0.0f;
+        p.isFacingRight = (p.velocityX >= 0.0f);
+        g_enemyProjectiles.push_back(p);
+    }
+
+    void SpawnStoneGolemBullet(EnemyData& e, float startX, float startY, float targetX, float targetY, bool homing)
+    {
+        InitStoneGolemProjectileAssets();
+
+        float dx = targetX - startX;
+        float dy = targetY - startY;
+        float len = std::sqrt(dx * dx + dy * dy);
+        if (len < 0.001f)
+        {
+            dx = e.isFacingRight ? 1.0f : -1.0f;
+            dy = 0.0f;
+            len = 1.0f;
+        }
+
+        EnemyProjectile p{};
+        p.active = true;
+        p.owner = &e;
+        p.width = STONE_GOLEM_BULLET_SIZE;
+        p.height = STONE_GOLEM_BULLET_SIZE;
+        p.colliderWidth = STONE_GOLEM_BULLET_HITBOX_SIZE;
+        p.colliderHeight = STONE_GOLEM_BULLET_HITBOX_SIZE;
+        p.posX = startX;
+        p.posY = startY;
+        p.speed = STONE_GOLEM_BULLET_SPEED;
+        p.velocityX = (dx / len) * p.speed;
+        p.velocityY = (dy / len) * p.speed;
+        p.lifeTimer = STONE_GOLEM_BULLET_LIFE;
+        p.colliderId = CreateCollider(
+            ColliderTag::Attack,
+            p.posX - p.colliderWidth * 0.5f,
+            p.posY - p.colliderHeight * 0.5f,
+            p.colliderWidth,
+            p.colliderHeight,
+            p.owner);
+        p.animFrame = 0;
+        p.animCounter = 0;
+        p.kind = ProjectileStoneGolemBullet;
+        p.traveledDistance = 0.0f;
+        p.maxTravelDistance = 0.0f;
+        p.homing = homing;
+        p.homingTurnRate = homing ? 0.08f : 0.0f;
+        p.isFacingRight = (p.velocityX >= 0.0f);
+        g_enemyProjectiles.push_back(p);
+    }
+
+    void SpawnStoneGolemBeam(EnemyData& e, float targetX)
+    {
+        InitStoneGolemProjectileAssets();
+
+        EnemyProjectile p{};
+        p.active = true;
+        p.owner = &e;
+        p.width = STONE_GOLEM_BEAM_WIDTH;
+        p.height = STONE_GOLEM_BEAM_HEIGHT;
+        p.colliderWidth = STONE_GOLEM_BEAM_WIDTH;
+        p.colliderHeight = STONE_GOLEM_BEAM_HEIGHT;
+        p.isFacingRight = (targetX >= e.posX);
+        p.posX = e.posX + (p.isFacingRight ? (e.width * 0.55f + p.width * 0.5f) : -(e.width * 0.55f + p.width * 0.5f));
+        p.posY = e.posY - e.height * 0.58f;
+        p.velocityX = 0.0f;
+        p.velocityY = 0.0f;
+        p.speed = 0.0f;
+        p.lifeTimer = STONE_GOLEM_BEAM_DURATION;
+        p.colliderId = CreateCollider(
+            ColliderTag::Attack,
+            p.posX - p.colliderWidth * 0.5f,
+            p.posY - p.colliderHeight * 0.5f,
+            p.colliderWidth,
+            p.colliderHeight,
+            p.owner);
+        p.animFrame = 0;
+        p.animCounter = 0;
+        p.kind = ProjectileStoneGolemBeam;
+        p.traveledDistance = 0.0f;
+        p.maxTravelDistance = 0.0f;
+        p.homing = false;
+        p.homingTurnRate = 0.0f;
         g_enemyProjectiles.push_back(p);
     }
 
@@ -231,6 +369,7 @@ namespace
     {
         const float frameTime = (1.0f / 60.0f) * slowMoScale;
         const float mapBlockSize = 32.0f;
+        const PlayerData& player = GetPlayerData();
 
         for (auto& p : g_enemyProjectiles)
         {
@@ -239,11 +378,42 @@ namespace
             p.lifeTimer -= frameTime;
             const float prevX = p.posX;
             const float prevY = p.posY;
+
+            if (p.kind == ProjectileStoneGolemBullet && p.homing)
+            {
+                float desiredX = player.posX - p.posX;
+                float desiredY = (player.posY - PLAYER_HEIGHT * 0.5f) - p.posY;
+                float desiredLen = std::sqrt(desiredX * desiredX + desiredY * desiredY);
+                if (desiredLen > 0.001f)
+                {
+                    desiredX /= desiredLen;
+                    desiredY /= desiredLen;
+
+                    float curLen = std::sqrt(p.velocityX * p.velocityX + p.velocityY * p.velocityY);
+                    if (curLen < 0.001f) curLen = 1.0f;
+                    float curX = p.velocityX / curLen;
+                    float curY = p.velocityY / curLen;
+
+                    const float t = p.homingTurnRate * slowMoScale;
+                    float mixX = curX * (1.0f - t) + desiredX * t;
+                    float mixY = curY * (1.0f - t) + desiredY * t;
+                    float mixLen = std::sqrt(mixX * mixX + mixY * mixY);
+                    if (mixLen > 0.001f)
+                    {
+                        mixX /= mixLen;
+                        mixY /= mixLen;
+                        p.velocityX = mixX * p.speed;
+                        p.velocityY = mixY * p.speed;
+                    }
+                }
+            }
+
             p.posX += p.velocityX * slowMoScale;
             p.posY += p.velocityY * slowMoScale;
+            p.isFacingRight = (p.velocityX >= 0.0f);
 
             p.animCounter++;
-            if (p.animCounter >= 4)
+            if (p.kind == ProjectileCultistFireball && p.animCounter >= 4)
             {
                 p.animCounter = 0;
                 p.animFrame = (p.animFrame + 1) % 4;
@@ -278,7 +448,7 @@ namespace
                 }
             }
 
-            if (hitBlock)
+            if (hitBlock && p.kind != ProjectileStoneGolemBeam)
             {
                 DestroyProjectile(p);
                 continue;
@@ -288,10 +458,10 @@ namespace
             {
                 UpdateCollider(
                     p.colliderId,
-                    p.posX - p.width * 0.5f,
-                    p.posY - p.height * 0.5f,
-                    p.width,
-                    p.height);
+                    p.posX - p.colliderWidth * 0.5f,
+                    p.posY - p.colliderHeight * 0.5f,
+                    p.colliderWidth,
+                    p.colliderHeight);
             }
         }
     }
@@ -299,6 +469,7 @@ namespace
     void DrawEnemyProjectiles(const CameraData& camera)
     {
         InitCultistFireballAssets();
+        InitStoneGolemProjectileAssets();
 
         for (const auto& p : g_enemyProjectiles)
         {
@@ -313,21 +484,53 @@ namespace
             int right = drawX + halfW;
             int bottom = drawY + halfH;
 
-            const int frameHandle = g_cultistFireballFrames[p.animFrame % 4];
-            if (frameHandle != -1)
+            if (p.kind == ProjectileCultistFireball)
             {
-                if (p.velocityX >= 0.0f)
+                const int frameHandle = g_cultistFireballFrames[p.animFrame % 4];
+                if (frameHandle != -1)
                 {
-                    DrawExtendGraph(right, top, left, bottom, frameHandle, TRUE);
+                    if (p.velocityX >= 0.0f)
+                    {
+                        DrawExtendGraph(right, top, left, bottom, frameHandle, TRUE);
+                    }
+                    else
+                    {
+                        DrawExtendGraph(left, top, right, bottom, frameHandle, TRUE);
+                    }
                 }
                 else
                 {
-                    DrawExtendGraph(left, top, right, bottom, frameHandle, TRUE);
+                    DrawBox(left, top, right, bottom, GetColor(255, 120, 30), TRUE);
                 }
             }
-            else
+            else if (p.kind == ProjectileStoneGolemBullet)
             {
-                DrawBox(left, top, right, bottom, GetColor(255, 120, 30), TRUE);
+                if (g_stoneGolemBulletHandle != -1)
+                {
+                    DrawExtendGraph(left, top, right, bottom, g_stoneGolemBulletHandle, TRUE);
+                }
+                else
+                {
+                    DrawBox(left, top, right, bottom, GetColor(180, 220, 255), TRUE);
+                }
+            }
+            else if (p.kind == ProjectileStoneGolemBeam)
+            {
+                if (g_stoneGolemBeamHandle != -1)
+                {
+                    if (p.isFacingRight)
+                    {
+                        DrawExtendGraph(left, top, right, bottom, g_stoneGolemBeamHandle, TRUE);
+                    }
+                    else
+                    {
+                        DrawExtendGraph(right, top, left, bottom, g_stoneGolemBeamHandle, TRUE);
+                    }
+                }
+                else
+                {
+                    DrawBox(left, top, right, bottom, GetColor(80, 220, 255), TRUE);
+                }
             }
         }
     }
@@ -393,7 +596,7 @@ namespace
         // { HP, 攻撃, 速度, 幅, 高さ, 検知, 攻撃範囲, 攻撃時間, CD, ジャンプ, J力, パス }
         
         // Slime: 初心者向けの弱い敵
-        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 48.0f, 0.45f, 1.5f, false, 0.0f, "Assets/Enemies/Slime/" },
+        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 80.0f, 0.45f, 1.5f, false, 0.0f, "Assets/Enemies/Slime/" },
         
         // Cultists: 近接＋火球の戦闘員
         { 40, 12, 1.2f, 50.0f, 50.0f, 320.0f, 96.0f, 0.35f, 1.0f, false, 0.0f, "Assets/Enemies/Cultists/" },
@@ -405,7 +608,10 @@ namespace
         { 250, 30, 0.8f, 150.0f, 150.0f, 360.0f, 88.0f, 0.75f, 1.8f, false, 0.0f, "Assets/Enemies/BigQuartist/" },
         
         // TwistedCaltis: 変則的な動きをする中ボス
-        { 90, 16, 1.8f, 50.0f, 50.0f, 320.0f, 128.0f, 0.50f, 1.2f, true, 10.0f, "Assets/Enemies/TwistedCaltis/" }
+        { 90, 16, 1.8f, 50.0f, 50.0f, 320.0f, 128.0f, 0.50f, 1.2f, true, 10.0f, "Assets/Enemies/TwistedCaltis/" },
+
+        // StoneGolem: 石のゴーレム、耐久力が非常に高い
+        { 420, 24, 0.0f, 160.0f, 160.0f, 520.0f, 380.0f, 0.60f, 2.0f, false, 0.0f, "Data/Enemy/Stone Golem/" }
     };
 
     const float GRAVITY = 0.3f;
@@ -428,6 +634,12 @@ namespace
     const float ENEMY_ATTACK_PREPARE_TIME = 0.5f;
     const float ASSASSIN_TELEPORT_TRIGGER_RANGE = BLOCK_SIZE * 3.0f;
     const float ASSASSIN_TELEPORT_OFFSET = 36.0f;
+    const float STONE_GOLEM_SHOT_PREPARE_TIME = 1.5f;
+    const float STONE_GOLEM_BEAM_PREPARE_TIME = 2.0f;
+    const float STONE_GOLEM_SHOT_COOLDOWN = 2.0f;
+    const float STONE_GOLEM_BEAM_COOLDOWN = 4.0f;
+    const float STONE_GOLEM_BARRAGE_DURATION = 4.0f;
+    const float STONE_GOLEM_BARRAGE_INTERVAL = 0.22f;
 
     // レイキャストによる視線判定（ブロックを透視できない）
     bool HasLineOfSight(float fromX, float fromY, float toX, float toY)
@@ -503,7 +715,7 @@ namespace
             }
         }
 
-        // 下方向の当たり判定（複数点チェック）
+        // 下方向のあたり判定（複数点チェック）
         for (int i = 0; i < 3; i++)
         {
             float checkX = checkLeft + (checkRight - checkLeft) * (i / 2.0f);
@@ -587,6 +799,7 @@ void InitEnemySystem()
     g_enemies.clear();
     ClearEnemyProjectiles();
     InitCultistFireballAssets();
+    InitStoneGolemProjectileAssets();
 }
 
 int SpawnEnemy(EnemyType type, float x, float y)
@@ -629,9 +842,16 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.behaviorPattern = -1;
     e.isInvisible = false;
     e.specialTimer = 0.0f;
+    e.attackDirLocked = false;
+    e.lockedFacingRight = true;
     e.isDying = false;
     e.deathAnimFinished = false;
     e.deathBlinkTimer = 0;
+    e.stonePhase2 = false;
+    e.stoneBarrageActive = false;
+    e.stoneBarrageTimer = 0.0f;
+    e.stoneBarrageShotTimer = 0.0f;
+    e.stoneAttackCounter = 0;
     e.width = config.width;
     e.height = config.height;
 
@@ -656,7 +876,7 @@ int SpawnEnemy(EnemyType type, float x, float y)
         e.height = 50.0f;
     }
 
-    if (e.type != EnemyType::BigQuartist)
+    if (e.type != EnemyType::BigQuartist && e.type != EnemyType::StoneGolem)
     {
         e.width = 75.0f;
         e.height = 75.0f;
@@ -666,8 +886,9 @@ int SpawnEnemy(EnemyType type, float x, float y)
     const float bodyWidth = e.width * bodyScale * GetEnemyBodyColliderWidthAdjust(e.type);
     const float bodyHeight = e.height * bodyScale;
     const float bodyCenterY = e.posY - (e.height * 0.5f);
+    const float bodyCenterYOffset = (e.type == EnemyType::BigQuartist) ? 10.0f : 0.0f;
     const float bodyLeft = e.posX - (bodyWidth * 0.5f);
-    const float bodyTop = bodyCenterY - (bodyHeight * 0.5f);
+    const float bodyTop = bodyCenterY - (bodyHeight * 0.5f) + bodyCenterYOffset;
     e.colliderId = CreateCollider(ColliderTag::Enemy, bodyLeft, bodyTop, bodyWidth, bodyHeight, nullptr);
 
     g_enemies.push_back(e);
@@ -783,6 +1004,7 @@ void ClearEnemies()
     g_enemies.clear();
     ClearEnemyProjectiles();
     ReleaseCultistFireballAssets();
+    ReleaseStoneGolemProjectileAssets();
 }
 
 
@@ -893,6 +1115,24 @@ void UpdateEnemies()
         if (e.cooldownTimer > 0.0f) e.cooldownTimer -= effectiveFrameTime;
 
         const bool specialType = (e.type == EnemyType::AssassinCultist || e.type == EnemyType::BigQuartist);
+        const bool isStoneGolem = (e.type == EnemyType::StoneGolem);
+
+        if (isStoneGolem)
+        {
+            e.stonePhase2 = (e.currentHP <= (e.maxHP / 2));
+            if (e.stoneBarrageActive)
+            {
+                e.stoneBarrageTimer -= effectiveFrameTime;
+                e.stoneBarrageShotTimer -= effectiveFrameTime;
+                if (e.stoneBarrageTimer <= 0.0f)
+                {
+                    e.stoneBarrageActive = false;
+                    e.stoneBarrageTimer = 0.0f;
+                    e.stoneBarrageShotTimer = 0.0f;
+                    e.cooldownTimer = STONE_GOLEM_SHOT_COOLDOWN;
+                }
+            }
+        }
 
         auto BeginAttackPrepare = [&](int kind)
         {
@@ -902,9 +1142,28 @@ void UpdateEnemies()
             }
 
             e.isAttackPreparing = true;
-            e.attackPrepareTimer = ENEMY_ATTACK_PREPARE_TIME;
             e.pendingAttackKind = kind;
             e.velocityX = 0.0f;
+
+            if (e.type == EnemyType::StoneGolem)
+            {
+                if (kind == 5)
+                {
+                    e.attackPrepareTimer = STONE_GOLEM_SHOT_PREPARE_TIME;
+                }
+                else if (kind == 6)
+                {
+                    e.attackPrepareTimer = STONE_GOLEM_BEAM_PREPARE_TIME;
+                }
+                else
+                {
+                    e.attackPrepareTimer = ENEMY_ATTACK_PREPARE_TIME;
+                }
+            }
+            else
+            {
+                e.attackPrepareTimer = ENEMY_ATTACK_PREPARE_TIME;
+            }
         };
 
         auto StartPreparedAttack = [&]()
@@ -946,7 +1205,13 @@ void UpdateEnemies()
                 const float attackOffsetX = e.isFacingRight ? attackFrontOffset : -attackFrontOffset - attackWidth;
                 const float attackLeft = e.posX + attackOffsetX;
                 const float attackTop = e.posY - attackHeight;
-                e.attackColliderId = CreateCollider(ColliderTag::Attack, attackLeft, attackTop, attackWidth, attackHeight, &e);
+                e.attackColliderId = CreateCollider(
+                    ColliderTag::Attack,
+                    attackLeft,
+                    attackTop,
+                    attackWidth,
+                    attackHeight,
+                    &e);
             }
             else if (kind == 4)
             {
@@ -954,6 +1219,43 @@ void UpdateEnemies()
                 e.attackTimer = e.attackDuration;
                 e.cooldownTimer = e.attackCooldown;
                 e.velocityX = 0.0f;
+            }
+            else if (kind == 5)
+            {
+                const float targetX = player.posX;
+                const float targetY = player.posY - PLAYER_HEIGHT * 0.5f;
+                const bool homingShot = e.stonePhase2;
+
+                e.isAttacking = true;
+                e.attackTimer = 0.35f;
+                e.cooldownTimer = STONE_GOLEM_SHOT_COOLDOWN;
+                e.velocityX = 0.0f;
+                e.isFacingRight = (targetX >= e.posX);
+
+                const float centerX = e.posX;
+                const float centerY = e.posY - e.height * 0.62f;
+                SpawnStoneGolemBullet(e, centerX, centerY, targetX, targetY, homingShot);
+
+                if (e.stonePhase2)
+                {
+                    SpawnStoneGolemBullet(e, e.posX - e.width * 0.35f, e.posY - e.height * 0.62f, targetX, targetY, true);
+                    SpawnStoneGolemBullet(e, e.posX + e.width * 0.35f, e.posY - e.height * 0.62f, targetX, targetY, true);
+                    SpawnStoneGolemBullet(e, e.posX, e.posY - e.height * 0.95f, targetX, targetY, true);
+                }
+
+                e.stoneAttackCounter++;
+            }
+            else if (kind == 6)
+            {
+                const float targetX = player.posX;
+
+                e.isAttacking = true;
+                e.attackTimer = STONE_GOLEM_BEAM_DURATION;
+                e.cooldownTimer = STONE_GOLEM_BEAM_COOLDOWN;
+                e.velocityX = 0.0f;
+                e.isFacingRight = (targetX >= e.posX);
+                SpawnStoneGolemBeam(e, targetX);
+                e.stoneAttackCounter++;
             }
             else
             {
@@ -986,15 +1288,34 @@ void UpdateEnemies()
         {
             e.attackPrepareTimer -= effectiveFrameTime;
             e.velocityX = 0.0f;
-            if (std::fabs(dx) > FACE_TURN_DEADZONE)
+
+            if (e.type == EnemyType::TwistedCaltis)
             {
-                e.isFacingRight = (dx >= 0.0f);
+                if (!e.attackDirLocked)
+                {
+                    e.attackDirLocked = true;
+                    e.lockedFacingRight = (dx >= 0.0f);
+                }
+            }
+            else
+            {
+                if (std::fabs(dx) > FACE_TURN_DEADZONE)
+                {
+                    e.isFacingRight = (dx >= 0.0f);
+                }
             }
 
             if (e.attackPrepareTimer <= 0.0f)
             {
                 e.isAttackPreparing = false;
+
+                if (e.type == EnemyType::TwistedCaltis && e.attackDirLocked)
+                {
+                    e.isFacingRight = e.lockedFacingRight;
+                }
+
                 StartPreparedAttack();
+                e.attackDirLocked = false;
             }
         }
 
@@ -1021,6 +1342,16 @@ void UpdateEnemies()
                 else if (e.type == EnemyType::BigQuartist)
                 {
                     e.behaviorPattern = (e.behaviorPattern >= 10) ? 11 : 1;
+                }
+                else if (e.type == EnemyType::StoneGolem)
+                {
+                    if (e.stonePhase2 && !e.stoneBarrageActive && e.stoneAttackCounter >= 5)
+                    {
+                        e.stoneAttackCounter = 0;
+                        e.stoneBarrageActive = true;
+                        e.stoneBarrageTimer = STONE_GOLEM_BARRAGE_DURATION;
+                        e.stoneBarrageShotTimer = 0.0f;
+                    }
                 }
             }
         }
@@ -1068,6 +1399,33 @@ void UpdateEnemies()
             else if (!e.isAttacking && !e.isAttackPreparing)
             {
                 e.velocityX = 0.0f;
+            }
+        }
+        else if (e.type == EnemyType::StoneGolem)
+        {
+            e.velocityX = 0.0f;
+
+            if (e.isAggro && !e.isAttacking && !e.isAttackPreparing)
+            {
+                e.isFacingRight = (dx >= 0.0f);
+
+                if (e.stoneBarrageActive)
+                {
+                    if (e.stoneBarrageShotTimer <= 0.0f)
+                    {
+                        const float targetX = player.posX;
+                        const float targetY = player.posY - PLAYER_HEIGHT * 0.5f;
+                        SpawnStoneGolemBullet(e, e.posX - e.width * 0.35f, e.posY - e.height * 0.62f, targetX, targetY, true);
+                        SpawnStoneGolemBullet(e, e.posX + e.width * 0.35f, e.posY - e.height * 0.62f, targetX, targetY, true);
+                        SpawnStoneGolemBullet(e, e.posX, e.posY - e.height * 0.95f, targetX, targetY, true);
+                        e.stoneBarrageShotTimer = STONE_GOLEM_BARRAGE_INTERVAL;
+                    }
+                }
+                else
+                {
+                    const bool chooseBeam = ((e.stoneAttackCounter % 4) == 3);
+                    BeginAttackPrepare(chooseBeam ? 6 : 5);
+                }
             }
         }
         else
@@ -1143,8 +1501,9 @@ void UpdateEnemies()
             const float bodyWidth = e.width * bodyScale * GetEnemyBodyColliderWidthAdjust(e.type);
             const float bodyHeight = e.height * bodyScale;
             const float bodyCenterY = e.posY - (e.height * 0.5f);
+            const float bodyCenterYOffset = (e.type == EnemyType::BigQuartist) ? 10.0f : 0.0f;
             float left = e.posX - (bodyWidth * 0.5f);
-            float top = bodyCenterY - (bodyHeight * 0.5f);
+            float top = bodyCenterY - (bodyHeight * 0.5f) + bodyCenterYOffset;
             UpdateCollider(e.colliderId, left, top, bodyWidth, bodyHeight);
         }
 
@@ -1334,7 +1693,7 @@ void DrawEnemies()
                         SetDrawBlendMode(DX_BLENDMODE_ALPHA, 96);
                     }
 
-                    if (e.isAttackPreparing)
+                    if (e.isAttackPreparing || (e.type == EnemyType::StoneGolem && e.isAttacking))
                     {
                         SetDrawBright(255, 96, 96);
                     }
@@ -1468,6 +1827,44 @@ EnemyAnimations* LoadEnemyAnimations(EnemyType type)
         const bool okAttack = LoadAnimationFromFiles_Indexed(anims->attack, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Attack", 1, 7, 3, AnimationMode::Once);
         const bool okHurt = LoadAnimationFromFiles_Indexed(anims->hurt, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Attack", 1, 7, 5, AnimationMode::Once);
         const bool okDie = LoadAnimationFromFiles_Indexed(anims->die, "Data/Enemy/Twisted Caltis/", "Twisted_Cultist_Death", 1, 12, 5, AnimationMode::Once);
+
+        if (!okIdle) InitAnimation(anims->idle);
+        if (!okMove) InitAnimation(anims->move);
+        if (!okAttack) InitAnimation(anims->attack);
+        if (!okHurt) InitAnimation(anims->hurt);
+        if (!okDie) InitAnimation(anims->die);
+        break;
+    }
+
+    case EnemyType::StoneGolem:
+    {
+        const char* sheetPath = "Data/Enemy/Stone Golem/StoneGolem_Sheet.png";
+        int testHandle = LoadGraph(sheetPath);
+        if (testHandle == -1)
+        {
+            sheetPath = "Data/Enemy/Stone Golem/StoneGolem.png";
+            testHandle = LoadGraph(sheetPath);
+        }
+        if (testHandle == -1)
+        {
+            sheetPath = "Data/Enemy/StoneGolem/StoneGolem_Sheet.png";
+            testHandle = LoadGraph(sheetPath);
+        }
+        if (testHandle == -1)
+        {
+            sheetPath = "Data/Enemy/StoneGolem/StoneGolem.png";
+            testHandle = LoadGraph(sheetPath);
+        }
+        if (testHandle != -1)
+        {
+            DeleteGraph(testHandle);
+        }
+
+        const bool okIdle = LoadAnimationFromSheetRange(anims->idle, sheetPath, 0, 0, 20, 100, 100, 5, AnimationMode::Loop);
+        const bool okMove = LoadAnimationFromSheetRange(anims->move, sheetPath, 0, 10, 10, 100, 100, 6, AnimationMode::Loop);
+        const bool okAttack = LoadAnimationFromSheetRange(anims->attack, sheetPath, 0, 20, 20, 100, 100, 4, AnimationMode::Once);
+        const bool okHurt = LoadAnimationFromSheetRange(anims->hurt, sheetPath, 0, 10, 10, 100, 100, 5, AnimationMode::Once);
+        const bool okDie = LoadAnimationFromSheetRange(anims->die, sheetPath, 0, 70, 20, 100, 100, 5, AnimationMode::Once);
 
         if (!okIdle) InitAnimation(anims->idle);
         if (!okMove) InitAnimation(anims->move);

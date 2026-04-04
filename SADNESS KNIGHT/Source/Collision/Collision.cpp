@@ -11,6 +11,7 @@
 #include "../Map/StageManager.h"
 #include "../Map/MapManager.h"
 #include "../BigBoss/BigBossBase.h"
+#include "../MidBoss/MidBossBase.h"
 
 //
 // シンプルなコライダー実装
@@ -679,7 +680,7 @@ void ResolveCollisions()
                             enemy->currentHP -= damage;
                             if (enemy->currentHP < 0) enemy->currentHP = 0;
                         }
-                        else
+                        else if (!DamageMidBossByColliderId(enemyC->id, damage))
                         {
                             DamageBigBossByColliderId(enemyC->id, damage);
                         }

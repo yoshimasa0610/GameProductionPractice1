@@ -31,6 +31,7 @@ enum class EnemyType
     AssassinCultist,    // アサシン：素早い
     BigQuartist,        // ビッグクォーティスト：ボス級
     TwistedCaltis,      // ツイステッドカルティス：変則型
+    StoneGolem,         // ストーンゴーレム：耐久型
     Count               // 敵の総数（追加不要）
 };
 
@@ -112,11 +113,20 @@ struct EnemyData
     int behaviorPattern;    // 0:透明ワープ型, 1:突進型
     bool isInvisible;       // 透明化中か
     float specialTimer;     // 特殊行動タイマー
+    bool attackDirLocked;   // 攻撃方向固定フラグ
+    bool lockedFacingRight; // 固定された方向
 
     // 死亡演出状態（主にアサシン用）
     bool isDying;           // 死亡演出中か
     bool deathAnimFinished; // 死亡アニメ終了済みか
     int deathBlinkTimer;    // 点滅タイマー
+
+    // StoneGolem 用
+    bool stonePhase2;
+    bool stoneBarrageActive;
+    float stoneBarrageTimer;
+    float stoneBarrageShotTimer;
+    int stoneAttackCounter;
 
     // 描画・当たり判定（システムが自動管理）
 

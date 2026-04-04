@@ -26,6 +26,8 @@
 #include "../../BigBoss/BigBossBase.h"
 #include "../../BigBoss/Kether/Kether.h"
 #include "../../Overlay/CheckpointMenu/CheckpointMenu.h"
+#include "../../MidBoss/MidBossBase.h"
+#include "../../MidBoss/Door of truth/StoneGolem.h"
 
 static ItemField g_ItemField;
 
@@ -39,8 +41,21 @@ static char g_SpawnLoadDebug[256] = { 0 };
 static float g_ElapsedTime = 0.0f;
 static bool g_IsPaused = false;
 static bool g_EnemySpawned = false;
+static bool g_MidBossSpawned = false;
+static char g_LastSpawnStage[64] = "";
 static bool g_BossCameraLocked = false;
+static bool g_MidBossCameraLocked = false;
+static bool g_MidBossStageLockActive = false;
+static bool g_BigBossStageLockActive = false;
 
+static const float FOREST3_STONE_GOLEM_X = 1920.0f;
+static const float FOREST3_STONE_GOLEM_Y = 448.0f;
+static const float FOREST3_MIDBOSS_CAMERA_X = 1600.0f;
+static const float FOREST3_MIDBOSS_CAMERA_Y = 448.0f;
+static const float FOREST3_MIDBOSS_AREA_LEFT = 768.0f;
+static const float FOREST3_MIDBOSS_AREA_RIGHT = 2816.0f;
+static const float FOREST3_MIDBOSS_AREA_TOP = 0.0f;
+static const float FOREST3_MIDBOSS_AREA_BOTTOM = 1080.0f;
 static const float FOREST5_BOSS_X = 992.0f;
 static const float FOREST5_BOSS_Y = 352.0f;
 // ボスエリアロック範囲をさらに広げる
@@ -61,10 +76,15 @@ void InitPlayScene()
 	InitMoneyDrops();
 	InitMoneyPopup();
 	InitEnemySystem();
+	InitMidBossSystem();
 	InitBigBossSystem();
 	InitPlayer(544.0f, 384.0f);
 	g_EnemySpawned = false;
+	g_MidBossSpawned = false;
 	g_BossCameraLocked = false;
+	g_MidBossCameraLocked = false;
+	g_MidBossStageLockActive = false;
+	g_BigBossStageLockActive = false;
 	SetCameraFixed(false);
 }
 
@@ -126,7 +146,11 @@ void StartPlayScene()
 
 	
 	g_EnemySpawned = false;
+	g_MidBossSpawned = false;
 	g_BossCameraLocked = false;
+	g_MidBossCameraLocked = false;
+	g_MidBossStageLockActive = false;
+	g_BigBossStageLockActive = false;
 	SetCameraFixed(false);
 }
 
@@ -152,6 +176,7 @@ void StepPlayScene()
 	g_ElapsedTime += deltaTime * slowMoScale;
 
 	UpdateEnemies();
+	UpdateMidBosses();
 	UpdateBigBosses();
 
 	UpdateMoneyDrops(
@@ -243,6 +268,17 @@ void UpdatePlayScene()
 
 	UpdatePlayer();
 
+	const char* stageForSpawn = GetCurrentStageName();
+	if (stageForSpawn != nullptr)
+	{
+		if (strcmp(g_LastSpawnStage, stageForSpawn) != 0)
+		{
+			strcpy_s(g_LastSpawnStage, stageForSpawn);
+			g_EnemySpawned = false;
+			g_MidBossSpawned = false;
+		}
+	}
+
 	if (!g_EnemySpawned && IsPlayerAlive() && IsPlayerGrounded())
 	{
 		const char* stageName = GetCurrentStageName();
@@ -253,7 +289,63 @@ void UpdatePlayScene()
 		}
 	}
 
+	if (!g_MidBossSpawned && IsPlayerAlive() && IsPlayerGrounded())
+	{
+		const char* stageName = GetCurrentStageName();
+		if (stageName && strcmp(stageName, "forest_3") == 0)
+		{
+			SpawnStoneGolem(FOREST3_STONE_GOLEM_X, FOREST3_STONE_GOLEM_Y);
+			g_MidBossSpawned = true;
+		}
+	}
+
 	const char* currentStage = GetCurrentStageName();
+	const bool isForest3 = (currentStage != nullptr && strcmp(currentStage, "forest_3") == 0);
+	if (isForest3)
+	{
+		const float playerCenterX = player.posX + player.width * 0.5f;
+		const float playerCenterY = player.posY + player.height * 0.5f;
+		const bool inMidBossArea =
+			(playerCenterX >= FOREST3_MIDBOSS_AREA_LEFT && playerCenterX <= FOREST3_MIDBOSS_AREA_RIGHT &&
+			 playerCenterY >= FOREST3_MIDBOSS_AREA_TOP && playerCenterY <= FOREST3_MIDBOSS_AREA_BOTTOM);
+
+		if (!g_MidBossStageLockActive && inMidBossArea && IsMidBossAlive())
+		{
+			g_MidBossStageLockActive = true;
+			LockStageTransition();
+		}
+		if (g_MidBossStageLockActive && !IsMidBossAlive())
+		{
+			g_MidBossStageLockActive = false;
+			if (!g_BigBossStageLockActive)
+			{
+				UnlockStageTransition();
+			}
+		}
+
+		if (!g_MidBossCameraLocked && inMidBossArea && IsMidBossAlive())
+		{
+			g_MidBossCameraLocked = true;
+		}
+		if (g_MidBossCameraLocked)
+		{
+			SetCameraFixed(true, FOREST3_MIDBOSS_CAMERA_X, FOREST3_MIDBOSS_CAMERA_Y);
+			if (!IsMidBossAlive())
+			{
+				g_MidBossCameraLocked = false;
+				SetCameraFixed(false);
+			}
+		}
+		else
+		{
+			SetCameraFixed(false);
+		}
+	}
+	else
+	{
+		g_MidBossCameraLocked = false;
+	}
+
 	const bool isForest5 = (currentStage != nullptr && strcmp(currentStage, "forest_5") == 0);
 	if (isForest5)
     {
@@ -263,10 +355,9 @@ void UpdatePlayScene()
             (playerCenterX >= FOREST5_BOSS_AREA_LEFT && playerCenterX <= FOREST5_BOSS_AREA_RIGHT &&
              playerCenterY >= FOREST5_BOSS_AREA_TOP && playerCenterY <= FOREST5_BOSS_AREA_BOTTOM);
 
-        static bool bossLockActive = false;
-        if (!bossLockActive && inBossArea && IsBigBossAlive())
+        if (!g_BigBossStageLockActive && inBossArea && IsBigBossAlive())
         {
-            bossLockActive = true;
+            g_BigBossStageLockActive = true;
             LockStageTransition(); // ボスエリア突入でロック
         }
 		// ボスエリア侵入時にBGM切り替え
@@ -278,10 +369,13 @@ void UpdatePlayScene()
 				g_IsBossBGMPlaying = true;
 			}
 		}
-        if (bossLockActive && !IsBigBossAlive())
+        if (g_BigBossStageLockActive && !IsBigBossAlive())
         {
-            bossLockActive = false;
-            UnlockStageTransition(); // ボス撃破でロック解除
+            g_BigBossStageLockActive = false;
+            if (!g_MidBossStageLockActive)
+            {
+                UnlockStageTransition(); // ボス撃破でロック解除
+            }
         }
 		if (g_IsBossBGMPlaying && !IsBigBossAlive())
 		{
@@ -314,8 +408,14 @@ void UpdatePlayScene()
     else
     {
         g_BossCameraLocked = false;
-        SetCameraFixed(false);
-        UnlockStageTransition(); // 念のため
+        if (!isForest3 || !g_MidBossCameraLocked)
+        {
+            SetCameraFixed(false);
+        }
+        if (!g_MidBossStageLockActive)
+        {
+            UnlockStageTransition(); // 念のため
+        }
     }
 
 	UpdateCamera();
@@ -336,6 +436,7 @@ void DrawPlayScene()
 	DrawForeground();
 
 	DrawEnemies();
+	DrawMidBosses();
 	DrawBigBosses();
 	DrawPlayer();
 	DrawUIImage();
@@ -369,8 +470,12 @@ void FinPlayScene()
 	UnloadUIImage();
 	// マップ終了
 	FinStage();
+	ClearMidBosses();
 	ClearBigBosses();
 	g_BossCameraLocked = false;
+	g_MidBossCameraLocked = false;
+	g_MidBossStageLockActive = false;
+	g_BigBossStageLockActive = false;
 	SetCameraFixed(false);
 
 }
