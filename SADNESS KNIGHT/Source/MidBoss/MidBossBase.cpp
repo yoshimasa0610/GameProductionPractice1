@@ -95,6 +95,8 @@ namespace
     const float BARRAGE_DURATION = 4.0f;
     const float BARRAGE_INTERVAL = 0.22f;
     const float BULLET_SPEED = 6.0f;
+    const float STONE_BULLET_DRAW_SIZE = 96.0f;
+    const float STONE_BULLET_HITBOX_SIZE = 60.0f;
 
     void ClearProjectile(MidBossProjectile& p)
     {
@@ -211,10 +213,10 @@ namespace
         p.kind = StoneBullet;
         p.posX = startX;
         p.posY = startY;
-        p.width = 48.0f;
-        p.height = 48.0f;
-        p.colliderWidth = 28.0f;
-        p.colliderHeight = 28.0f;
+        p.width = STONE_BULLET_DRAW_SIZE;
+        p.height = STONE_BULLET_DRAW_SIZE;
+        p.colliderWidth = STONE_BULLET_HITBOX_SIZE;
+        p.colliderHeight = STONE_BULLET_HITBOX_SIZE;
         p.speed = BULLET_SPEED;
         p.velocityX = (dx / len) * p.speed;
         p.velocityY = (dy / len) * p.speed;
@@ -242,8 +244,12 @@ namespace
         p.colliderWidth = p.width;
         p.colliderHeight = p.height;
         p.facingRight = (targetX >= b.posX);
-        p.posX = b.posX + (p.facingRight ? (b.width * 0.55f + p.width * 0.5f) : -(b.width * 0.55f + p.width * 0.5f));
-        p.posY = b.posY - b.height * 0.58f;
+
+        const float eyeX = b.posX + (p.facingRight ? (b.width * 0.12f) : -(b.width * 0.12f));
+        const float eyeY = b.posY - b.height * 0.78f;
+        p.posX = eyeX + (p.facingRight ? (p.width * 0.5f) : -(p.width * 0.5f));
+        p.posY = eyeY;
+
         p.lifeTimer = BEAM_ACTIVE;
         p.colliderId = CreateCollider(
             ColliderTag::Attack,
@@ -370,9 +376,9 @@ void UpdateMidBosses()
             {
                 const float tx = player.posX;
                 const float ty = player.posY - PLAYER_HEIGHT * 0.5f;
-                SpawnStoneBullet(b, b.posX - b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, true);
-                SpawnStoneBullet(b, b.posX + b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, true);
-                SpawnStoneBullet(b, b.posX, b.posY - b.height * 0.95f, tx, ty, true);
+                SpawnStoneBullet(b, b.posX - b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, false);
+                SpawnStoneBullet(b, b.posX + b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, false);
+                SpawnStoneBullet(b, b.posX, b.posY - b.height * 0.95f, tx, ty, false);
                 b.barrageShotTimer = BARRAGE_INTERVAL;
             }
             if (b.barrageTimer <= 0.0f)
@@ -406,9 +412,9 @@ void UpdateMidBosses()
                     SpawnStoneBullet(b, b.posX, b.posY - b.height * 0.62f, tx, ty, homing);
                     if (b.phase2)
                     {
-                        SpawnStoneBullet(b, b.posX - b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, true);
-                        SpawnStoneBullet(b, b.posX + b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, true);
-                        SpawnStoneBullet(b, b.posX, b.posY - b.height * 0.95f, tx, ty, true);
+                        SpawnStoneBullet(b, b.posX - b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, false);
+                        SpawnStoneBullet(b, b.posX + b.width * 0.35f, b.posY - b.height * 0.62f, tx, ty, false);
+                        SpawnStoneBullet(b, b.posX, b.posY - b.height * 0.95f, tx, ty, false);
                     }
                     b.attackTimer = 0.35f;
                     b.cooldownTimer = SHOT_RECOVERY;
@@ -569,8 +575,8 @@ void DrawMidBosses()
 
         if (handle != -1)
         {
-            if (b.facingRight) DrawExtendGraph(right, top, left, bottom, handle, TRUE);
-            else DrawExtendGraph(left, top, right, bottom, handle, TRUE);
+            if (b.facingRight) DrawExtendGraph(left, top, right, bottom, handle, TRUE);
+            else DrawExtendGraph(right, top, left, bottom, handle, TRUE);
         }
         else
         {
@@ -579,6 +585,8 @@ void DrawMidBosses()
 
         SetDrawBright(255, 255, 255);
     }
+
+    SetDrawBright(255, 255, 255);
 
     for (const auto& p : g_midProjectiles)
     {
@@ -629,11 +637,11 @@ void DrawMidBosses()
                 const int srcH = 100;
                 if (p.facingRight)
                 {
-                    DrawRectExtendGraph(left, top, right, bottom, srcX, srcY, srcW, srcH, beamFrame, TRUE);
+                    DrawRectExtendGraph(right, top, left, bottom, srcX, srcY, srcW, srcH, beamFrame, TRUE);
                 }
                 else
                 {
-                    DrawRectExtendGraph(right, top, left, bottom, srcX, srcY, srcW, srcH, beamFrame, TRUE);
+                    DrawRectExtendGraph(left, top, right, bottom, srcX, srcY, srcW, srcH, beamFrame, TRUE);
                 }
             }
             else

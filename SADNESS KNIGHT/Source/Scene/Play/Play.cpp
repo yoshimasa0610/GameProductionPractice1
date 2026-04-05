@@ -50,7 +50,7 @@ static bool g_BigBossStageLockActive = false;
 
 static const float FOREST3_STONE_GOLEM_X = 1920.0f;
 static const float FOREST3_STONE_GOLEM_Y = 448.0f;
-static const float FOREST3_MIDBOSS_CAMERA_X = 1600.0f;
+static const float FOREST3_MIDBOSS_CAMERA_X = 1280.0f;
 static const float FOREST3_MIDBOSS_CAMERA_Y = 448.0f;
 static const float FOREST3_MIDBOSS_AREA_LEFT = 768.0f;
 static const float FOREST3_MIDBOSS_AREA_RIGHT = 2816.0f;
