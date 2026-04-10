@@ -3,6 +3,7 @@
 enum class MidBossType
 {
     StoneGolem,
+    Garok,
     Count
 };
 

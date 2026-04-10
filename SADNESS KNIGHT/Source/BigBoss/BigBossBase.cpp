@@ -1,4 +1,5 @@
 ﻿#include "BigBossBase.h"
+#include "Kether/Kether.h"
 #include "../Camera/Camera.h"
 #include "../Collision/Collision.h"
 #include "../Player/Player.h"
@@ -746,8 +747,10 @@ int SpawnBigBoss(BigBossType type, float x, float y)
     if (type == BigBossType::Kether)
     {
         LoadKetherAssets(b);
+        b.maxHP = GetKetherMaxHP();
+        b.hp = b.maxHP;
         b.attackOwner.type = EnemyType::BigQuartist;
-        b.attackOwner.attackPower = 14;
+        b.attackOwner.attackPower = GetKetherAttackPower();
     }
 
     const float left = b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO);

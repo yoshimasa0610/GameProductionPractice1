@@ -1,6 +1,12 @@
 #include "Slime.h"
 #include "../EnemyBase.h"
 
+namespace
+{
+    const int SLIME_MAX_HP = 12;
+    const int SLIME_ATTACK_POWER = 4;
+}
+
 //============================================================
 // スライムを配置
 //============================================================
@@ -11,5 +17,15 @@
 int SpawnSlime(float x, float y)
 {
     return SpawnEnemy(EnemyType::Slime, x, y);
+}
+
+int GetSlimeMaxHP()
+{
+    return SLIME_MAX_HP;
+}
+
+int GetSlimeAttackPower()
+{
+    return SLIME_ATTACK_POWER;
 }
 

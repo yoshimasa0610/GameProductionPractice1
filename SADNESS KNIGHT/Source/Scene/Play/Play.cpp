@@ -27,7 +27,8 @@
 #include "../../BigBoss/Kether/Kether.h"
 #include "../../Overlay/CheckpointMenu/CheckpointMenu.h"
 #include "../../MidBoss/MidBossBase.h"
-#include "../../MidBoss/Door of truth/StoneGolem.h"
+#include "../../MidBoss/StoneGolem/StoneGolem.h"
+#include "../../MidBoss/Garok/Garok.h"
 
 static ItemField g_ItemField;
 
@@ -56,13 +57,25 @@ static const float FOREST3_MIDBOSS_AREA_LEFT = 768.0f;
 static const float FOREST3_MIDBOSS_AREA_RIGHT = 2816.0f;
 static const float FOREST3_MIDBOSS_AREA_TOP = 0.0f;
 static const float FOREST3_MIDBOSS_AREA_BOTTOM = 1080.0f;
+
 static const float FOREST5_BOSS_X = 992.0f;
 static const float FOREST5_BOSS_Y = 352.0f;
-// ボスエリアロック範囲をさらに広げる
 static const float FOREST5_BOSS_AREA_LEFT = 0.0f;
 static const float FOREST5_BOSS_AREA_RIGHT = 1920.0f;
 static const float FOREST5_BOSS_AREA_TOP = 0.0f;
 static const float FOREST5_BOSS_AREA_BOTTOM = 1080.0f;
+
+static const float FOREST7_GAROK_X = 1536.0f;
+static const float FOREST7_GAROK_Y = 608.0f;
+static const float FOREST7_MIDBOSS_CAMERA_X = 1200.0f;
+static const float FOREST7_MIDBOSS_CAMERA_Y = 400.0f;
+static const float FOREST7_MIDBOSS_AREA_LEFT = 768.0f;
+static const float FOREST7_MIDBOSS_AREA_RIGHT = 3072.0f;
+static const float FOREST7_MIDBOSS_AREA_TOP = 0.0f;
+static const float FOREST7_MIDBOSS_AREA_BOTTOM = 1080.0f;
+static const float FOREST7_DEBUG_PLAYER_X = 1312.0f;
+static const float FOREST7_DEBUG_PLAYER_Y = 608.0f;
+
 static bool g_IsBossBGMPlaying = false;
 // --- ボスエリア遷移ロック ---
 static bool g_StageLocked = false;
@@ -143,7 +156,6 @@ void StartPlayScene()
 	{
 		PlayBGM(bgm);
 	}
-
 	
 	g_EnemySpawned = false;
 	g_MidBossSpawned = false;
@@ -297,54 +309,67 @@ void UpdatePlayScene()
 			SpawnStoneGolem(FOREST3_STONE_GOLEM_X, FOREST3_STONE_GOLEM_Y);
 			g_MidBossSpawned = true;
 		}
+		else if (stageName && strcmp(stageName, "forest_7") == 0)
+		{
+			SpawnGarok(FOREST7_GAROK_X, FOREST7_GAROK_Y);
+			g_MidBossSpawned = true;
+		}
 	}
 
 	const char* currentStage = GetCurrentStageName();
 	const bool isForest3 = (currentStage != nullptr && strcmp(currentStage, "forest_3") == 0);
-	if (isForest3)
-	{
-		const float playerCenterX = player.posX + player.width * 0.5f;
-		const float playerCenterY = player.posY + player.height * 0.5f;
-		const bool inMidBossArea =
-			(playerCenterX >= FOREST3_MIDBOSS_AREA_LEFT && playerCenterX <= FOREST3_MIDBOSS_AREA_RIGHT &&
-			 playerCenterY >= FOREST3_MIDBOSS_AREA_TOP && playerCenterY <= FOREST3_MIDBOSS_AREA_BOTTOM);
+    const bool isForest7 = (currentStage != nullptr && strcmp(currentStage, "forest_7") == 0);
+    if (isForest3 || isForest7)
+    {
+        const float areaLeft = isForest3 ? FOREST3_MIDBOSS_AREA_LEFT : FOREST7_MIDBOSS_AREA_LEFT;
+        const float areaRight = isForest3 ? FOREST3_MIDBOSS_AREA_RIGHT : FOREST7_MIDBOSS_AREA_RIGHT;
+        const float areaTop = isForest3 ? FOREST3_MIDBOSS_AREA_TOP : FOREST7_MIDBOSS_AREA_TOP;
+        const float areaBottom = isForest3 ? FOREST3_MIDBOSS_AREA_BOTTOM : FOREST7_MIDBOSS_AREA_BOTTOM;
+        const float cameraX = isForest3 ? FOREST3_MIDBOSS_CAMERA_X : FOREST7_MIDBOSS_CAMERA_X;
+        const float cameraY = isForest3 ? FOREST3_MIDBOSS_CAMERA_Y : FOREST7_MIDBOSS_CAMERA_Y;
 
-		if (!g_MidBossStageLockActive && inMidBossArea && IsMidBossAlive())
-		{
-			g_MidBossStageLockActive = true;
-			LockStageTransition();
-		}
-		if (g_MidBossStageLockActive && !IsMidBossAlive())
-		{
-			g_MidBossStageLockActive = false;
-			if (!g_BigBossStageLockActive)
-			{
-				UnlockStageTransition();
-			}
-		}
+        const float playerCenterX = player.posX + player.width * 0.5f;
+        const float playerCenterY = player.posY + player.height * 0.5f;
+        const bool inMidBossArea =
+            (playerCenterX >= areaLeft && playerCenterX <= areaRight &&
+             playerCenterY >= areaTop && playerCenterY <= areaBottom);
 
-		if (!g_MidBossCameraLocked && inMidBossArea && IsMidBossAlive())
-		{
-			g_MidBossCameraLocked = true;
-		}
-		if (g_MidBossCameraLocked)
-		{
-			SetCameraFixed(true, FOREST3_MIDBOSS_CAMERA_X, FOREST3_MIDBOSS_CAMERA_Y);
-			if (!IsMidBossAlive())
-			{
-				g_MidBossCameraLocked = false;
-				SetCameraFixed(false);
-			}
-		}
-		else
-		{
-			SetCameraFixed(false);
-		}
-	}
-	else
-	{
-		g_MidBossCameraLocked = false;
-	}
+        if (!g_MidBossStageLockActive && inMidBossArea && IsMidBossAlive())
+        {
+            g_MidBossStageLockActive = true;
+            LockStageTransition();
+        }
+        if (g_MidBossStageLockActive && !IsMidBossAlive())
+        {
+            g_MidBossStageLockActive = false;
+            if (!g_BigBossStageLockActive)
+            {
+                UnlockStageTransition();
+            }
+        }
+
+        if (!g_MidBossCameraLocked && inMidBossArea && IsMidBossAlive())
+        {
+            g_MidBossCameraLocked = true;
+        }
+        if (g_MidBossCameraLocked)
+        {
+            SetCameraFixed(true, cameraX, cameraY);
+            if (!IsMidBossAlive())
+            {
+                g_MidBossCameraLocked = false;
+                SetCameraFixed(false);
+            }
+        }
+        else
+        {
+            SetCameraFixed(false);
+        }
+    }
+    else
+    {
+        g_MidBossCameraLocked = false;
+    }
 
 	const bool isForest5 = (currentStage != nullptr && strcmp(currentStage, "forest_5") == 0);
 	if (isForest5)
@@ -408,7 +433,7 @@ void UpdatePlayScene()
     else
     {
         g_BossCameraLocked = false;
-        if (!isForest3 || !g_MidBossCameraLocked)
+        if (!(isForest3 || isForest7) || !g_MidBossCameraLocked)
         {
             SetCameraFixed(false);
         }

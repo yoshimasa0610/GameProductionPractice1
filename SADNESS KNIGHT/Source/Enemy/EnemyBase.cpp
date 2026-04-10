@@ -11,6 +11,11 @@
 #include <sstream>
 #include <string>
 #include "../Map/MapParameter.h"
+#include "Slime/Slime.h"
+#include "cultists/cultists.h"
+#include "Assassin Cultist/Assassin Cultist.h"
+#include "Big Quartist/Big Quartist.h"
+#include "Twisted Caltis/Twisted Caltis.h"
 
 EnemyType StringToEnemyType(const std::string& str)
 {
@@ -35,6 +40,38 @@ namespace
 
     // デバッグ用グローバルバッファ
     char g_enemyDebugInfo[512] = "";
+
+    void ApplyEnemyCombatTuningFromEnemyCpp(EnemyType type, int& maxHP, int& attackPower)
+    {
+        switch (type)
+        {
+        case EnemyType::Slime:
+            maxHP = GetSlimeMaxHP();
+            attackPower = GetSlimeAttackPower();
+            break;
+        case EnemyType::Cultists:
+            maxHP = GetCultistMaxHP();
+            attackPower = GetCultistAttackPower();
+            break;
+        case EnemyType::AssassinCultist:
+            maxHP = GetAssassinCultistMaxHP();
+            attackPower = GetAssassinCultistAttackPower();
+            break;
+        case EnemyType::BigQuartist:
+            maxHP = GetBigQuartistMaxHP();
+            attackPower = GetBigQuartistAttackPower();
+            break;
+        case EnemyType::TwistedCaltis:
+            maxHP = GetTwistedCaltisMaxHP();
+            attackPower = GetTwistedCaltisAttackPower();
+            break;
+        default:
+            break;
+        }
+
+        if (maxHP < 1) maxHP = 1;
+        if (attackPower < 1) attackPower = 1;
+    }
 
     float GetEnemyBodyColliderScale(EnemyType type)
     {
@@ -822,9 +859,13 @@ int SpawnEnemy(EnemyType type, float x, float y)
     e.patrolDirection = 1;
     e.hasLineOfSight = false;
 
-    e.maxHP = config.maxHP;
-    e.currentHP = config.maxHP;
-    e.attackPower = config.attackPower;
+    int tunedMaxHP = config.maxHP;
+    int tunedAttackPower = config.attackPower;
+    ApplyEnemyCombatTuningFromEnemyCpp(type, tunedMaxHP, tunedAttackPower);
+
+    e.maxHP = tunedMaxHP;
+    e.currentHP = tunedMaxHP;
+    e.attackPower = tunedAttackPower;
     e.moveSpeed = config.moveSpeed;
     e.detectRange = config.detectRange;
     e.attackRange = config.attackRange;
@@ -1556,7 +1597,7 @@ void UpdateEnemies()
 
         if (e.animations != nullptr)
         {
-            if (e.isAttacking)
+            if (e.isAttacking || e.isAttackPreparing)
             {
                 UpdateAnimation(e.animations->attack);
             }
@@ -1627,7 +1668,7 @@ void DrawEnemies()
             {
                 currentAnim = &e.animations->die;
             }
-            else if (e.isAttacking)
+            else if (e.isAttacking || e.isAttackPreparing)
             {
                 currentAnim = &e.animations->attack;
             }
