@@ -153,21 +153,31 @@ void LoadPlayer()
 // プレイヤーの更新
 void UpdatePlayer()
 {
+    // =========================
+    // 死亡トリガー
+    // =========================
     if (playerData.currentHP <= 0 && !g_IsPlayerDead)
     {
         g_IsPlayerDead = true;
         PlaySE(SE_PLAYER_DEAD);
+
         playerData.state = PlayerState::Death;
         playerData.isInvincible = true;
+
         playerData.velocityX = playerData.isFacingRight ? -DEATH_KNOCKBACK_SPEED : DEATH_KNOCKBACK_SPEED;
         playerData.velocityY = -5.0f;
+
         g_DeathSlowMoTimer = 2.0f;
+
         if (playerAnims.death.frames != nullptr)
         {
             ResetAnimation(playerAnims.death);
         }
     }
 
+    // =========================
+    // スローモーション管理
+    // =========================
     if (playerData.state == PlayerState::Death)
     {
         if (g_DeathSlowMoTimer > 0.0f)
@@ -177,6 +187,7 @@ void UpdatePlayer()
         }
     }
 
+    // 無敵時間
     if (playerData.invincibleTimer > 0)
     {
         playerData.invincibleTimer--;
@@ -186,6 +197,7 @@ void UpdatePlayer()
         }
     }
 
+    // スポーン補正
     if (g_PendingCenterSpawn && PlacePlayerAtMapCenter())
     {
         g_PendingCenterSpawn = false;
@@ -197,12 +209,28 @@ void UpdatePlayer()
     playerData.prevPosX = playerData.posX;
     playerData.prevPosY = playerData.posY;
 
+    // =========================
+    // ★死亡中の専用処理
+    // =========================
+    if (playerData.state == PlayerState::Death)
+    {
+        UpdatePhysics();          // ノックバック・落下
+        UpdateState();            // 状態維持
+        UpdatePlayerAnimation();  // ★これが重要（アニメ再生）
+
+        return; // ★他の処理を全部止める
+    }
+
+    // =========================
+    // 通常処理
+    // =========================
     ProcessInput();
     UpdatePhysics();
     g_SkillManager.Update(&playerData);
     UpdateState();
     UpdatePlayerAnimation();
 
+    // ダッシュエフェクト
     if (playerData.showDashEffect)
     {
         UpdateAnimation(playerAnims.dashEffect);
@@ -513,6 +541,28 @@ float GetPlayerVelocityY() { return playerData.velocityY; }
 PlayerState GetPlayerState() { return playerData.state; }
 bool IsPlayerFacingRight() { return playerData.isFacingRight; }
 bool IsPlayerGrounded() { return playerData.isGrounded; }
+
+void ResetPlayerDeath()
+{
+    g_IsPlayerDead = false;
+
+    playerData.state = PlayerState::Idle;
+    playerData.currentHP = playerData.maxHP;
+    playerData.isInvincible = false;
+    playerData.invincibleTimer = 0;
+    g_PendingCenterSpawn = true;
+    playerData.velocityX = 0.0f;
+    playerData.velocityY = 0.0f;
+
+    playerData.isGrounded = false;
+    playerData.jumpCount = 0;
+
+    g_DeathSlowMoTimer = 0.0f;
+
+    // 念のため
+    runAnimState = RunAnimState::None;
+}
+
 bool IsPlayerAlive() { return playerData.currentHP > 0; }
 int GetPlayerHP() { return playerData.currentHP; }
 int GetPlayerMaxHP() { return playerData.maxHP; }
@@ -1207,6 +1257,16 @@ namespace
             return;
         }
 
+        // ===== 足音制御（最優先でやる）=====
+        if (playerData.isGrounded && currentMoveDir != 0 && playerData.state == PlayerState::Walk)
+        {
+            PlaySE(SE_PLAYER_RUN, true);
+        }
+        else
+        {
+            StopSE(SE_PLAYER_RUN);
+        }
+
         if (playerData.state == PlayerState::Jump)
         {
             UpdateAnimation(playerAnims.jump);
@@ -1221,15 +1281,6 @@ namespace
         }
         else if (playerData.state == PlayerState::Walk && (currentMoveDir != 0))
         {
-            if (playerData.state == PlayerState::Walk &&
-                currentMoveDir != 0 &&
-                playerData.isGrounded)
-            {
-                if (!wasMoving)
-                {
-                    PlaySE(SE_PLAYER_RUN, true);
-                }
-            }
             if (!wasMoving && playerAnims.runStart.frames != nullptr)
             {
                 runAnimState = RunAnimState::Start;
@@ -1260,16 +1311,7 @@ namespace
         else
         {
 			// SEを止める
-            bool shouldPlayRunSE = (playerData.isGrounded && currentMoveDir != 0);
-
-            if (shouldPlayRunSE)
-            {
-                if (!wasMoving)
-                {
-                    PlaySE(SE_PLAYER_RUN, true);
-                }
-            }
-            else
+            if (!(playerData.isGrounded && currentMoveDir != 0))
             {
                 StopSE(SE_PLAYER_RUN);
             }

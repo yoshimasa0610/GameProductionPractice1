@@ -26,8 +26,11 @@ void UpdateLoadingScene()
     {
         g_LoadStarted = true;
 
-        InitPlayScene();
-        LoadPlayScene();
+        //ここでPlaySceneをロード、Initしていたせいで
+        //挙動がおかしかったです。詫びろ
+		//↓諸悪の根源をここに置いておきます。
+        //InitPlayScene();
+        //LoadPlayScene();
     }
 
     g_Timer++;

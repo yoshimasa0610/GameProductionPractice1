@@ -141,6 +141,9 @@ bool IsPlayerGrounded();
 // プレイヤーが生きているか
 bool IsPlayerAlive();
 
+// 死亡状態をリセット（復活処理などで呼び出す）
+void ResetPlayerDeath();
+
 // 死亡演出中のスローモーション倍率を取得（1.0=通常速度、0.3=スロー）
 float GetDeathSlowMotionScale();
 

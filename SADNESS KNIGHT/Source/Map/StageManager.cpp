@@ -11,6 +11,7 @@
 #include "../BigBoss/BigBossBase.h"
 #include "../Sound/Sound.h"
 #include "../MidBoss/MidBossBase.h"
+
 //ƒXƒe[ƒW‚Ì”wŒi
 int g_BackgroundFar = -1; // ‰“Œi
 int g_BackgroundMid = -1; // ’†Œi

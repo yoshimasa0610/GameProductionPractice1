@@ -33,6 +33,7 @@
 static ItemField g_ItemField;
 
 PlayerData& player = GetPlayerData();
+static PlayDeathState g_DeathState = PlayDeathState::None;
 extern SaveData  g_SaveData;
 
 // --- CSVロード用デバッグ表示 ---
@@ -280,6 +281,13 @@ void UpdatePlayScene()
 
 	UpdatePlayer();
 
+	// Playerの死亡検知
+	if (g_DeathState == PlayDeathState::None && !IsPlayerAlive())
+	{
+		StartFadeOutEx(FadeType::Death);
+		g_DeathState = PlayDeathState::WaitFadeOut;
+	}
+
 	const char* stageForSpawn = GetCurrentStageName();
 	if (stageForSpawn != nullptr)
 	{
@@ -444,6 +452,31 @@ void UpdatePlayScene()
     }
 
 	UpdateCamera();
+
+	switch (g_DeathState)
+	{
+	case PlayDeathState::WaitFadeOut:
+		if (IsFadeOutFinished())
+		{
+			g_DeathState = PlayDeathState::Respawning;
+		}
+		break;
+
+	case PlayDeathState::Respawning:
+		RespawnFromCheckpoint();
+
+		StartFadeInEx(FadeType::Death);
+		g_DeathState = PlayDeathState::FadeIn;
+		break;
+
+	case PlayDeathState::FadeIn:
+		if (IsFadeFinished())
+		{
+			g_DeathState = PlayDeathState::None;
+		}
+		break;
+	}
+
 	UpdateFade();
 	UpdateUIImage();
 }
@@ -507,9 +540,6 @@ void FinPlayScene()
 
 static void RespawnFromCheckpoint()
 {
-	//プレイヤーが死亡した際、復活地点から再開するための処理
-	//ResetPlayerDeath();
-
 	// セーブデータをロードし直す
 	if (DoesSaveExist(g_CurrentSaveSlot))
 	{
@@ -520,15 +550,17 @@ static void RespawnFromCheckpoint()
 			g_ItemManager.ApplyBuffsToPlayer(&player);
 			// ステージ再ロード
 			InitStage();
+			UnlockStageTransition();
 			LoadStage(
 				data.stageName,
 				(float)data.checkpointX,
 				(float)data.checkpointY
 			);
 			InitCheckpoint(data.stageName);
+			ResetPlayerDeath();
+			InitPlayer(data.checkpointX, data.checkpointY);
 		}
 	}
-
 	SetPaused(false);
 }
 
