@@ -1,4 +1,5 @@
 #pragma once
+#include "../EnemyBase.h"
 
 //============================================================
 // ƒXƒ‰ƒCƒ€ - ‰‹‰Œü‚¯‚ÌG‹›“G
@@ -16,3 +17,4 @@
 int SpawnSlime(float x, float y);
 int GetSlimeMaxHP();
 int GetSlimeAttackPower();
+const EnemyConfig& GetSlimeConfig();

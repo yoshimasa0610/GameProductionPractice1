@@ -58,7 +58,10 @@ void FinStage()
 	g_ExitPoints.clear();
 	FinCheckpoint();
 	ClearMidBosses();
-	ClearBigBosses(); // ステージ終了時はボスが生きていても必ず消す
+	ClearBigBosses(); // ステージ終了時はボスを倒してても関係なく消す
+	DestroyCollidersByTag(ColliderTag::Attack);
+	DestroyCollidersByTag(ColliderTag::Other);
+	DestroyCollidersByTag(ColliderTag::Enemy);
 }
 
 // -------------------------------------
@@ -110,6 +113,10 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 	SetCurrentStage(stageName);
 	ClearEnemies();
 	ClearMidBosses();
+	ClearBigBosses();
+	DestroyCollidersByTag(ColliderTag::Attack);
+	DestroyCollidersByTag(ColliderTag::Other);
+	DestroyCollidersByTag(ColliderTag::Enemy);
 	FinMap();
 	DestroyCollidersByTag(ColliderTag::Block);
 	DestroyCollidersByTag(ColliderTag::Exit);
@@ -141,7 +148,7 @@ void LoadStage(const char* stageName, float playerSpawnX, float playerSpawnY)
 
 	StartFadeInEx(FadeType::Stage);
 
-	s_loading = false; // ロード終了（ガード解除）
+	s_loading = false; // ロード完了（ガード解除）
 }
 
 void ReloadStage()

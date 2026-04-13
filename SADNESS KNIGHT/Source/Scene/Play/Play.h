@@ -17,7 +17,11 @@ void UpdatePlayScene();
 void DrawPlayScene();
 void FinPlayScene();
 
-// --- ポーズ制御用を追加 ---
+// セーブ用進行状況（ボス撃破）
+void SetBossDefeatSaveFlags(bool forest3MidBossDefeated, bool forest7MidBossDefeated, bool forest5BigBossDefeated);
+void GetBossDefeatSaveFlags(bool& forest3MidBossDefeated, bool& forest7MidBossDefeated, bool& forest5BigBossDefeated);
+
+// --- ポーズ管理用に追加 ---
 void SetPaused(bool paused); // ポーズ状態を設定する
 bool IsPaused();             // 現在ポーズ中かどうかを取得する
 

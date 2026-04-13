@@ -53,6 +53,9 @@ namespace
         float posX = 0.0f, posY = 0.0f;   // 位置
         float width = 160.0f, height = 160.0f;      // サイズ
         bool facingRight = true;          // 右向きか
+        bool garokMoving = false;
+        float garokRunAnimHold = 0.0f;
+        const AnimationData* garokCurrentAnim = nullptr;
 
         // ステータス
         int maxHP = 420, hp = 420;        // HP
@@ -128,67 +131,14 @@ namespace
     int g_stoneBeamFrames[5] = { -1, -1, -1, -1, -1 };  // ビーム5フレーム
 
     //============================================================
-    // 攻撃パラメータ（タイミング・スピード）
+    // 攻撃・描画の個別調整値（各ボス個別CPPから参照）
     //============================================================
-    const float SHOT_PREPARE = 1.5f;      // 弾発射までの予備動作時間
-    const float BEAM_PREPARE = 2.0f;      // ビーム発射までの予備動作時間
-    const float SHOT_RECOVERY = 2.0f;     // 弾発射後のクールダウン
-    const float BEAM_RECOVERY = 4.0f;     // ビーム発射後のクールダウン
-    const float BEAM_ACTIVE = 1.0f;       // ビーム持続時間
-    const float BARRAGE_DURATION = 3.0f;  // 連射モードの継続時間
-    const float BARRAGE_INTERVAL = 0.22f; // 連射時の1発目との間隔
-    const float BULLET_SPEED = 6.0f;      // 弾の移動速度
-
-    // Garok用パラメータ
-    const float GAROK_PREPARE_TIME = 1.0f;
-    const float GAROK_ATTACK_DURATION_1 = 2.0f;
-    const float GAROK_ATTACK_DURATION_2 = 2.7f;
-    const float GAROK_ATTACK_DURATION_3 = 3.7f;
-    const float GAROK_COOLDOWN_1 = 2.0f;
-    const float GAROK_COOLDOWN_2 = 3.0f;
-    const float GAROK_COOLDOWN_3 = 4.0f;
-    const float GAROK_BARRAGE_DURATION = 3.0f;
-    const float GAROK_BARRAGE_COOLDOWN = 5.0f;
-    const float GAROK_DASH_DURATION = 2.0f;
-    const float GAROK_DASH_SPEED = 11.0f;
-    const float GAROK_JUMP_INTERVAL = 8.0f;
-    const float GAROK_JUMP_HEIGHT = 210.0f;
-    const float GAROK_HITBOX_WIDTH_RATIO = 0.95f;
-    const float GAROK_HITBOX_HEIGHT_RATIO = 0.62f;
-    const float GAROK_HITBOX_FRONT_RATIO = 0.56f;
-    const float GAROK_CONTACT_Y_RATIO = 0.45f;
-    const float GAROK_FACING_DEADZONE = 24.0f;
-    const float GAROK_ARENA_LEFT = 768.0f;
-    const float GAROK_ARENA_RIGHT = 3072.0f;
-    const float GAROK_ATTACK_TRIGGER_RANGE = 32.0f * 5.0f;
-    const float GAROK_GRAVITY = 0.35f;
-    const float GAROK_MAX_FALL_SPEED = 9.0f;
-
-    //============================================================
-    // 弾・ビームのサイズ
-    //============================================================
-    const float STONE_BULLET_DRAW_SIZE = 96.0f;    // 弾の描画サイズ
-    const float STONE_BULLET_HITBOX_SIZE = 60.0f;  // 弾の当たり判定サイズ
-
-    //============================================================
-    // 描画オフセット（ボスとビーム）
-    //============================================================
-    const float STONE_GOLEM_DRAW_OFFSET_X = 0.0f;  // ボス描画のX偏移（ピクセル）
-    const float STONE_GOLEM_DRAW_OFFSET_Y = 80.0f;  // ボス描画のY偏移（ピクセル）
-    const float STONE_BEAM_DRAW_OFFSET_X = 100.0f;   // ビーム描画のX偏移（ピクセル）
-    const float STONE_BEAM_DRAW_OFFSET_Y = 28.0f;   // ビーム描画のY偏移（ピクセル）
-    const float STONE_BEAM_MUZZLE_FINE_TUNE_X = -70.0f; // 発射起点の微調整（+で外側、-で内側）
-
-    // Garok描画ズレ補正
-    const float GAROK_DRAW_OFFSET_X = -12.0f;
-    const float GAROK_DRAW_OFFSET_Y = 64.0f;
-    const float GAROK_DRAW_ATTACK2_OFFSET_X = -8.0f;
-    const float GAROK_DRAW_ATTACK3_OFFSET_X = -6.0f;
-    const float GAROK_DRAW_DASH_OFFSET_X = -18.0f;
+    const StoneGolemTuning& STONE_TUNING = GetStoneGolemTuning();
+    const GarokTuning& GAROK_TUNING = GetGarokTuning();
 
     // 弾・ビーム発射位置をボス描画オフセットに合わせる補正
-    const float STONE_PROJECTILE_OFFSET_X = STONE_GOLEM_DRAW_OFFSET_X;
-    const float STONE_PROJECTILE_OFFSET_Y = STONE_GOLEM_DRAW_OFFSET_Y;
+    const float STONE_PROJECTILE_OFFSET_X = STONE_TUNING.drawOffsetX;
+    const float STONE_PROJECTILE_OFFSET_Y = STONE_TUNING.drawOffsetY;
 
     //============================================================
     // ヘルパー関数：プロジェクタイル（弾・ビーム）の管理
@@ -329,15 +279,15 @@ namespace
     // Garokのアニメーション初期化
     void InitGarokAnimations(MidBossData& b)
     {
-        LoadAnimationFromSheet(b.idle, "Data/MidBoss/Garok/IDLE.png", 18, 64, 64, 5, AnimationMode::Loop);
-        LoadAnimationFromSheet(b.garokRun, "Data/MidBoss/Garok/RUN.png", 18, 64, 64, 4, AnimationMode::Loop);
-        LoadAnimationFromSheet(b.attack, "Data/MidBoss/Garok/ATTACK 1.png", 18, 64, 64, 4, AnimationMode::Once);
-        LoadAnimationFromSheet(b.garokAttack2, "Data/MidBoss/Garok/ATTACK 2.png", 12, 64, 64, 4, AnimationMode::Once);
-        LoadAnimationFromSheet(b.garokAttack3, "Data/MidBoss/Garok/ATTACK 3.png", 15, 64, 64, 4, AnimationMode::Once);
-        LoadAnimationFromSheet(b.garokDashAttack, "Data/MidBoss/Garok/DASH ATTACK.png", 36, 64, 64, 3, AnimationMode::Once);
-        LoadAnimationFromSheet(b.garokJump, "Data/MidBoss/Garok/JUMP.png", 9, 64, 64, 4, AnimationMode::Once);
-        LoadAnimationFromSheet(b.garokHurt, "Data/MidBoss/Garok/HURT.png", 18, 64, 64, 4, AnimationMode::Once);
-        LoadAnimationFromSheet(b.die, "Data/MidBoss/Garok/DEATH.png", 24, 64, 64, 4, AnimationMode::Once);
+        LoadAnimationFromSheet(b.idle, "Data/MidBoss/Garok/IDLE.png", 6, 192, 64, 5, AnimationMode::Loop);
+        LoadAnimationFromSheet(b.garokRun, "Data/MidBoss/Garok/RUN.png", 6, 192, 64, 4, AnimationMode::Loop);
+        LoadAnimationFromSheet(b.attack, "Data/MidBoss/Garok/ATTACK 1.png", 6, 192, 64, 4, AnimationMode::Once);
+        LoadAnimationFromSheet(b.garokAttack2, "Data/MidBoss/Garok/ATTACK 2.png", 4, 192, 64, 4, AnimationMode::Once);
+        LoadAnimationFromSheet(b.garokAttack3, "Data/MidBoss/Garok/ATTACK 3.png", 5, 192, 64, 4, AnimationMode::Once);
+        LoadAnimationFromSheet(b.garokDashAttack, "Data/MidBoss/Garok/DASH ATTACK.png", 12, 192, 64, 3, AnimationMode::Once);
+        LoadAnimationFromSheet(b.garokJump, "Data/MidBoss/Garok/JUMP.png", 3, 192, 64, 4, AnimationMode::Once);
+        LoadAnimationFromSheet(b.garokHurt, "Data/MidBoss/Garok/HURT.png", 6, 192, 64, 4, AnimationMode::Once);
+        LoadAnimationFromSheet(b.die, "Data/MidBoss/Garok/DEATH.png", 8, 192, 64, 4, AnimationMode::Once);
     }
 
     void ClearGarokAttackCollider(MidBossData& b)
@@ -353,11 +303,11 @@ namespace
     {
         if (b.garokAttackColliderId == -1) return;
 
-        const float attackW = b.width * GAROK_HITBOX_WIDTH_RATIO;
-        const float attackH = b.height * GAROK_HITBOX_HEIGHT_RATIO;
-        const float front = b.width * GAROK_HITBOX_FRONT_RATIO;
+        const float attackW = b.width * GAROK_TUNING.hitboxWidthRatio;
+        const float attackH = b.height * GAROK_TUNING.hitboxHeightRatio;
+        const float front = b.width * GAROK_TUNING.hitboxFrontRatio;
         const float centerX = b.posX + (b.facingRight ? front : -front);
-        const float centerY = b.posY - b.height * GAROK_CONTACT_Y_RATIO;
+        const float centerY = b.posY - b.height * GAROK_TUNING.contactYRatio;
         UpdateCollider(
             b.garokAttackColliderId,
             centerX - attackW * 0.5f,
@@ -368,11 +318,11 @@ namespace
 
     void ActivateGarokAttackCollider(MidBossData& b)
     {
-        const float attackW = b.width * GAROK_HITBOX_WIDTH_RATIO;
-        const float attackH = b.height * GAROK_HITBOX_HEIGHT_RATIO;
-        const float front = b.width * GAROK_HITBOX_FRONT_RATIO;
+        const float attackW = b.width * GAROK_TUNING.hitboxWidthRatio;
+        const float attackH = b.height * GAROK_TUNING.hitboxHeightRatio;
+        const float front = b.width * GAROK_TUNING.hitboxFrontRatio;
         const float centerX = b.posX + (b.facingRight ? front : -front);
-        const float centerY = b.posY - b.height * GAROK_CONTACT_Y_RATIO;
+        const float centerY = b.posY - b.height * GAROK_TUNING.contactYRatio;
 
         if (b.garokAttackColliderId == -1)
         {
@@ -397,8 +347,8 @@ namespace
 
     float RandomGarokLandingX()
     {
-        const int minX = static_cast<int>(GAROK_ARENA_LEFT + 128.0f);
-        const int maxX = static_cast<int>(GAROK_ARENA_RIGHT - 128.0f);
+        const int minX = static_cast<int>(GAROK_TUNING.arenaLeft + 128.0f);
+        const int maxX = static_cast<int>(GAROK_TUNING.arenaRight - 128.0f);
         const int range = maxX - minX;
         if (range <= 0) return static_cast<float>(minX);
 
@@ -437,8 +387,8 @@ namespace
         if (b.garokJumping) return;
 
         b.garokGrounded = false;
-        b.garokVelocityY += GAROK_GRAVITY * GetDeathSlowMotionScale();
-        if (b.garokVelocityY > GAROK_MAX_FALL_SPEED) b.garokVelocityY = GAROK_MAX_FALL_SPEED;
+        b.garokVelocityY += GAROK_TUNING.gravity * GetDeathSlowMotionScale();
+        if (b.garokVelocityY > GAROK_TUNING.maxFallSpeed) b.garokVelocityY = GAROK_TUNING.maxFallSpeed;
 
         float nextY = b.posY + b.garokVelocityY * GetDeathSlowMotionScale();
         const float sampleLeft = b.posX - b.width * 0.18f;
@@ -493,11 +443,11 @@ namespace
         p.kind = StoneBullet;
         p.posX = startX;
         p.posY = startY;
-        p.width = STONE_BULLET_DRAW_SIZE;
-        p.height = STONE_BULLET_DRAW_SIZE;
-        p.colliderWidth = STONE_BULLET_HITBOX_SIZE;
-        p.colliderHeight = STONE_BULLET_HITBOX_SIZE;
-        p.speed = BULLET_SPEED;
+        p.width = STONE_TUNING.bulletDrawSize;
+        p.height = STONE_TUNING.bulletDrawSize;
+        p.colliderWidth = STONE_TUNING.bulletHitboxSize;
+        p.colliderHeight = STONE_TUNING.bulletHitboxSize;
+        p.speed = STONE_TUNING.bulletSpeed;
         p.velocityX = (dx / len) * p.speed;
         p.velocityY = (dy / len) * p.speed;
         p.lifeTimer = 4.0f;
@@ -579,7 +529,7 @@ namespace
 
         // ボスの目の位置からビームを発射
         const float dir = p.facingRight ? 1.0f : -1.0f;
-        const float eyeX = baseX + dir * (b.width * 0.12f + STONE_BEAM_MUZZLE_FINE_TUNE_X);
+        const float eyeX = baseX + dir * (b.width * 0.12f + STONE_TUNING.beamMuzzleFineTuneX);
         const float eyeY = baseY - b.height * 0.78f;
 
         const float beamLength = ComputeStoneBeamLength(eyeX, eyeY, p.facingRight, p.height);
@@ -589,7 +539,7 @@ namespace
         p.posX = eyeX + (p.facingRight ? (beamLength * 0.5f) : -(beamLength * 0.5f));
         p.posY = eyeY;
 
-        p.lifeTimer = BEAM_ACTIVE;
+        p.lifeTimer = STONE_TUNING.beamActive;
         p.colliderId = CreateCollider(
             ColliderTag::Attack,
             p.posX - p.colliderWidth * 0.5f,
@@ -692,7 +642,7 @@ int SpawnMidBoss(MidBossType type, float x, float y)
         b.hp = b.maxHP;
         b.attackPower = GetGarokAttackPower();
         b.detectRange = 1200.0f;
-        b.garokJumpCooldownTimer = GAROK_JUMP_INTERVAL;
+        b.garokJumpCooldownTimer = GAROK_TUNING.jumpInterval;
         InitGarokAnimations(b);
     }
 
@@ -758,7 +708,7 @@ void UpdateMidBosses()
         const float dx = player.posX - b.posX;
         const float dy = player.posY - b.posY;
         const float dist = std::sqrt(dx * dx + dy * dy);
-        if (b.type != MidBossType::Garok || std::fabs(dx) > GAROK_FACING_DEADZONE)
+        if (b.type != MidBossType::Garok || std::fabs(dx) > GAROK_TUNING.facingDeadzone)
         {
             b.facingRight = (dx >= 0.0f);
         }
@@ -767,7 +717,9 @@ void UpdateMidBosses()
 
         if (b.type == MidBossType::Garok)
         {
-            b.posX = (std::max)(GAROK_ARENA_LEFT + 32.0f, (std::min)(GAROK_ARENA_RIGHT - 32.0f, b.posX));
+            b.garokMoving = false;
+            if (b.garokRunAnimHold > 0.0f) b.garokRunAnimHold -= dt;
+            b.posX = (std::max)(GAROK_TUNING.arenaLeft + 32.0f, (std::min)(GAROK_TUNING.arenaRight - 32.0f, b.posX));
 
             if (b.cooldownTimer > 0.0f) b.cooldownTimer -= dt;
             if (b.garokJumpCooldownTimer > 0.0f) b.garokJumpCooldownTimer -= dt;
@@ -788,19 +740,23 @@ void UpdateMidBosses()
                 b.garokJumpTimer += dt;
                 float t = b.garokJumpTimer / b.garokJumpDuration;
                 if (t > 1.0f) t = 1.0f;
-                const float arc = std::sin(t * DX_PI_F) * GAROK_JUMP_HEIGHT;
+                const float arc = std::sin(t * DX_PI_F) * GAROK_TUNING.jumpHeight;
                 b.posX = b.garokJumpStartX + (b.garokJumpTargetX - b.garokJumpStartX) * t;
                 b.posY = b.garokJumpStartY + (b.garokJumpTargetY - b.garokJumpStartY) * t - arc;
 
                 if (t >= 1.0f)
                 {
                     b.garokJumping = false;
-                    b.garokJumpCooldownTimer = GAROK_JUMP_INTERVAL;
+                    b.garokJumpCooldownTimer = GAROK_TUNING.jumpInterval;
                     b.cooldownTimer = (std::max)(b.cooldownTimer, 1.0f);
                     b.posY = b.garokJumpTargetY;
                     b.garokVelocityY = 0.0f;
                     b.garokGrounded = true;
                 }
+            }
+            else if (!GAROK_TUNING.enableJump)
+            {
+                b.garokJumping = false;
             }
             else if (b.garokJumpCooldownTimer <= 0.0f && !b.isPreparing && !b.isAttacking)
             {
@@ -811,7 +767,7 @@ void UpdateMidBosses()
                 b.garokJumpStartY = b.posY;
                 b.garokJumpTargetX = RandomGarokLandingX();
                 b.garokJumpTargetY = FindGroundYBelow(b.garokJumpTargetX, b.posY - b.height, b.posY);
-                if (std::fabs(b.garokJumpTargetX - b.posX) > GAROK_FACING_DEADZONE)
+                if (std::fabs(b.garokJumpTargetX - b.posX) > GAROK_TUNING.facingDeadzone)
                 {
                     b.facingRight = (b.garokJumpTargetX >= b.posX);
                 }
@@ -820,7 +776,7 @@ void UpdateMidBosses()
 
             if (!b.garokJumping)
             {
-                const bool inAttackRange = (std::fabs(dx) <= GAROK_ATTACK_TRIGGER_RANGE) && (std::fabs(dy) <= b.height * 1.2f);
+                const bool inAttackRange = (std::fabs(dx) <= GAROK_TUNING.attackTriggerRange) && (std::fabs(dy) <= b.height * 1.2f);
 
                 if (!b.isPreparing && !b.isAttacking && b.isAggro && inAttackRange && b.cooldownTimer <= 0.0f)
                 {
@@ -844,7 +800,7 @@ void UpdateMidBosses()
                     else if (b.phase2 && actionRoll < 45) b.pendingAttack = 2;
                     else b.pendingAttack = 1;
 
-                    b.prepareTimer = GAROK_PREPARE_TIME;
+                    b.prepareTimer = GAROK_TUNING.prepareTime;
                     b.isPreparing = true;
                     b.garokAnimStage = 1;
                     b.garokAttackElapsed = 0.0f;
@@ -860,7 +816,7 @@ void UpdateMidBosses()
                 if (b.isPreparing)
                 {
                     b.prepareTimer -= dt;
-                    if (std::fabs(b.targetLockedX - b.posX) > GAROK_FACING_DEADZONE)
+                    if (std::fabs(b.targetLockedX - b.posX) > GAROK_TUNING.facingDeadzone)
                     {
                         b.facingRight = (b.targetLockedX >= b.posX);
                     }
@@ -873,17 +829,17 @@ void UpdateMidBosses()
 
                         if (b.pendingAttack == 1)
                         {
-                            b.attackTimer = (b.garokComboMax <= 1) ? GAROK_ATTACK_DURATION_1 : (b.garokComboMax == 2 ? GAROK_ATTACK_DURATION_2 : GAROK_ATTACK_DURATION_3);
+                            b.attackTimer = (b.garokComboMax <= 1) ? GAROK_TUNING.attackDuration1 : (b.garokComboMax == 2 ? GAROK_TUNING.attackDuration2 : GAROK_TUNING.attackDuration3);
                             ResetAnimation(b.attack);
                         }
                         else if (b.pendingAttack == 2)
                         {
-                            b.attackTimer = GAROK_DASH_DURATION;
+                            b.attackTimer = GAROK_TUNING.dashDuration;
                             ResetAnimation(b.garokDashAttack);
                         }
                         else
                         {
-                            b.attackTimer = GAROK_BARRAGE_DURATION;
+                            b.attackTimer = GAROK_TUNING.barrageDuration;
                             b.barrageShotTimer = 0.0f;
                             ResetAnimation(b.attack);
                         }
@@ -896,7 +852,7 @@ void UpdateMidBosses()
 
                     if (b.pendingAttack == 1)
                     {
-                        if (std::fabs(b.targetLockedX - b.posX) > GAROK_FACING_DEADZONE)
+                        if (std::fabs(b.targetLockedX - b.posX) > GAROK_TUNING.facingDeadzone)
                         {
                             b.facingRight = (b.targetLockedX >= b.posX);
                         }
@@ -933,17 +889,19 @@ void UpdateMidBosses()
                         {
                             b.isAttacking = false;
                             ClearGarokAttackCollider(b);
-                            b.cooldownTimer = (b.garokComboMax <= 1) ? GAROK_COOLDOWN_1 : (b.garokComboMax == 2 ? GAROK_COOLDOWN_2 : GAROK_COOLDOWN_3);
+                            b.cooldownTimer = (b.garokComboMax <= 1) ? GAROK_TUNING.cooldown1 : (b.garokComboMax == 2 ? GAROK_TUNING.cooldown2 : GAROK_TUNING.cooldown3);
                         }
                     }
                     else if (b.pendingAttack == 2)
                     {
-                        if (std::fabs(b.targetLockedX - b.posX) > GAROK_FACING_DEADZONE)
+                        if (std::fabs(b.targetLockedX - b.posX) > GAROK_TUNING.facingDeadzone)
                         {
                             b.facingRight = (b.targetLockedX >= b.posX);
                         }
                         const float dir = b.facingRight ? 1.0f : -1.0f;
-                        MoveGarokXWithCollision(b, dir * GAROK_DASH_SPEED * GetDeathSlowMotionScale());
+                        MoveGarokXWithCollision(b, dir * GAROK_TUNING.dashSpeed * GetDeathSlowMotionScale());
+                        b.garokMoving = true;
+                        b.garokRunAnimHold = 0.12f;
 
                         if (b.garokAttackElapsed >= 0.8f && b.garokAttackElapsed <= 1.6f)
                         {
@@ -956,12 +914,12 @@ void UpdateMidBosses()
                         {
                             b.isAttacking = false;
                             ClearGarokAttackCollider(b);
-                            b.cooldownTimer = GAROK_COOLDOWN_2;
+                            b.cooldownTimer = GAROK_TUNING.cooldown2;
                         }
                     }
                     else
                     {
-                        if (std::fabs(b.targetLockedX - b.posX) > GAROK_FACING_DEADZONE)
+                        if (std::fabs(b.targetLockedX - b.posX) > GAROK_TUNING.facingDeadzone)
                         {
                             b.facingRight = (b.targetLockedX >= b.posX);
                         }
@@ -977,24 +935,62 @@ void UpdateMidBosses()
                         {
                             b.isAttacking = false;
                             ClearGarokAttackCollider(b);
-                            b.cooldownTimer = GAROK_BARRAGE_COOLDOWN;
+                            b.cooldownTimer = GAROK_TUNING.barrageCooldown;
                         }
                     }
                 }
             }
 
-            if (!b.isPreparing && !b.isAttacking && !b.garokJumping && b.isAggro && std::fabs(dx) > GAROK_ATTACK_TRIGGER_RANGE)
+            if (!b.isPreparing && !b.isAttacking && !b.garokJumping && b.isAggro && std::fabs(dx) > GAROK_TUNING.attackTriggerRange)
             {
                 const float moveSpeed = 2.6f;
                 MoveGarokXWithCollision(b, (dx > 0.0f ? moveSpeed : -moveSpeed) * GetDeathSlowMotionScale());
-                if (std::fabs(dx) > GAROK_FACING_DEADZONE)
+                b.garokMoving = true;
+                b.garokRunAnimHold = 0.12f;
+                if (std::fabs(dx) > GAROK_TUNING.facingDeadzone)
                 {
                     b.facingRight = (dx >= 0.0f);
                 }
             }
 
-            b.posX = (std::max)(GAROK_ARENA_LEFT + 32.0f, (std::min)(GAROK_ARENA_RIGHT - 32.0f, b.posX));
+            b.posX = (std::max)(GAROK_TUNING.arenaLeft + 32.0f, (std::min)(GAROK_TUNING.arenaRight - 32.0f, b.posX));
             ApplyGarokGravityAndMapCollision(b);
+
+            if (b.colliderId != -1)
+            {
+                const float bodyW = b.width * 0.42f;
+                const float bodyH = b.height * 0.82f;
+                const float left = b.posX - bodyW * 0.5f;
+                const float top = (b.posY - b.height * 0.5f) - bodyH * 0.5f;
+                UpdateCollider(b.colliderId, left, top, bodyW, bodyH);
+            }
+
+            // Garokのアニメ選択（安定化版）
+            const AnimationData* targetAnim = &b.idle;
+            if (b.garokJumping) targetAnim = &b.garokJump;
+            else if (b.isAttacking)
+            {
+                if (b.pendingAttack == 2) targetAnim = &b.garokDashAttack;
+                else if (b.pendingAttack == 1)
+                {
+                    if (b.garokAnimStage <= 1) targetAnim = &b.attack;
+                    else if (b.garokAnimStage == 2) targetAnim = &b.garokAttack2;
+                    else targetAnim = &b.garokAttack3;
+                }
+                else targetAnim = &b.attack;
+            }
+            else if (b.garokMoving || b.garokRunAnimHold > 0.0f) targetAnim = &b.garokRun;
+            else targetAnim = &b.idle;
+
+            // アニメが切り替わった時のみリセット
+            if (b.garokCurrentAnim != targetAnim)
+            {
+                b.garokCurrentAnim = targetAnim;
+                ResetAnimation(*const_cast<AnimationData*>(targetAnim));
+            }
+            UpdateAnimation(*const_cast<AnimationData*>(b.garokCurrentAnim));
+
+            continue;
         }
 
         // StoneGolem
@@ -1013,12 +1009,12 @@ void UpdateMidBosses()
                 SpawnStoneBullet(b, baseX - b.width * 0.35f, baseY - b.height * 0.62f, tx, ty, false);
                 SpawnStoneBullet(b, baseX + b.width * 0.35f, baseY - b.height * 0.62f, tx, ty, false);
                 SpawnStoneBullet(b, baseX, baseY - b.height * 0.95f, tx, ty, false);
-                b.barrageShotTimer = BARRAGE_INTERVAL;
+                b.barrageShotTimer = STONE_TUNING.barrageInterval;
             }
             if (b.barrageTimer <= 0.0f)
             {
                 b.barrageActive = false;
-                b.cooldownTimer = SHOT_RECOVERY;
+                b.cooldownTimer = STONE_TUNING.shotRecovery;
             }
         }
 
@@ -1026,7 +1022,7 @@ void UpdateMidBosses()
         {
             const bool beam = ((b.attackCounter % 4) == 3);
             b.pendingAttack = beam ? 2 : 1;
-            b.prepareTimer = beam ? BEAM_PREPARE : SHOT_PREPARE;
+            b.prepareTimer = beam ? STONE_TUNING.beamPrepare : STONE_TUNING.shotPrepare;
             b.isPreparing = true;
             if (beam) ResetAnimation(b.beamAttack);
             else ResetAnimation(b.attack);
@@ -1048,13 +1044,13 @@ void UpdateMidBosses()
                     const float baseY = b.posY + STONE_PROJECTILE_OFFSET_Y;
                     SpawnStoneBullet(b, baseX, baseY - b.height * 0.62f, tx, ty, b.phase2);
                     b.attackTimer = 0.35f;
-                    b.cooldownTimer = SHOT_RECOVERY;
+                    b.cooldownTimer = STONE_TUNING.shotRecovery;
                 }
                 else
                 {
                     SpawnStoneBeam(b, player.posX);
-                    b.attackTimer = BEAM_ACTIVE;
-                    b.cooldownTimer = BEAM_RECOVERY;
+                    b.attackTimer = STONE_TUNING.beamActive;
+                    b.cooldownTimer = STONE_TUNING.beamRecovery;
                 }
 
                 b.attackCounter++;
@@ -1074,7 +1070,7 @@ void UpdateMidBosses()
                     b.attackCounter = 0;
                     b.barrageActive = true;
                     ClearHomingStoneBullets();
-                    b.barrageTimer = BARRAGE_DURATION;
+                    b.barrageTimer = STONE_TUNING.barrageDuration;
                     b.barrageShotTimer = 0.0f;
                 }
             }
@@ -1182,45 +1178,29 @@ void DrawMidBosses()
         if (!b.active) continue;
         if (b.isDead && IsAnimationFinished(b.die) && ((b.deathBlinkTimer / 4) % 2 == 1)) continue;
 
-        int drawX = static_cast<int>((b.posX - camera.posX) * camera.scale) + static_cast<int>(STONE_GOLEM_DRAW_OFFSET_X);
-        int drawY = static_cast<int>((b.posY - camera.posY) * camera.scale) + static_cast<int>(STONE_GOLEM_DRAW_OFFSET_Y);
+        int drawX = static_cast<int>((b.posX - camera.posX) * camera.scale) + static_cast<int>(STONE_TUNING.drawOffsetX);
+        int drawY = static_cast<int>((b.posY - camera.posY) * camera.scale) + static_cast<int>(STONE_TUNING.drawOffsetY);
         int drawW = static_cast<int>(b.width * camera.scale);
         int drawH = static_cast<int>(b.height * camera.scale);
+
+        if (b.type == MidBossType::Garok)
+        {
+            drawX = static_cast<int>((b.posX - camera.posX) * camera.scale) + static_cast<int>(GAROK_TUNING.drawOffsetX);
+            drawY = static_cast<int>((b.posY - camera.posY) * camera.scale) + static_cast<int>(GAROK_TUNING.drawOffsetY);
+            drawW = static_cast<int>(drawW * GAROK_TUNING.drawWidthScale);
+        }
 
         // アニメーション選択
         const AnimationData* anim = &b.idle;
         if (b.isDead) anim = &b.die;
         else if (b.type == MidBossType::Garok)
         {
-            if (b.garokJumping) anim = &b.garokJump;
-            else if (b.isAttacking)
-            {
-                if (b.pendingAttack == 2) anim = &b.garokDashAttack;
-                else if (b.pendingAttack == 1)
-                {
-                    if (b.garokAnimStage <= 1) anim = &b.attack;
-                    else if (b.garokAnimStage == 2) anim = &b.garokAttack2;
-                    else anim = &b.garokAttack3;
-                }
-                else anim = &b.attack;
-            }
-            else if (b.isAggro && std::fabs(GetPlayerData().posX - b.posX) > 120.0f) anim = &b.garokRun;
-            else anim = &b.idle;
+            // Garokは更新ループで確定したものを使う
+            anim = (b.garokCurrentAnim != nullptr) ? b.garokCurrentAnim : &b.idle;
         }
         else if (b.isPreparing || b.isAttacking)
         {
             anim = (b.pendingAttack == 2) ? &b.beamAttack : &b.attack;
-        }
-
-        if (b.type == MidBossType::Garok)
-        {
-            float garokOffsetX = GAROK_DRAW_OFFSET_X;
-            if (anim == &b.garokAttack2) garokOffsetX += GAROK_DRAW_ATTACK2_OFFSET_X;
-            else if (anim == &b.garokAttack3) garokOffsetX += GAROK_DRAW_ATTACK3_OFFSET_X;
-            else if (anim == &b.garokDashAttack) garokOffsetX += GAROK_DRAW_DASH_OFFSET_X;
-
-            drawX += static_cast<int>(garokOffsetX);
-            drawY += static_cast<int>(GAROK_DRAW_OFFSET_Y);
         }
 
         const int left = drawX - drawW / 2;
@@ -1258,6 +1238,59 @@ void DrawMidBosses()
         else
         {
             DrawBox(left, top, right, bottom, GetColor(160, 160, 160), TRUE);
+        }
+
+        if (b.type == MidBossType::Garok && GAROK_TUNING.debugDraw)
+        {
+            int frameW = 0;
+            int frameH = 0;
+            if (handle != -1)
+            {
+                GetGraphSize(handle, &frameW, &frameH);
+            }
+
+            DrawBox(left, top, right, bottom, GetColor(0, 255, 0), FALSE);
+            DrawLine(drawX - 8, drawY, drawX + 8, drawY, GetColor(255, 255, 0));
+            DrawLine(drawX, drawY - 8, drawX, drawY + 8, GetColor(255, 255, 0));
+
+            DrawFormatString(
+                left,
+                top - 64,
+                GetColor(255, 255, 0),
+                "Garok pos(%.2f,%.2f) draw(%d,%d) vY=%.3f grd=%d",
+                b.posX,
+                b.posY,
+                drawX,
+                drawY,
+                b.garokVelocityY,
+                b.garokGrounded ? 1 : 0);
+
+            DrawFormatString(
+                left,
+                top - 48,
+                GetColor(255, 255, 0),
+                "state agg=%d prep=%d atk=%d move=%d jump=%d face=%d pAtk=%d stage=%d",
+                b.isAggro ? 1 : 0,
+                b.isPreparing ? 1 : 0,
+                b.isAttacking ? 1 : 0,
+                b.garokMoving ? 1 : 0,
+                b.garokJumping ? 1 : 0,
+                b.facingRight ? 1 : 0,
+                b.pendingAttack,
+                b.garokAnimStage);
+
+            DrawFormatString(
+                left,
+                top - 32,
+                GetColor(255, 255, 0),
+                "anim h=%d frame=%d size=%dx%d combo=%d atkT=%.2f prepT=%.2f",
+                handle,
+                (anim != nullptr) ? anim->currentFrame : -1,
+                frameW,
+                frameH,
+                b.garokComboMax,
+                b.attackTimer,
+                b.prepareTimer);
         }
 
         SetDrawBright(255, 255, 255);
@@ -1309,8 +1342,8 @@ void DrawMidBosses()
 
             if (beamFrame != -1)
             {
-                int beamDrawX = drawX + static_cast<int>(STONE_BEAM_DRAW_OFFSET_X);
-                int beamDrawY = drawY + static_cast<int>(STONE_BEAM_DRAW_OFFSET_Y);
+                int beamDrawX = drawX + static_cast<int>(STONE_TUNING.beamDrawOffsetX);
+                int beamDrawY = drawY + static_cast<int>(STONE_TUNING.beamDrawOffsetY);
                 int beamLeft = beamDrawX - halfW;
                 int beamTop = beamDrawY - halfH;
                 int beamRight = beamDrawX + halfW;

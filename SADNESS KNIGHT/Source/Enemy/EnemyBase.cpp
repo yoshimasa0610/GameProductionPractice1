@@ -612,43 +612,11 @@ namespace
     }
 
     //============================================================
-    // 敵の設定テーブル（ここを編集してバランス調整）
+    // 敵設定（未分離の敵のみ）
     //============================================================
-    // 
-    // 各パラメータの説明：
-    // HP         : 体力（プレイヤーの攻撃力は100が基準）
-    // 攻撃力     : プレイヤーへのダメージ
-    // 移動速度   : 1.0が標準、2.0で2倍速
-    // 幅・高さ   : 当たり判定のサイズ（ピクセル）
-    // 検知範囲   : この距離内でプレイヤーを追跡開始
-    // 攻撃範囲   : この距離内で攻撃
-    // 攻撃時間   : 攻撃判定が有効な時間（秒）
-    // クールダウン: 次の攻撃までの待ち時間（秒）
-    // ジャンプ   : ジャンプできるか（true/false）
-    // ジャンプ力 : ジャンプの高さ（8.0が標準）
-    //
-    //============================================================
-    
-    const EnemyConfig g_enemyConfigs[static_cast<int>(EnemyType::Count)] = {
-        // { HP, 攻撃, 速度, 幅, 高さ, 検知, 攻撃範囲, 攻撃時間, CD, ジャンプ, J力, パス }
-        
-        // Slime: 初心者向けの弱い敵
-        { 12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 80.0f, 0.45f, 1.5f, false, 0.0f, "Assets/Enemies/Slime/" },
-        
-        // Cultists: 近接＋火球の戦闘員
-        { 40, 12, 1.2f, 50.0f, 50.0f, 320.0f, 96.0f, 0.35f, 1.0f, false, 0.0f, "Assets/Enemies/Cultists/" },
-        
-        // AssassinCultist: 素早く動く刺客、攻撃は弱め
-        { 30, 8, 2.0f, 50.0f, 50.0f, 176.0f, 44.0f, 0.22f, 1.5f, true, 9.0f, "Assets/Enemies/AssassinCultist/" },
-        
-        // BigQuartist: ボス級の大型敵、低速高耐久
-        { 250, 30, 0.8f, 150.0f, 150.0f, 360.0f, 88.0f, 0.75f, 1.8f, false, 0.0f, "Assets/Enemies/BigQuartist/" },
-        
-        // TwistedCaltis: 変則的な動きをする中ボス
-        { 90, 16, 1.8f, 50.0f, 50.0f, 320.0f, 128.0f, 0.50f, 1.2f, true, 10.0f, "Assets/Enemies/TwistedCaltis/" },
-
-        // StoneGolem: 石のゴーレム、耐久力が非常に高い
-        { 420, 24, 0.0f, 160.0f, 160.0f, 520.0f, 380.0f, 0.60f, 2.0f, false, 0.0f, "Data/Enemy/Stone Golem/" }
+    const EnemyConfig STONE_GOLEM_ENEMY_CONFIG =
+    {
+        420, 24, 0.0f, 160.0f, 160.0f, 520.0f, 380.0f, 0.60f, 2.0f, false, 0.0f, "Data/Enemy/Stone Golem/"
     };
 
     const float GRAVITY = 0.3f;
@@ -827,7 +795,22 @@ namespace
 
 const EnemyConfig& GetEnemyConfig(EnemyType type)
 {
-    return g_enemyConfigs[static_cast<int>(type)];
+    switch (type)
+    {
+    case EnemyType::Slime:
+        return GetSlimeConfig();
+    case EnemyType::Cultists:
+        return GetCultistConfig();
+    case EnemyType::AssassinCultist:
+        return GetAssassinCultistConfig();
+    case EnemyType::BigQuartist:
+        return GetBigQuartistConfig();
+    case EnemyType::TwistedCaltis:
+        return GetTwistedCaltisConfig();
+    case EnemyType::StoneGolem:
+    default:
+        return STONE_GOLEM_ENEMY_CONFIG;
+    }
 }
 
 

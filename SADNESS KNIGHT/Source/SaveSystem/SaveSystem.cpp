@@ -5,6 +5,7 @@
 #include "../Item/ItemManager.h"
 #include "../Item/ItemField.h"
 #include "../Money/MoneyManager.h"
+#include "../Scene/Play/Play.h"
 
 #define PLAYER_INIT_HP         (5)
 SaveData g_SaveData;
@@ -198,6 +199,14 @@ void ExportSaveData(SaveData* data)
 
     data->currentHP = player.currentHP;
     data->maxHP = player.maxHP;
+    data->hasDoubleJump = player.hasDoubleJump;
+    data->hasDiveAttack = player.hasDiveAttack;
+
+    GetBossDefeatSaveFlags(
+        data->forest3MidBossDefeated,
+        data->forest7MidBossDefeated,
+        data->forest5BigBossDefeated
+    );
 
     data->money = g_MoneyManager.GetMoney();
 
@@ -252,6 +261,14 @@ void ImportSaveData(const SaveData* data)
     PlayerData& player = GetPlayerData();
     player.currentHP = data->currentHP;
     player.maxHP = data->maxHP;
+    player.hasDoubleJump = data->hasDoubleJump;
+    player.hasDiveAttack = data->hasDiveAttack;
+
+    SetBossDefeatSaveFlags(
+        data->forest3MidBossDefeated,
+        data->forest7MidBossDefeated,
+        data->forest5BigBossDefeated
+    );
 
     g_MoneyManager.SetMoney(data->money);
 
@@ -277,16 +294,3 @@ void ImportSaveData(const SaveData* data)
     }
     g_ItemManager.ApplyBuffsToPlayer(&player);
 }
-
-
-// セーブスロットが複数あるときこんな感じでリセットを
-// 行わないと別のスロットでボスが沸かないことある
-// まだボス作ってないと思うのでコメントアウト中
-// 中ボスにも同様のものが必要かと思います。
-/*
-void ResetWorldProgress()
-{
-    for (int i = 0; i < BOSS_TYPE_MAX; ++i)
-        g_SaveData.bossDefeated[i] = false;
-}
-*/

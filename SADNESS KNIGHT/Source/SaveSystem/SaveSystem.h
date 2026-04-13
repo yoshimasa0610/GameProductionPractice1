@@ -7,7 +7,7 @@
 #define SAVE_SLOT_MAX 3       // セーブスロット数
 #define SAVE_MAX_FIELD_ITEMS 256
 #define PLAYER_INIT_HP         (150)
-#define SAVE_FILE_VERSION 1
+#define SAVE_FILE_VERSION 2
 
 //現在使用中のスロット
 extern int g_CurrentSaveSlot;
@@ -27,12 +27,21 @@ typedef struct
 // =======================
 struct SaveData
 {
-    // Playerのセーブする内容
+    // Playerのセーブ内容
     int currentHP;
     int maxHP;
 
+    // パッシブ
+    bool hasDoubleJump;
+    bool hasDiveAttack;
 
-    //お金
+    // ボス撃破進行
+    bool forest3MidBossDefeated;
+    bool forest7MidBossDefeated;
+    bool forest5BigBossDefeated;
+
+
+    //所持金
     int money;
 
     // Checkpoint情報
@@ -41,7 +50,7 @@ struct SaveData
     int checkpointY;      // チェックポイント位置
 
     // 所持・装備関連
-    int ownedItemCount[SAVE_MAX_ITEM];   // ← スタック数を保存
+    int ownedItemCount[SAVE_MAX_ITEM];   // 各 アイテム所持数
     int equippedItemCount;             // 装備中アイテム数
     int equippedItemIDs[SAVE_MAX_EQUIP]; // 装備中のアイテムID
     int obtainedFieldItemCount;

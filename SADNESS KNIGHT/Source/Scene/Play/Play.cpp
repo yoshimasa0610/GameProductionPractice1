@@ -50,6 +50,25 @@ static bool g_MidBossCameraLocked = false;
 static bool g_MidBossStageLockActive = false;
 static bool g_BigBossStageLockActive = false;
 
+// 撃破済みボスの復活防止フラグ（リスポーンでは維持）
+static bool g_Forest3MidBossDefeated = false;
+static bool g_Forest7MidBossDefeated = false;
+static bool g_Forest5BigBossDefeated = false;
+
+void SetBossDefeatSaveFlags(bool forest3MidBossDefeated, bool forest7MidBossDefeated, bool forest5BigBossDefeated)
+{
+	g_Forest3MidBossDefeated = forest3MidBossDefeated;
+	g_Forest7MidBossDefeated = forest7MidBossDefeated;
+	g_Forest5BigBossDefeated = forest5BigBossDefeated;
+}
+
+void GetBossDefeatSaveFlags(bool& forest3MidBossDefeated, bool& forest7MidBossDefeated, bool& forest5BigBossDefeated)
+{
+	forest3MidBossDefeated = g_Forest3MidBossDefeated;
+	forest7MidBossDefeated = g_Forest7MidBossDefeated;
+	forest5BigBossDefeated = g_Forest5BigBossDefeated;
+}
+
 static const float FOREST3_STONE_GOLEM_X = 1920.0f;
 static const float FOREST3_STONE_GOLEM_Y = 448.0f;
 static const float FOREST3_MIDBOSS_CAMERA_X = 1280.0f;
@@ -99,6 +118,9 @@ void InitPlayScene()
 	g_MidBossCameraLocked = false;
 	g_MidBossStageLockActive = false;
 	g_BigBossStageLockActive = false;
+	g_Forest3MidBossDefeated = false;
+	g_Forest7MidBossDefeated = false;
+	g_Forest5BigBossDefeated = false;
 	SetCameraFixed(false);
 }
 
@@ -106,6 +128,14 @@ void LoadPlayScene()
 {
 	LoadPlayer();
 	LoadUIImage();
+
+	SetBossDefeatSaveFlags(
+		g_SaveData.forest3MidBossDefeated,
+		g_SaveData.forest7MidBossDefeated,
+		g_SaveData.forest5BigBossDefeated
+	);
+	player.hasDoubleJump = g_SaveData.hasDoubleJump;
+	player.hasDiveAttack = g_SaveData.hasDiveAttack;
 
 	// SaveData からステージをロード
 	if (g_SaveData.stageName[0] == '\0')
@@ -126,11 +156,11 @@ void LoadPlayScene()
 	// フィールドアイテム
 	g_ItemField.LoadForStage(GetCurrentStageName());
 
-	// セーブ復元後にバフ再計算
+	// セーブ復帰後にバフ再計算
 	g_ItemManager.ApplyBuffsToPlayer(&player);
 
 	// =========================
-//  デバッグ：Equipアイテム強制所持
+//  デバッグ：Equipアイテムを追加
 // =========================
 #ifdef _DEBUG
 
@@ -302,7 +332,7 @@ void UpdatePlayScene()
 	if (!g_EnemySpawned && IsPlayerAlive() && IsPlayerGrounded())
 	{
 		const char* stageName = GetCurrentStageName();
-		if (stageName && strcmp(stageName, "forest_5") == 0)
+		if (stageName && strcmp(stageName, "forest_5") == 0 && !g_Forest5BigBossDefeated)
 		{
 			SpawnKether(FOREST5_BOSS_X, FOREST5_BOSS_Y);
 			g_EnemySpawned = true;
@@ -312,12 +342,12 @@ void UpdatePlayScene()
 	if (!g_MidBossSpawned && IsPlayerAlive() && IsPlayerGrounded())
 	{
 		const char* stageName = GetCurrentStageName();
-		if (stageName && strcmp(stageName, "forest_3") == 0)
+		if (stageName && strcmp(stageName, "forest_3") == 0 && !g_Forest3MidBossDefeated)
 		{
 			SpawnStoneGolem(FOREST3_STONE_GOLEM_X, FOREST3_STONE_GOLEM_Y);
 			g_MidBossSpawned = true;
 		}
-		else if (stageName && strcmp(stageName, "forest_7") == 0)
+		else if (stageName && strcmp(stageName, "forest_7") == 0 && !g_Forest7MidBossDefeated)
 		{
 			SpawnGarok(FOREST7_GAROK_X, FOREST7_GAROK_Y);
 			g_MidBossSpawned = true;
@@ -325,6 +355,22 @@ void UpdatePlayScene()
 	}
 
 	const char* currentStage = GetCurrentStageName();
+	if (currentStage != nullptr)
+	{
+		if (strcmp(currentStage, "forest_3") == 0 && g_MidBossSpawned && !IsMidBossAlive())
+		{
+			g_Forest3MidBossDefeated = true;
+		}
+		else if (strcmp(currentStage, "forest_7") == 0 && g_MidBossSpawned && !IsMidBossAlive())
+		{
+			g_Forest7MidBossDefeated = true;
+		}
+		else if (strcmp(currentStage, "forest_5") == 0 && g_EnemySpawned && !IsBigBossAlive())
+		{
+			g_Forest5BigBossDefeated = true;
+		}
+	}
+
 	const bool isForest3 = (currentStage != nullptr && strcmp(currentStage, "forest_3") == 0);
     const bool isForest7 = (currentStage != nullptr && strcmp(currentStage, "forest_7") == 0);
     if (isForest3 || isForest7)
@@ -540,27 +586,46 @@ void FinPlayScene()
 
 static void RespawnFromCheckpoint()
 {
-	// セーブデータをロードし直す
-	if (DoesSaveExist(g_CurrentSaveSlot))
-	{
-		SaveData data;
-		if (LoadGame(&data, g_CurrentSaveSlot))
-		{
-			ImportSaveData(&data);
-			g_ItemManager.ApplyBuffsToPlayer(&player);
-			// ステージ再ロード
-			InitStage();
-			UnlockStageTransition();
-			LoadStage(
-				data.stageName,
-				(float)data.checkpointX,
-				(float)data.checkpointY
-			);
-			InitCheckpoint(data.stageName);
-			ResetPlayerDeath();
-			InitPlayer(data.checkpointX, data.checkpointY);
-		}
-	}
+	// 現在メモリ上の進行状態を維持したままチェックポイントへ復帰
+	const SaveData& data = g_SaveData;
+
+	// ボス関連のロック状態をリセット
+	g_BossCameraLocked = false;
+	g_MidBossCameraLocked = false;
+	g_MidBossStageLockActive = false;
+	g_BigBossStageLockActive = false;
+	g_IsBossBGMPlaying = false;
+	SetCameraFixed(false);
+	UnlockStageTransition();
+
+	// 敵・ボスはクリアしてステージを再構築（撃破済みフラグは維持）
+	ClearEnemies();
+	ClearMidBosses();
+	ClearBigBosses();
+	g_EnemySpawned = false;
+	g_MidBossSpawned = false;
+
+	InitStage();
+	LoadStage(
+		data.stageName,
+		(float)data.checkpointX,
+		(float)data.checkpointY
+	);
+	InitCheckpoint(data.stageName);
+	g_ItemField.LoadForStage(data.stageName);
+
+	// パッシブや育成状態を保持したまま死亡状態のみ解除
+	ResetPlayerDeath();
+	player.posX = (float)data.checkpointX;
+	player.posY = (float)data.checkpointY;
+	player.velocityX = 0.0f;
+	player.velocityY = 0.0f;
+	player.isGrounded = false;
+	player.jumpCount = 0;
+
+	// 所持バフの再適用
+	g_ItemManager.ApplyBuffsToPlayer(&player);
+
 	SetPaused(false);
 }
 

@@ -5,6 +5,10 @@ namespace
 {
     const int SLIME_MAX_HP = 12;
     const int SLIME_ATTACK_POWER = 4;
+    const EnemyConfig SLIME_CONFIG =
+    {
+        12, 4, 1.0f, 52.0f, 44.0f, 140.0f, 80.0f, 0.45f, 1.5f, false, 0.0f, "Assets/Enemies/Slime/"
+    };
 }
 
 //============================================================
@@ -27,5 +31,10 @@ int GetSlimeMaxHP()
 int GetSlimeAttackPower()
 {
     return SLIME_ATTACK_POWER;
+}
+
+const EnemyConfig& GetSlimeConfig()
+{
+    return SLIME_CONFIG;
 }
 

@@ -20,7 +20,6 @@ namespace
         int counter = 0;
         int speed = 6;
     };
-
     enum class KetherState
     {
         Idle1,
@@ -101,21 +100,7 @@ namespace
     };
 
     std::vector<BigBossData> g_bigBosses;
-
-    const float KETHER_BODY_HALF_WIDTH_RATIO = 0.09f;
-    const float KETHER_BODY_WIDTH_RATIO = 0.18f;
-    const float KETHER_BODY_HEIGHT_RATIO = 0.62f;
-    const float KETHER_BODY_TOP_OFFSET_RATIO = 0.84f;
-
-    const float KETHER_FLAME_ORIGIN_X_RATIO = 0.00f;
-    const float KETHER_FLAME_ORIGIN_Y_RATIO = 0.56f;
-    const float KETHER_FLAME_DRAW_OFFSET_Y = 24.0f;
-    const float KETHER_BOOK_ORIGIN_X_RATIO = -0.26f;
-    const float KETHER_BOOK_ORIGIN_Y_RATIO = 0.34f;
-    const float KETHER_PHASE_SHOCKWAVE_DURATION = 0.45f;
-    const float KETHER_TRANSFORM_END_HOLD = 0.35f;
-    const float KETHER_DIED_DRAW_OFFSET_Y = 18.0f;
-    const bool KETHER_DEBUG_DRAW = true;
+    const KetherTuning& KETHER_TUNING = GetKetherTuning();
 
     void ReleaseAnim(FrameAnim& a)
     {
@@ -303,7 +288,7 @@ namespace
         if (b.phaseShockwaveActive)
         {
             b.phaseShockwaveTimer += dt;
-            if (b.phaseShockwaveTimer >= KETHER_PHASE_SHOCKWAVE_DURATION)
+            if (b.phaseShockwaveTimer >= KETHER_TUNING.phaseShockwaveDuration)
             {
                 b.phaseShockwaveActive = false;
                 b.phaseShockwaveTimer = 0.0f;
@@ -322,7 +307,7 @@ namespace
             b.posY += b.velocityY;
 
             // 死亡落下中も床ブロックで停止（経路チェックで貫通防止）
-            const float halfW = b.width * KETHER_BODY_HALF_WIDTH_RATIO;
+            const float halfW = b.width * KETHER_TUNING.bodyHalfWidthRatio;
             const float checkLeft = b.posX - halfW;
             const float checkRight = b.posX + halfW;
 
@@ -386,7 +371,6 @@ namespace
                 b.posX += (dx > 0.0f ? speed : -speed);
             }
         }
-
         if (!b.phase2 && b.hp <= (b.maxHP / 2))
         {
             b.phase2 = true;
@@ -396,7 +380,6 @@ namespace
             b.transformBlastDone = false;
             b.transformPostHoldTimer = 0.0f;
         }
-
         switch (b.state)
         {
         case KetherState::Idle1:
@@ -413,8 +396,8 @@ namespace
 
                     b.bookTargetX = player.posX;
                     b.bookTargetY = player.posY - PLAYER_HEIGHT * 0.35f;
-                    b.bookStartX = b.posX + b.width * KETHER_BOOK_ORIGIN_X_RATIO;
-                    b.bookStartY = b.posY - b.height * KETHER_BOOK_ORIGIN_Y_RATIO;          // 胴体中央より少し下
+                    b.bookStartX = b.posX + b.width * KETHER_TUNING.bookOriginXRatio;
+                    b.bookStartY = b.posY - b.height * KETHER_TUNING.bookOriginYRatio;          // 胴体中央より少し下
                 }
                 else
                 {
@@ -426,7 +409,6 @@ namespace
                 }
             }
             break;
-
         case KetherState::ThrowBook:
             UpdateAnim(b.throwBook, false);
             // 投擲までの遅延を短縮
@@ -440,7 +422,6 @@ namespace
                 b.stateTimer = 0.0f;
             }
             break;
-
         case KetherState::Fire1:
             // 大きく吸い込んでから1回長く吐く
             if (b.stateTimer < 0.90f)
@@ -462,7 +443,6 @@ namespace
                 b.stateTimer = 0.0f;
             }
             break;
-
         case KetherState::Transform:
             UpdateAnim(b.transform, false);
             {
@@ -480,7 +460,6 @@ namespace
                     player.velocityY = -10.0f;
                     b.transformBlastDone = true;
                 }
-
                 if (IsAnimFinished(b.transform))
                 {
                     if (!b.transformBlastDone)
@@ -494,9 +473,8 @@ namespace
                         player.velocityY = -10.0f;
                         b.transformBlastDone = true;
                     }
-
                     b.transformPostHoldTimer += dt;
-                    if (b.transformPostHoldTimer >= KETHER_TRANSFORM_END_HOLD)
+                    if (b.transformPostHoldTimer >= KETHER_TUNING.transformEndHold)
                     {
                         b.state = KetherState::Idle2;
                         b.stateTimer = 0.0f;
@@ -505,7 +483,6 @@ namespace
                 }
             }
             break;
-
         case KetherState::Idle2:
             UpdateAnim(b.idle2, true);
             if (b.stateTimer > 1.2f)
@@ -528,7 +505,6 @@ namespace
                 }
             }
             break;
-
         case KetherState::Fire2:
             if (b.stateTimer < 0.80f)
             {
@@ -549,7 +525,6 @@ namespace
                 b.stateTimer = 0.0f;
             }
             break;
-
         case KetherState::Fist2:
             UpdateAnim(b.fist2, false);
             if (!b.fistSlamDone)
@@ -576,21 +551,18 @@ namespace
                 b.stateTimer = 0.0f;
             }
             break;
-
         case KetherState::Died:
             UpdateAnim(b.died, false);
             break;
         }
-
         if (b.colliderId != -1)
         {
-            const float left = b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO);
-            const float top = b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO);
-            const float w = b.width * KETHER_BODY_WIDTH_RATIO;
-            const float h = b.height * KETHER_BODY_HEIGHT_RATIO;
+            const float left = b.posX - (b.width * KETHER_TUNING.bodyHalfWidthRatio);
+            const float top = b.posY - (b.height * KETHER_TUNING.bodyTopOffsetRatio);
+            const float w = b.width * KETHER_TUNING.bodyWidthRatio;
+            const float h = b.height * KETHER_TUNING.bodyHeightRatio;
             UpdateCollider(b.colliderId, left, top, w, h);
         }
-
         const bool bookState = (b.state == KetherState::ThrowBook);
         const bool fireState = (b.state == KetherState::Fire1 || b.state == KetherState::Fire2);
         const bool fistState = (b.state == KetherState::Fist2);
@@ -601,17 +573,16 @@ namespace
             float atkX = b.posX;
             float atkY = b.posY;
             bool enableAttack = true;
-
             if (fireState)
             {
                 atkW = (b.state == KetherState::Fire2) ? 180.0f : 150.0f;
-                atkX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
+                atkX = b.posX + b.width * KETHER_TUNING.flameOriginXRatio;
 
                 const float breathStart = (b.state == KetherState::Fire2) ? 0.80f : 0.90f;
                 const float breathEnd = (b.state == KetherState::Fire2) ? 3.95f : 3.35f;
                 enableAttack = (b.stateTimer >= breathStart && b.stateTimer <= breathEnd);
 
-                const float flameTop = b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO;
+                const float flameTop = b.posY - b.height * KETHER_TUNING.flameOriginYRatio;
                 const float groundY = GetGroundYBelowX(atkX, flameTop, player.posY);
 
                 float fullH = (groundY > flameTop)
@@ -681,7 +652,6 @@ namespace
             b.attackColliderId = -1;
         }
     }
-
     void DrawAnimFit(const CameraData& camera, float x, float y, float w, float h, int handle)
     {
         if (handle == -1) return;
@@ -692,7 +662,6 @@ namespace
         DrawExtendGraph(cx - halfW, cy - hh, cx + halfW, cy, handle, TRUE);
     }
 }
-
 int GetBigBossHP()
 {
     for (const auto& b : g_bigBosses)
@@ -702,7 +671,6 @@ int GetBigBossHP()
     }
     return 0;
 }
-
 int GetBigBossMaxHP()
 {
     for (const auto& b : g_bigBosses)
@@ -712,7 +680,6 @@ int GetBigBossMaxHP()
     }
     return 1;
 }
-
 bool IsBigBossAlive()
 {
     for (const auto& b : g_bigBosses)
@@ -725,12 +692,10 @@ bool IsBigBossAlive()
     }
     return false;
 }
-
 void InitBigBossSystem()
 {
     g_bigBosses.clear();
 }
-
 int SpawnBigBoss(BigBossType type, float x, float y)
 {
     BigBossData b{};
@@ -752,17 +717,15 @@ int SpawnBigBoss(BigBossType type, float x, float y)
         b.attackOwner.type = EnemyType::BigQuartist;
         b.attackOwner.attackPower = GetKetherAttackPower();
     }
-
-    const float left = b.posX - (b.width * KETHER_BODY_HALF_WIDTH_RATIO);
-    const float top = b.posY - (b.height * KETHER_BODY_TOP_OFFSET_RATIO);
-    const float w = b.width * KETHER_BODY_WIDTH_RATIO;
-    const float h = b.height * KETHER_BODY_HEIGHT_RATIO;
+    const float left = b.posX - (b.width * KETHER_TUNING.bodyHalfWidthRatio);
+    const float top = b.posY - (b.height * KETHER_TUNING.bodyTopOffsetRatio);
+    const float w = b.width * KETHER_TUNING.bodyWidthRatio;
+    const float h = b.height * KETHER_TUNING.bodyHeightRatio;
     b.colliderId = CreateCollider(ColliderTag::Enemy, left, top, w, h, nullptr);
 
     g_bigBosses.push_back(b);
     return static_cast<int>(g_bigBosses.size() - 1);
 }
-
 void UpdateBigBosses()
 {
     for (auto& b : g_bigBosses)
@@ -774,7 +737,6 @@ void UpdateBigBosses()
         }
     }
 }
-
 void DrawBigBosses()
 {
     const CameraData camera = GetCamera();
@@ -821,17 +783,15 @@ void DrawBigBosses()
             body = GetAnimHandle(b.died);
             break;
         }
-
         float bodyDrawY = b.posY;
         if (b.state == KetherState::Died)
         {
-            bodyDrawY += KETHER_DIED_DRAW_OFFSET_Y;
+            bodyDrawY += KETHER_TUNING.diedDrawOffsetY;
         }
         DrawAnimFit(camera, b.posX, bodyDrawY, b.width, b.height, body);
-
         if (b.phaseShockwaveActive)
         {
-            float t = b.phaseShockwaveTimer / KETHER_PHASE_SHOCKWAVE_DURATION;
+            float t = b.phaseShockwaveTimer / KETHER_TUNING.phaseShockwaveDuration;
             if (t < 0.0f) t = 0.0f;
             if (t > 1.0f) t = 1.0f;
 
@@ -845,8 +805,7 @@ void DrawBigBosses()
             DrawCircle(cx, cy, outer - 2, GetColor(255, 180, 90), FALSE);
             SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
         }
-
-        if (KETHER_DEBUG_DRAW)
+        if (KETHER_TUNING.debugDraw)
         {
             // デバッグ用の円や文字列も非表示に
             // const float flameOX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
@@ -863,7 +822,6 @@ void DrawBigBosses()
             // DrawFormatString(bookX + 10, bookY - 10, GetColor(80, 220, 255), "BOOK_ORIGIN");
             // DrawFormatString(cLeft, cTop - 20, GetColor(255, 255, 0), "state=%d t=%.2f", static_cast<int>(b.state), b.stateTimer);
         }
-
         if (fx != -1)
         {
             const float dir = (GetPlayerData().posX >= b.posX) ? 1.0f : -1.0f;
@@ -893,8 +851,8 @@ void DrawBigBosses()
                 const float breathProgress = (b.stateTimer - breathStart) / (breathEnd - breathStart);
                 const bool isEnding = (breathProgress >= 0.88f);
 
-                const float flameTop = (b.posY - b.height * KETHER_FLAME_ORIGIN_Y_RATIO) + KETHER_FLAME_DRAW_OFFSET_Y;
-                fxX = b.posX + b.width * KETHER_FLAME_ORIGIN_X_RATIO;
+                const float flameTop = (b.posY - b.height * KETHER_TUNING.flameOriginYRatio) + KETHER_TUNING.flameDrawOffsetY;
+                fxX = b.posX + b.width * KETHER_TUNING.flameOriginXRatio;
                 const float groundY = GetGroundYBelowX(fxX, flameTop, GetPlayerData().posY);
 
                 const float fullH = (groundY > flameTop)
@@ -934,7 +892,6 @@ void DrawBigBosses()
                     fx = flameFrames[frameIdx];
                 }
             }
-
             if (b.state == KetherState::ThrowBook && b.stateTimer < 0.80f)
             {
                 fx = -1;
@@ -948,7 +905,6 @@ void DrawBigBosses()
         }
     }
 }
-
 void ClearBigBosses()
 {
     for (auto& b : g_bigBosses)
@@ -973,7 +929,6 @@ void ClearBigBosses()
     }
     g_bigBosses.clear();
 }
-
 bool DamageBigBossByColliderId(int colliderId, int damage)
 {
     if (damage <= 0) damage = 1;
@@ -1014,7 +969,6 @@ bool DamageBigBossByColliderId(int colliderId, int damage)
                 b.colliderId = -1;
             }
         }
-
         return true;
     }
 
