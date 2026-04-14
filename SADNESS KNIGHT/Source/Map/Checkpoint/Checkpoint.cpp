@@ -14,6 +14,7 @@
 #include "../../Camera/Camera.h"
 #include "../../Skill/SkillManager.h"
 #include "../../Overlay/CheckpointMenu/CheckpointMenu.h"
+#include "../../Sound/Sound.h"
 
 static const int INTERACTION_KEY = KEY_UP;
 static std::vector<Checkpoint> g_Checkpoints;
@@ -113,7 +114,12 @@ static void ActivateCheckpoint(SaveData* save, const Checkpoint& cp)
     // Player モジュール内のグローバル g_PlayerData を直接使う
     PlayerData& player = GetPlayerData(); // Player.cpp で定義されているグローバル
     //g_PlayerData.hp = g_PlayerData.maxHp;
+    // プレイヤー操作停止時
+    player.velocityX = 0.0f;
+    player.state = PlayerState::Idle;
 
+    // 念のためSE止める
+    StopSE(SE_PLAYER_RUN);
     // =========================
     // 回復処理
     // =========================

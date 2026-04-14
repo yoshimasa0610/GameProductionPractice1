@@ -708,7 +708,9 @@ namespace
         // 座ってる間は操作禁止
         if (IsPlayerSitting())
         {
+            playerData.state = PlayerState::Idle;
             playerData.velocityX = 0.0f;
+            currentMoveDir = 0;
             return;
         }
         ProcessMovement();
