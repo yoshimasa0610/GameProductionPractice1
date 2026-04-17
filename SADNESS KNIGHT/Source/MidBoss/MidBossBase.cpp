@@ -98,12 +98,17 @@ namespace
         float targetLockedY = 0.0f;
         int garokComboMax = 1;
         int garokAnimStage = 1;
+        int garokBarrageStep = -1;
         float garokAttackElapsed = 0.0f;
         float garokAttackHitLife = 0.0f;
         bool garokHitDone1 = false;
         bool garokHitDone2 = false;
         bool garokHitDone3 = false;
         int garokAttackColliderId = -1;
+        bool garokAttackColliderFixed = false;
+        float garokAttackColliderCenterX = 0.0f;
+        float garokAttackColliderCenterY = 0.0f;
+        float garokDashTargetX = 0.0f;
         bool garokJumping = false;
         float garokJumpTimer = 0.0f;
         float garokJumpDuration = 1.2f;
@@ -297,6 +302,38 @@ namespace
             DestroyCollider(b.garokAttackColliderId);
             b.garokAttackColliderId = -1;
         }
+        b.garokAttackColliderFixed = false;
+    }
+
+    void GetGarokAttackColliderCenter(const MidBossData& b, float& centerX, float& centerY)
+    {
+        if (b.garokAttackColliderFixed)
+        {
+            centerX = b.garokAttackColliderCenterX;
+            centerY = b.garokAttackColliderCenterY;
+            return;
+        }
+
+        const float front = b.width * GAROK_TUNING.hitboxFrontRatio;
+        centerX = b.posX + (b.facingRight ? front : -front);
+        centerY = b.posY - b.height * GAROK_TUNING.contactYRatio;
+    }
+
+    void GetGarokLockedTargetAttackCenter(const MidBossData& b, float& centerX, float& centerY)
+    {
+        const float attackW = b.width * GAROK_TUNING.hitboxWidthRatio;
+        const float dir = b.facingRight ? 1.0f : -1.0f;
+        const float minOffset = attackW * 0.25f;
+        const float maxOffset = b.width * GAROK_TUNING.hitboxFrontRatio + attackW * 0.35f;
+        float targetOffset = (b.targetLockedX - b.posX) * dir;
+        targetOffset = (std::max)(minOffset, (std::min)(maxOffset, targetOffset));
+
+        centerX = b.posX + dir * targetOffset;
+
+        const float targetCenterY = b.targetLockedY - PLAYER_HEIGHT * 0.5f;
+        const float minY = b.posY - b.height * 0.82f;
+        const float maxY = b.posY - b.height * 0.18f;
+        centerY = (std::max)(minY, (std::min)(maxY, targetCenterY));
     }
 
     void UpdateGarokAttackCollider(MidBossData& b)
@@ -305,9 +342,9 @@ namespace
 
         const float attackW = b.width * GAROK_TUNING.hitboxWidthRatio;
         const float attackH = b.height * GAROK_TUNING.hitboxHeightRatio;
-        const float front = b.width * GAROK_TUNING.hitboxFrontRatio;
-        const float centerX = b.posX + (b.facingRight ? front : -front);
-        const float centerY = b.posY - b.height * GAROK_TUNING.contactYRatio;
+        float centerX = 0.0f;
+        float centerY = 0.0f;
+        GetGarokAttackColliderCenter(b, centerX, centerY);
         UpdateCollider(
             b.garokAttackColliderId,
             centerX - attackW * 0.5f,
@@ -318,11 +355,41 @@ namespace
 
     void ActivateGarokAttackCollider(MidBossData& b)
     {
+        b.garokAttackColliderFixed = false;
         const float attackW = b.width * GAROK_TUNING.hitboxWidthRatio;
         const float attackH = b.height * GAROK_TUNING.hitboxHeightRatio;
-        const float front = b.width * GAROK_TUNING.hitboxFrontRatio;
-        const float centerX = b.posX + (b.facingRight ? front : -front);
-        const float centerY = b.posY - b.height * GAROK_TUNING.contactYRatio;
+        float centerX = 0.0f;
+        float centerY = 0.0f;
+        GetGarokAttackColliderCenter(b, centerX, centerY);
+
+        if (b.garokAttackColliderId == -1)
+        {
+            b.garokAttackColliderId = CreateCollider(
+                ColliderTag::Attack,
+                centerX - attackW * 0.5f,
+                centerY - attackH * 0.5f,
+                attackW,
+                attackH,
+                &b.attackOwner);
+        }
+        else
+        {
+            UpdateCollider(
+                b.garokAttackColliderId,
+                centerX - attackW * 0.5f,
+                centerY - attackH * 0.5f,
+                attackW,
+                attackH);
+        }
+    }
+
+    void ActivateGarokAttackColliderAt(MidBossData& b, float centerX, float centerY)
+    {
+        const float attackW = b.width * GAROK_TUNING.hitboxWidthRatio;
+        const float attackH = b.height * GAROK_TUNING.hitboxHeightRatio;
+        b.garokAttackColliderFixed = true;
+        b.garokAttackColliderCenterX = centerX;
+        b.garokAttackColliderCenterY = centerY;
 
         if (b.garokAttackColliderId == -1)
         {
@@ -420,6 +487,26 @@ namespace
         b.posY = nextY;
     }
 
+    float FindGroundYBelow(float worldX, float fromY, float fallbackY)
+    {
+        const float block = 32.0f;
+        const int gx = static_cast<int>(worldX / block);
+        int startY = static_cast<int>(fromY / block);
+        if (startY < 0) startY = 0;
+
+        for (int y = startY; y < startY + 48; ++y)
+        {
+            MapChipData* mc = GetMapChipData(gx, y);
+            if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
+            {
+                return y * block;
+            }
+        }
+        const int mapHeight = GetMapHeight();
+        return (mapHeight > 0) ? static_cast<float>(mapHeight) : fallbackY;
+    }
+
+    //============================================================
     // プロジェクタイル生成関数
     //============================================================
 
@@ -549,25 +636,6 @@ namespace
             &b.attackOwner);
         g_midProjectiles.push_back(p);
     }
-
-    float FindGroundYBelow(float worldX, float fromY, float fallbackY)
-    {
-        const float block = 32.0f;
-        const int gx = static_cast<int>(worldX / block);
-        int startY = static_cast<int>(fromY / block);
-        if (startY < 0) startY = 0;
-
-        for (int y = startY; y < startY + 48; ++y)
-        {
-            MapChipData* mc = GetMapChipData(gx, y);
-            if (mc != nullptr && mc->mapChip == NORMAL_BLOCK)
-            {
-                return y * block;
-            }
-        }
-        const int mapHeight = GetMapHeight();
-        return (mapHeight > 0) ? static_cast<float>(mapHeight) : fallbackY;
-    }
 }
 
 //============================================================
@@ -641,7 +709,7 @@ int SpawnMidBoss(MidBossType type, float x, float y)
         b.maxHP = GetGarokMaxHP();
         b.hp = b.maxHP;
         b.attackPower = GetGarokAttackPower();
-        b.detectRange = 1200.0f;
+        b.detectRange = 1600.0f;
         b.garokJumpCooldownTimer = GAROK_TUNING.jumpInterval;
         InitGarokAnimations(b);
     }
@@ -776,9 +844,9 @@ void UpdateMidBosses()
 
             if (!b.garokJumping)
             {
-                const bool inAttackRange = (std::fabs(dx) <= GAROK_TUNING.attackTriggerRange) && (std::fabs(dy) <= b.height * 1.2f);
+                const bool inAttackCheckRange = (std::fabs(dx) <= GAROK_TUNING.attackCheckRange) && (std::fabs(dy) <= b.height * 1.2f);
 
-                if (!b.isPreparing && !b.isAttacking && b.isAggro && inAttackRange && b.cooldownTimer <= 0.0f)
+                if (!b.isPreparing && !b.isAttacking && b.isAggro && inAttackCheckRange && b.cooldownTimer <= 0.0f)
                 {
                     b.targetLockedX = player.posX;
                     b.targetLockedY = player.posY;
@@ -796,17 +864,27 @@ void UpdateMidBosses()
                     }
 
                     const int actionRoll = GetRand(99);
-                    if (b.phase2 && actionRoll < 20) b.pendingAttack = 3;
-                    else if (b.phase2 && actionRoll < 45) b.pendingAttack = 2;
-                    else b.pendingAttack = 1;
+                    if (b.phase2)
+                    {
+                        if (actionRoll < 25) b.pendingAttack = 2;
+                        else if (actionRoll < 50) b.pendingAttack = 3;
+                        else b.pendingAttack = 1;
+                    }
+                    else
+                    {
+                        if (actionRoll < 30) b.pendingAttack = 2;
+                        else b.pendingAttack = 1;
+                    }
 
                     b.prepareTimer = GAROK_TUNING.prepareTime;
                     b.isPreparing = true;
                     b.garokAnimStage = 1;
+                    b.garokBarrageStep = -1;
                     b.garokAttackElapsed = 0.0f;
                     b.garokHitDone1 = false;
                     b.garokHitDone2 = false;
                     b.garokHitDone3 = false;
+                    b.garokDashTargetX = b.posX;
                     ResetAnimation(b.attack);
                     ResetAnimation(b.garokAttack2);
                     ResetAnimation(b.garokAttack3);
@@ -826,6 +904,7 @@ void UpdateMidBosses()
                         b.isAttacking = true;
                         b.garokAttackElapsed = 0.0f;
                         b.garokAttackHitLife = 0.0f;
+                        b.garokBarrageStep = -1;
 
                         if (b.pendingAttack == 1)
                         {
@@ -834,6 +913,16 @@ void UpdateMidBosses()
                         }
                         else if (b.pendingAttack == 2)
                         {
+                            const float dashDir = (b.targetLockedX >= b.posX) ? 1.0f : -1.0f;
+                            const float throughDistance = b.width * 1.35f;
+                            const float minDashDistance = b.width * 1.10f;
+                            float dashTargetX = b.targetLockedX + dashDir * throughDistance;
+                            if (std::fabs(dashTargetX - b.posX) < minDashDistance)
+                            {
+                                dashTargetX = b.posX + dashDir * minDashDistance;
+                            }
+                            b.garokDashTargetX = (std::max)(GAROK_TUNING.arenaLeft + 32.0f,
+                                (std::min)(GAROK_TUNING.arenaRight - 32.0f, dashTargetX));
                             b.attackTimer = GAROK_TUNING.dashDuration;
                             ResetAnimation(b.garokDashAttack);
                         }
@@ -841,7 +930,10 @@ void UpdateMidBosses()
                         {
                             b.attackTimer = GAROK_TUNING.barrageDuration;
                             b.barrageShotTimer = 0.0f;
+                            b.garokAnimStage = 1;
                             ResetAnimation(b.attack);
+                            ResetAnimation(b.garokAttack2);
+                            ResetAnimation(b.garokAttack3);
                         }
                     }
                 }
@@ -857,30 +949,34 @@ void UpdateMidBosses()
                             b.facingRight = (b.targetLockedX >= b.posX);
                         }
 
-                        if (!b.garokHitDone1 && b.garokAttackElapsed >= 1.0f)
+                        float lockedAttackCenterX = 0.0f;
+                        float lockedAttackCenterY = 0.0f;
+                        GetGarokLockedTargetAttackCenter(b, lockedAttackCenterX, lockedAttackCenterY);
+
+                        if (!b.garokHitDone1 && b.garokAttackElapsed >= 0.18f)
                         {
-                            ActivateGarokAttackCollider(b);
-                            b.garokAttackHitLife = 0.20f;
+                            ActivateGarokAttackColliderAt(b, lockedAttackCenterX, lockedAttackCenterY);
+                            b.garokAttackHitLife = 0.12f;
                             b.garokHitDone1 = true;
                         }
-                        if (b.garokComboMax >= 2 && !b.garokHitDone2 && b.garokAttackElapsed >= 1.75f)
+                        if (b.garokComboMax >= 2 && !b.garokHitDone2 && b.garokAttackElapsed >= 0.52f)
                         {
-                            ActivateGarokAttackCollider(b);
-                            b.garokAttackHitLife = 0.18f;
+                            ActivateGarokAttackColliderAt(b, lockedAttackCenterX, lockedAttackCenterY);
+                            b.garokAttackHitLife = 0.12f;
                             b.garokHitDone2 = true;
                         }
-                        if (b.garokComboMax >= 3 && !b.garokHitDone3 && b.garokAttackElapsed >= 2.75f)
+                        if (b.garokComboMax >= 3 && !b.garokHitDone3 && b.garokAttackElapsed >= 0.86f)
                         {
-                            ActivateGarokAttackCollider(b);
-                            b.garokAttackHitLife = 0.18f;
+                            ActivateGarokAttackColliderAt(b, lockedAttackCenterX, lockedAttackCenterY);
+                            b.garokAttackHitLife = 0.14f;
                             b.garokHitDone3 = true;
                         }
 
-                        if (b.garokComboMax == 2 && b.garokAttackElapsed >= 1.35f) b.garokAnimStage = 2;
+                        if (b.garokComboMax == 2 && b.garokAttackElapsed >= 0.34f) b.garokAnimStage = 2;
                         else if (b.garokComboMax >= 3)
                         {
-                            if (b.garokAttackElapsed >= 2.40f) b.garokAnimStage = 3;
-                            else if (b.garokAttackElapsed >= 1.20f) b.garokAnimStage = 2;
+                            if (b.garokAttackElapsed >= 0.68f) b.garokAnimStage = 3;
+                            else if (b.garokAttackElapsed >= 0.34f) b.garokAnimStage = 2;
                             else b.garokAnimStage = 1;
                         }
 
@@ -899,17 +995,26 @@ void UpdateMidBosses()
                             b.facingRight = (b.targetLockedX >= b.posX);
                         }
                         const float dir = b.facingRight ? 1.0f : -1.0f;
+                        const float prevX = b.posX;
                         MoveGarokXWithCollision(b, dir * GAROK_TUNING.dashSpeed * GetDeathSlowMotionScale());
                         b.garokMoving = true;
                         b.garokRunAnimHold = 0.12f;
 
-                        if (b.garokAttackElapsed >= 0.8f && b.garokAttackElapsed <= 1.6f)
+                        if (b.garokAttackElapsed >= 0.18f)
                         {
                             ActivateGarokAttackCollider(b);
-                            b.garokAttackHitLife = 0.08f;
+                            b.garokAttackHitLife = 0.10f;
                         }
 
+                        const bool reachedDashTarget = b.facingRight ? (b.posX >= b.garokDashTargetX) : (b.posX <= b.garokDashTargetX);
+                        const bool blocked = (std::fabs(b.posX - prevX) < 0.001f);
+
                         b.attackTimer -= dt;
+                        if (reachedDashTarget || blocked)
+                        {
+                            b.attackTimer = 0.0f;
+                        }
+
                         if (b.attackTimer <= 0.0f)
                         {
                             b.isAttacking = false;
@@ -924,13 +1029,20 @@ void UpdateMidBosses()
                             b.facingRight = (b.targetLockedX >= b.posX);
                         }
                         b.attackTimer -= dt;
-                        b.barrageShotTimer -= dt;
-                        if (b.barrageShotTimer <= 0.0f)
+
+                        const int totalBarrageSteps = 9;
+                        const float stageStep = GAROK_TUNING.barrageDuration / static_cast<float>(totalBarrageSteps);
+                        int barrageStep = static_cast<int>(b.garokAttackElapsed / stageStep);
+                        if (barrageStep >= totalBarrageSteps) barrageStep = totalBarrageSteps - 1;
+
+                        if (barrageStep != b.garokBarrageStep)
                         {
-                            ActivateGarokAttackCollider(b);
+                            b.garokBarrageStep = barrageStep;
+                            b.garokAnimStage = (barrageStep % 3) + 1;
+                            ActivateGarokAttackColliderAt(b, b.targetLockedX, b.targetLockedY - PLAYER_HEIGHT * 0.5f);
                             b.garokAttackHitLife = 0.10f;
-                            b.barrageShotTimer = 0.22f;
                         }
+
                         if (b.attackTimer <= 0.0f)
                         {
                             b.isAttacking = false;
@@ -941,7 +1053,7 @@ void UpdateMidBosses()
                 }
             }
 
-            if (!b.isPreparing && !b.isAttacking && !b.garokJumping && b.isAggro && std::fabs(dx) > GAROK_TUNING.attackTriggerRange)
+            if (!b.isPreparing && !b.isAttacking && !b.garokJumping && b.isAggro && std::fabs(dx) > GAROK_TUNING.attackRange)
             {
                 const float moveSpeed = 2.6f;
                 MoveGarokXWithCollision(b, (dx > 0.0f ? moveSpeed : -moveSpeed) * GetDeathSlowMotionScale());
@@ -971,7 +1083,7 @@ void UpdateMidBosses()
             else if (b.isAttacking)
             {
                 if (b.pendingAttack == 2) targetAnim = &b.garokDashAttack;
-                else if (b.pendingAttack == 1)
+                else if (b.pendingAttack == 1 || b.pendingAttack == 3)
                 {
                     if (b.garokAnimStage <= 1) targetAnim = &b.attack;
                     else if (b.garokAnimStage == 2) targetAnim = &b.garokAttack2;
@@ -1252,6 +1364,23 @@ void DrawMidBosses()
             DrawBox(left, top, right, bottom, GetColor(0, 255, 0), FALSE);
             DrawLine(drawX - 8, drawY, drawX + 8, drawY, GetColor(255, 255, 0));
             DrawLine(drawX, drawY - 8, drawX, drawY + 8, GetColor(255, 255, 0));
+
+            if (b.garokAttackColliderId != -1)
+            {
+                float colliderLeft = 0.0f;
+                float colliderTop = 0.0f;
+                float colliderWidth = 0.0f;
+                float colliderHeight = 0.0f;
+                if (GetColliderRect(b.garokAttackColliderId, colliderLeft, colliderTop, colliderWidth, colliderHeight))
+                {
+                    const int hitLeft = static_cast<int>((colliderLeft - camera.posX) * camera.scale);
+                    const int hitTop = static_cast<int>((colliderTop - camera.posY) * camera.scale);
+                    const int hitRight = static_cast<int>((colliderLeft + colliderWidth - camera.posX) * camera.scale);
+                    const int hitBottom = static_cast<int>((colliderTop + colliderHeight - camera.posY) * camera.scale);
+                    DrawBox(hitLeft, hitTop, hitRight, hitBottom, GetColor(255, 64, 64), FALSE);
+                    DrawBox(hitLeft + 1, hitTop + 1, hitRight - 1, hitBottom - 1, GetColor(255, 160, 160), FALSE);
+                }
+            }
 
             DrawFormatString(
                 left,

@@ -8,10 +8,10 @@ namespace
 
     const GarokTuning GAROK_TUNING =
     {
-        1.0f,        // prepareTime
-        2.0f,        // attackDuration1
-        2.7f,        // attackDuration2
-        3.7f,        // attackDuration3
+        0.85f,       // prepareTime
+        0.45f,       // attackDuration1
+        0.78f,       // attackDuration2
+        1.10f,       // attackDuration3
         2.0f,        // cooldown1
         3.0f,        // cooldown2
         4.0f,        // cooldown3
@@ -22,19 +22,20 @@ namespace
         false,       // enableJump
         8.0f,        // jumpInterval
         210.0f,      // jumpHeight
-        0.95f,       // hitboxWidthRatio
-        0.62f,       // hitboxHeightRatio
-        0.56f,       // hitboxFrontRatio
+        1.20f,       // hitboxWidthRatio
+        0.76f,       // hitboxHeightRatio
+        0.78f,       // hitboxFrontRatio
         0.45f,       // contactYRatio
         24.0f,       // facingDeadzone
         768.0f,      // arenaLeft
         3072.0f,     // arenaRight
-        32.0f * 5.0f,// attackTriggerRange
+        32.0f * 8.0f,// attackCheckRange
+        32.0f * 10.0f,// attackRange
         0.35f,       // gravity
         9.0f,        // maxFallSpeed
         0.0f,        // drawOffsetX
-        25.0f,        // drawOffsetY
-        5.0f,        // drawWidthScale
+        25.0f,       // drawOffsetY
+        4.8f,        // drawWidthScale
         true         // debugDraw
     };
 }

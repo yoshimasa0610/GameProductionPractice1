@@ -23,7 +23,8 @@ struct GarokTuning
     float facingDeadzone;
     float arenaLeft;
     float arenaRight;
-    float attackTriggerRange;
+    float attackCheckRange;
+    float attackRange;
     float gravity;
     float maxFallSpeed;
     float drawOffsetX;

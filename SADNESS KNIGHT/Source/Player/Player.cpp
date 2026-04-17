@@ -469,53 +469,7 @@ void DrawPlayer()
                 GetColor(255, 0, 0), FALSE);
     }
 
-    // 既存のデバッグ表示はそのまま
-
-    // スキルデバッグ表示
-    // 邪魔だと思うので一時的にコメントアウトしておきます。まだ消さないでください
-    /*
-    {
-        int x = 20;
-        int y = 60;
-
-        DrawString(x, y, "=== Skill Debug ===", GetColor(255, 255, 0));
-        y += 20;
-
-        int currentSet = g_SkillManager.GetCurrentSet();
-
-        DrawFormatString(x, y, GetColor(255, 255, 255),
-            "Current Set : %d", currentSet + 1);
-        y += 20;
-
-        for (int i = 0; i < 3; i++)
-        {
-            int skillID = g_SkillManager.GetEquipSkill(currentSet, i);
-
-            if (skillID == -1)
-            {
-                DrawFormatString(x, y, GetColor(150, 150, 150),
-                    "Slot %d : (Empty)", i + 1);
-            }
-            else
-            {
-                const SkillData& data = GetSkillData(skillID);
-
-                DrawFormatString(x, y, GetColor(255, 255, 255),
-                    "Slot %d : %s", i + 1, data.name.c_str());
-            }
-
-            y += 20;
-        }
-        DrawFormatString(
-            x,
-            y + 10,
-            GetColor(255,200,200),
-            "PlayerState : %d",
-            (int)playerData.state);
-        DrawFormatString(20, 360, GetColor(255, 255, 255),
-            "LastSkill : %d",
-            g_SkillManager.GetLastUsedSkillID());
-    }*/
+  
 }
 
 // プレイヤーのリソース解放

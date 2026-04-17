@@ -163,6 +163,23 @@ void UpdateCollider(ColliderId id, float left, float top, float width, float hei
     }
 }
 
+bool GetColliderRect(ColliderId id, float& left, float& top, float& width, float& height)
+{
+    for (const auto& c : g_colliders)
+    {
+        if (c.id == id && c.active)
+        {
+            left = c.left;
+            top = c.top;
+            width = c.width;
+            height = c.height;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 // ”jŠüi–³Œø‰»j
 void DestroyCollider(ColliderId id)
 {

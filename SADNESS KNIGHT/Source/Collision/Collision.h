@@ -80,3 +80,6 @@ ColliderId CreateBlockCollider(float left, float top, float width, float height)
 void RemoveBlockCollider(ColliderId id);
 
 bool SnapPlayerToGround(PlayerData* player, float maxDistance);
+
+// 指定コライダーの矩形を取得
+bool GetColliderRect(ColliderId id, float& left, float& top, float& width, float& height);
