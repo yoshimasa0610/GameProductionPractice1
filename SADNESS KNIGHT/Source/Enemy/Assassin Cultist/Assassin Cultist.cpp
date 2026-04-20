@@ -3,7 +3,7 @@
 
 namespace
 {
-    const int ASSASSIN_CULTIST_MAX_HP = 30;
+    const int ASSASSIN_CULTIST_MAX_HP = 300;
     const int ASSASSIN_CULTIST_ATTACK_POWER = 8;
     const EnemyConfig ASSASSIN_CULTIST_CONFIG =
     {

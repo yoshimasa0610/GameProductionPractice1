@@ -3,7 +3,7 @@
 
 namespace
 {
-    const int TWISTED_CALTIS_MAX_HP = 90;
+    const int TWISTED_CALTIS_MAX_HP = 350;
     const int TWISTED_CALTIS_ATTACK_POWER = 16;
     const EnemyConfig TWISTED_CALTIS_CONFIG =
     {

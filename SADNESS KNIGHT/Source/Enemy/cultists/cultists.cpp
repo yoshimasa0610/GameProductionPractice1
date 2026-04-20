@@ -3,7 +3,7 @@
 
 namespace
 {
-    const int CULTIST_MAX_HP = 40;
+    const int CULTIST_MAX_HP = 350;
     const int CULTIST_ATTACK_POWER = 12;
     const EnemyConfig CULTIST_CONFIG =
     {

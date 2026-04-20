@@ -3,7 +3,7 @@
 
 namespace
 {
-    const int SLIME_MAX_HP = 12;
+    const int SLIME_MAX_HP = 300;
     const int SLIME_ATTACK_POWER = 4;
     const EnemyConfig SLIME_CONFIG =
     {

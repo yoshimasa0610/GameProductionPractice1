@@ -3,7 +3,7 @@
 
 namespace
 {
-    const int BIG_QUARTIST_MAX_HP = 250;
+    const int BIG_QUARTIST_MAX_HP = 450;
     const int BIG_QUARTIST_ATTACK_POWER = 30;
     const EnemyConfig BIG_QUARTIST_CONFIG =
     {

@@ -1580,7 +1580,7 @@ void UpdateEnemies()
 
         if (e.animations != nullptr)
         {
-            if (e.isAttacking || e.isAttackPreparing)
+            if (e.isAttacking)
             {
                 UpdateAnimation(e.animations->attack);
             }
@@ -1651,7 +1651,7 @@ void DrawEnemies()
             {
                 currentAnim = &e.animations->die;
             }
-            else if (e.isAttacking || e.isAttackPreparing)
+            else if (e.isAttacking)
             {
                 currentAnim = &e.animations->attack;
             }
