@@ -3,6 +3,7 @@
 enum class BigBossType
 {
     Kether,
+    Tiphereth,
     Count
 };
 

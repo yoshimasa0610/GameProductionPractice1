@@ -25,6 +25,7 @@
 #include "../../Enemy/EnemyBase.h"
 #include "../../BigBoss/BigBossBase.h"
 #include "../../BigBoss/Kether/Kether.h"
+#include "../../BigBoss/Tiphereth/Tiphereth.h"
 #include "../../Overlay/CheckpointMenu/CheckpointMenu.h"
 #include "../../MidBoss/MidBossBase.h"
 #include "../../MidBoss/StoneGolem/StoneGolem.h"
@@ -54,6 +55,7 @@ static bool g_BigBossStageLockActive = false;
 static bool g_Forest3MidBossDefeated = false;
 static bool g_Forest7MidBossDefeated = false;
 static bool g_Forest5BigBossDefeated = false;
+static bool g_Forest14BigBossDefeated = false;
 
 void SetBossDefeatSaveFlags(bool forest3MidBossDefeated, bool forest7MidBossDefeated, bool forest5BigBossDefeated)
 {
@@ -95,6 +97,8 @@ static const float FOREST7_MIDBOSS_AREA_TOP = 0.0f;
 static const float FOREST7_MIDBOSS_AREA_BOTTOM = 1080.0f;
 static const float FOREST7_DEBUG_PLAYER_X = 1312.0f;
 static const float FOREST7_DEBUG_PLAYER_Y = 608.0f;
+static const float FOREST14_BOSS_X = 1472.0f;
+static const float FOREST14_BOSS_Y = 736.0f;
 
 static bool g_IsBossBGMPlaying = false;
 // --- ボスエリア遷移ロック ---
@@ -121,6 +125,7 @@ void InitPlayScene()
 	g_Forest3MidBossDefeated = false;
 	g_Forest7MidBossDefeated = false;
 	g_Forest5BigBossDefeated = false;
+	g_Forest14BigBossDefeated = false;
 	SetCameraFixed(false);
 }
 
@@ -137,7 +142,7 @@ void LoadPlayScene()
 	player.hasDoubleJump = g_SaveData.hasDoubleJump;
 	player.hasDiveAttack = g_SaveData.hasDiveAttack;
 
-	// SaveData からステージをロード
+	// SaveData からスタート地点を設定
 	if (g_SaveData.stageName[0] == '\0')
 	{
 		strcpy_s(g_SaveData.stageName, "forest_1");
@@ -337,6 +342,11 @@ void UpdatePlayScene()
 			SpawnKether(FOREST5_BOSS_X, FOREST5_BOSS_Y);
 			g_EnemySpawned = true;
 		}
+		else if (stageName && strcmp(stageName, "forest_14") == 0 && !g_Forest14BigBossDefeated)
+		{
+			SpawnTiphereth(FOREST14_BOSS_X, FOREST14_BOSS_Y);
+			g_EnemySpawned = true;
+		}
 	}
 
 	if (!g_MidBossSpawned && IsPlayerAlive() && IsPlayerGrounded())
@@ -368,6 +378,10 @@ void UpdatePlayScene()
 		else if (strcmp(currentStage, "forest_5") == 0 && g_EnemySpawned && !IsBigBossAlive())
 		{
 			g_Forest5BigBossDefeated = true;
+		}
+		else if (strcmp(currentStage, "forest_14") == 0 && g_EnemySpawned && !IsBigBossAlive())
+		{
+			g_Forest14BigBossDefeated = true;
 		}
 	}
 

@@ -1,5 +1,6 @@
 ﻿#include "BigBossBase.h"
 #include "Kether/Kether.h"
+#include "Tiphereth/Tiphereth.h"
 #include "../Camera/Camera.h"
 #include "../Collision/Collision.h"
 #include "../Player/Player.h"
@@ -29,6 +30,13 @@ namespace
         Idle2,
         Fire2,
         Fist2,
+        TipherethIdle,
+        TipherethPrepare,
+        TipherethTentacle,
+        TipherethBite,
+        TipherethStomp,
+        TipherethCharge,
+        TipherethDied,
         Died
     };
 
@@ -61,6 +69,14 @@ namespace
         FrameAnim fire2;
         FrameAnim fist2;
         FrameAnim died;
+
+        FrameAnim tipherethIdle;
+        FrameAnim tipherethPrepare;
+        FrameAnim tipherethTentacle;
+        FrameAnim tipherethBite;
+        FrameAnim tipherethStomp;
+        FrameAnim tipherethCharge;
+        FrameAnim tipherethDied;
 
         FrameAnim bookFx;
         FrameAnim fireFx1;
@@ -97,10 +113,22 @@ namespace
         float phaseShockwaveTimer = 0.0f;
         bool transformBlastDone = false;
         float transformPostHoldTimer = 0.0f;
+
+        float tipherethGroundY = 0.0f;
+        float tipherethTargetX = 0.0f;
+        float tipherethTargetY = 0.0f;
+        float tipherethChargeTargetX = 0.0f;
+        KetherState tipherethQueuedState = KetherState::TipherethIdle;
+        float tipherethPrepareDuration = 0.0f;
+        bool tipherethHitDone1 = false;
+        bool tipherethHitDone2 = false;
+        bool tipherethStompResolved = false;
+        bool tipherethStompShakeDone = false;
     };
 
     std::vector<BigBossData> g_bigBosses;
     const KetherTuning& KETHER_TUNING = GetKetherTuning();
+    const TipherethTuning& TIPHERETH_TUNING = GetTipherethTuning();
 
     void ReleaseAnim(FrameAnim& a)
     {
@@ -146,6 +174,19 @@ namespace
     void ResetAnim(FrameAnim& a)
     {
         a.frame = 0;
+        a.counter = 0;
+    }
+
+    void SetAnimProgress(FrameAnim& a, float progress)
+    {
+        if (a.frames.empty()) return;
+        if (progress < 0.0f) progress = 0.0f;
+        if (progress > 1.0f) progress = 1.0f;
+
+        const int lastFrame = static_cast<int>(a.frames.size()) - 1;
+        a.frame = static_cast<int>(progress * static_cast<float>(lastFrame));
+        if (a.frame < 0) a.frame = 0;
+        if (a.frame > lastFrame) a.frame = lastFrame;
         a.counter = 0;
     }
 
@@ -274,6 +315,310 @@ namespace
                 DeleteGraph(*s);
                 *s = -1;
             }
+        }
+    }
+
+    void LoadTipherethAssets(BigBossData& b)
+    {
+        LoadFrames(b.tipherethIdle, "Data/BigBoss/Tiphereth/Monster Count Idle/PNG/", "Monster_Count_Idle", 1, 6, 6);
+        LoadFrames(b.tipherethPrepare, "Data/BigBoss/Tiphereth/Monster Count Prepare/PNG/", "Monster_Count_Prepare", 1, 9, 6);
+        LoadFrames(b.tipherethTentacle, "Data/BigBoss/Tiphereth/Monster Count Attack Tentacles/PNG/", "Monster_Count_Attack_Tentacles", 1, 12, 4);
+        LoadFrames(b.tipherethBite, "Data/BigBoss/Tiphereth/Monster Count Bite Attack/PNG/", "Monster_Count_Attack_Bite", 1, 6, 4);
+        LoadFrames(b.tipherethStomp, "Data/BigBoss/Tiphereth/Monster Count Stomping Attack/PNG/", "Monster_Count_Attack_Stomping", 1, 8, 4);
+        LoadFrames(b.tipherethCharge, "Data/BigBoss/Tiphereth/Monster Count Charge Attack/PNG/", "Monster_Count_Attack_Charge", 1, 6, 4);
+        LoadFrames(b.tipherethDied, "Data/BigBoss/Tiphereth/Monster Count Death/PNG/", "Monster_Count_Death", 1, 13, 5);
+    }
+
+    void UnloadTipherethAssets(BigBossData& b)
+    {
+        ReleaseAnim(b.tipherethIdle);
+        ReleaseAnim(b.tipherethPrepare);
+        ReleaseAnim(b.tipherethTentacle);
+        ReleaseAnim(b.tipherethBite);
+        ReleaseAnim(b.tipherethStomp);
+        ReleaseAnim(b.tipherethCharge);
+        ReleaseAnim(b.tipherethDied);
+    }
+
+    void ClearBigBossAttackCollider(BigBossData& b)
+    {
+        if (b.attackColliderId != -1)
+        {
+            DestroyCollider(b.attackColliderId);
+            b.attackColliderId = -1;
+        }
+    }
+
+    void SetBigBossAttackCollider(BigBossData& b, float centerX, float centerY, float width, float height, int attackPower)
+    {
+        b.attackOwner.attackPower = attackPower;
+        const float left = centerX - width * 0.5f;
+        const float top = centerY - height * 0.5f;
+        if (b.attackColliderId == -1)
+        {
+            b.attackColliderId = CreateCollider(ColliderTag::Attack, left, top, width, height, &b.attackOwner);
+        }
+        else
+        {
+            UpdateCollider(b.attackColliderId, left, top, width, height);
+        }
+    }
+
+    void UpdateTiphereth(BigBossData& b)
+    {
+        PlayerData& player = GetPlayerData();
+        const float dt = 1.0f / 60.0f;
+        const float dx = player.posX - b.posX;
+        const float absDx = std::fabs(dx);
+
+        b.stateTimer += dt;
+        b.phase2 = (b.hp <= (b.maxHP / 2));
+        b.posY = b.tipherethGroundY;
+
+        if (std::fabs(dx) > 8.0f)
+        {
+            b.isFacingRight = (dx >= 0.0f);
+        }
+
+        if (b.state == KetherState::TipherethDied)
+        {
+            SetAnimProgress(b.tipherethDied, b.stateTimer / 1.6f);
+            ClearBigBossAttackCollider(b);
+            if (b.stateTimer >= 1.6f)
+            {
+                b.active = false;
+            }
+            return;
+        }
+
+        auto EnterTipherethPrepare = [&](KetherState queuedState, float duration)
+        {
+            b.tipherethQueuedState = queuedState;
+            b.tipherethPrepareDuration = duration;
+            b.tipherethHitDone1 = false;
+            b.tipherethHitDone2 = false;
+            b.tipherethStompResolved = false;
+            b.tipherethStompShakeDone = false;
+            b.state = KetherState::TipherethPrepare;
+            b.stateTimer = 0.0f;
+            ResetAnim(b.tipherethIdle);
+            ClearBigBossAttackCollider(b);
+        };
+
+        switch (b.state)
+        {
+        case KetherState::TipherethIdle:
+        {
+            UpdateAnim(b.tipherethIdle, true);
+            ClearBigBossAttackCollider(b);
+
+            const float idleWait = b.phase2 ? 0.45f : 0.70f;
+            if (b.stateTimer >= idleWait)
+            {
+                b.tipherethTargetX = player.posX;
+                b.tipherethTargetY = player.posY;
+
+                if (absDx >= TIPHERETH_TUNING.chargePriorityRange)
+                {
+                    const float chargeDir = (b.tipherethTargetX >= b.posX) ? 1.0f : -1.0f;
+                    float dashTargetX = b.tipherethTargetX + chargeDir * TIPHERETH_TUNING.chargeThroughDistance;
+                    const float mapWidth = static_cast<float>(GetMapWidth());
+                    if (mapWidth > 0.0f)
+                    {
+                        if (dashTargetX < 96.0f) dashTargetX = 96.0f;
+                        if (dashTargetX > mapWidth - 96.0f) dashTargetX = mapWidth - 96.0f;
+                    }
+                    b.tipherethChargeTargetX = dashTargetX;
+                    EnterTipherethPrepare(KetherState::TipherethCharge, TIPHERETH_TUNING.prepareDuration);
+                }
+                else
+                {
+                    const int roll = GetRand(99);
+                    if (roll < 40)
+                    {
+                        EnterTipherethPrepare(KetherState::TipherethTentacle, TIPHERETH_TUNING.prepareDuration);
+                    }
+                    else if (roll < 68)
+                    {
+                        EnterTipherethPrepare(KetherState::TipherethBite, TIPHERETH_TUNING.prepareDuration);
+                    }
+                    else if (roll < 85)
+                    {
+                        EnterTipherethPrepare(KetherState::TipherethStomp, TIPHERETH_TUNING.stompPrepareDuration);
+                    }
+                    else
+                    {
+                        const float chargeDir = (b.tipherethTargetX >= b.posX) ? 1.0f : -1.0f;
+                        float dashTargetX = b.tipherethTargetX + chargeDir * TIPHERETH_TUNING.chargeThroughDistance;
+                        const float mapWidth = static_cast<float>(GetMapWidth());
+                        if (mapWidth > 0.0f)
+                        {
+                            if (dashTargetX < 96.0f) dashTargetX = 96.0f;
+                            if (dashTargetX > mapWidth - 96.0f) dashTargetX = mapWidth - 96.0f;
+                        }
+                        b.tipherethChargeTargetX = dashTargetX;
+                        EnterTipherethPrepare(KetherState::TipherethCharge, TIPHERETH_TUNING.prepareDuration);
+                    }
+                }
+            }
+            break;
+        }
+        case KetherState::TipherethPrepare:
+        {
+            UpdateAnim(b.tipherethIdle, true);
+            ClearBigBossAttackCollider(b);
+            if (b.stateTimer >= b.tipherethPrepareDuration)
+            {
+                b.state = b.tipherethQueuedState;
+                b.stateTimer = 0.0f;
+                if (b.state == KetherState::TipherethTentacle) ResetAnim(b.tipherethTentacle);
+                else if (b.state == KetherState::TipherethBite) ResetAnim(b.tipherethBite);
+                else if (b.state == KetherState::TipherethStomp) ResetAnim(b.tipherethStomp);
+                else if (b.state == KetherState::TipherethCharge) ResetAnim(b.tipherethCharge);
+            }
+            break;
+        }
+        case KetherState::TipherethTentacle:
+        {
+            const float totalDuration = 1.5f;
+            const float progress = b.stateTimer / totalDuration;
+            SetAnimProgress(b.tipherethTentacle, progress);
+
+            const float centerX = b.posX + (b.isFacingRight ? TIPHERETH_TUNING.tentacleFrontOffset : -TIPHERETH_TUNING.tentacleFrontOffset);
+            const float centerY = b.posY + TIPHERETH_TUNING.tentacleCenterYOffset;
+            const bool firstHit = (!b.tipherethHitDone1 && b.stateTimer >= 0.45f && b.stateTimer <= 0.72f);
+            const bool secondHit = (!b.tipherethHitDone2 && b.stateTimer >= 0.95f && b.stateTimer <= 1.22f);
+            const bool activeHit = firstHit || secondHit;
+
+            if (activeHit)
+            {
+                SetBigBossAttackCollider(b, centerX, centerY, TIPHERETH_TUNING.tentacleWidth, TIPHERETH_TUNING.tentacleHeight, GetTipherethAttackPower());
+                if (firstHit) b.tipherethHitDone1 = true;
+                if (secondHit) b.tipherethHitDone2 = true;
+            }
+            else
+            {
+                ClearBigBossAttackCollider(b);
+            }
+
+            if (b.stateTimer >= totalDuration)
+            {
+                b.state = KetherState::TipherethIdle;
+                b.stateTimer = 0.0f;
+                ResetAnim(b.tipherethIdle);
+            }
+            break;
+        }
+        case KetherState::TipherethBite:
+        {
+            const float totalDuration = 1.0f;
+            const float progress = b.stateTimer / totalDuration;
+            SetAnimProgress(b.tipherethBite, progress);
+
+            const bool activeHit = (b.stateTimer >= 0.48f && b.stateTimer <= 0.78f);
+            const float centerX = b.posX + (b.isFacingRight ? TIPHERETH_TUNING.biteFrontOffset : -TIPHERETH_TUNING.biteFrontOffset);
+            const float centerY = b.posY + TIPHERETH_TUNING.biteCenterYOffset;
+            if (activeHit)
+            {
+                SetBigBossAttackCollider(b, centerX, centerY, TIPHERETH_TUNING.biteWidth, TIPHERETH_TUNING.biteHeight, GetTipherethAttackPower() + 4);
+            }
+            else
+            {
+                ClearBigBossAttackCollider(b);
+            }
+
+            if (b.stateTimer >= totalDuration)
+            {
+                b.state = KetherState::TipherethIdle;
+                b.stateTimer = 0.0f;
+                ResetAnim(b.tipherethIdle);
+            }
+            break;
+        }
+        case KetherState::TipherethStomp:
+        {
+            const float totalDuration = 2.0f;
+            const float progress = b.stateTimer / totalDuration;
+            SetAnimProgress(b.tipherethStomp, progress);
+
+            const float hitStart = 1.70f;
+            const bool stompActive = (b.stateTimer >= hitStart && b.stateTimer <= totalDuration);
+            if (stompActive)
+            {
+                const float mapWidth = static_cast<float>(GetMapWidth());
+                const float attackWidth = (mapWidth > 0.0f) ? mapWidth : 4096.0f;
+                const float attackHeight = 160.0f;
+                const float attackCenterX = attackWidth * 0.5f;
+                const float attackCenterY = b.tipherethGroundY - attackHeight * 0.5f + TIPHERETH_TUNING.stompHitboxYOffset;
+                SetBigBossAttackCollider(b, attackCenterX, attackCenterY, attackWidth, attackHeight, GetTipherethAttackPower());
+            }
+            else
+            {
+                ClearBigBossAttackCollider(b);
+            }
+
+            if (!b.tipherethStompResolved && b.stateTimer >= hitStart)
+            {
+                if (IsPlayerGrounded())
+                {
+                    DamagePlayerHP(GetTipherethAttackPower());
+                }
+                b.tipherethStompResolved = true;
+            }
+            if (!b.tipherethStompShakeDone && b.stateTimer >= hitStart)
+            {
+                StartCameraShake(0.45f, 18.0f);
+                b.tipherethStompShakeDone = true;
+            }
+
+            if (b.stateTimer >= totalDuration)
+            {
+                ClearBigBossAttackCollider(b);
+                b.state = KetherState::TipherethIdle;
+                b.stateTimer = 0.0f;
+                ResetAnim(b.tipherethIdle);
+            }
+            break;
+        }
+        case KetherState::TipherethCharge:
+        {
+            UpdateAnim(b.tipherethCharge, true);
+            const float activeStart = 0.18f;
+            if (b.stateTimer >= activeStart)
+            {
+                const float dir = b.isFacingRight ? 1.0f : -1.0f;
+                b.posX += dir * (b.phase2 ? (TIPHERETH_TUNING.chargeSpeed + 2.0f) : TIPHERETH_TUNING.chargeSpeed);
+                const float centerX = b.posX + dir * TIPHERETH_TUNING.chargeFrontOffset;
+                const float centerY = b.posY + TIPHERETH_TUNING.chargeCenterYOffset;
+                SetBigBossAttackCollider(b, centerX, centerY, TIPHERETH_TUNING.chargeWidth, TIPHERETH_TUNING.chargeHeight, GetTipherethAttackPower() + 2);
+            }
+            else
+            {
+                ClearBigBossAttackCollider(b);
+            }
+
+            const bool reachedTarget = b.isFacingRight ? (b.posX >= b.tipherethChargeTargetX) : (b.posX <= b.tipherethChargeTargetX);
+            if ((b.stateTimer >= activeStart && reachedTarget) || b.stateTimer >= 1.0f)
+            {
+                ClearBigBossAttackCollider(b);
+                b.state = KetherState::TipherethIdle;
+                b.stateTimer = 0.0f;
+                ResetAnim(b.tipherethIdle);
+            }
+            break;
+        }
+        default:
+            break;
+        }
+
+        const float bodyW = b.width * TIPHERETH_TUNING.bodyWidthRatio;
+        const float bodyH = b.height * TIPHERETH_TUNING.bodyHeightRatio;
+        const float bodyCenterX = b.posX + (b.isFacingRight ? 1.0f : -1.0f) * b.width * TIPHERETH_TUNING.bodyFacingOffsetRatio;
+        const float bodyLeft = bodyCenterX - bodyW * 0.5f;
+        const float bodyTop = b.posY - (b.height * TIPHERETH_TUNING.bodyTopOffsetRatio);
+        if (b.colliderId != -1)
+        {
+            UpdateCollider(b.colliderId, bodyLeft, bodyTop, bodyW, bodyH);
         }
     }
 
@@ -661,6 +1006,40 @@ namespace
         const int hh = static_cast<int>(h * camera.scale);
         DrawExtendGraph(cx - halfW, cy - hh, cx + halfW, cy, handle, TRUE);
     }
+
+    void DrawAnimFitFacing(const CameraData& camera, float x, float y, float w, float h, int handle, bool facingRight)
+    {
+        if (handle == -1) return;
+        const int cx = static_cast<int>((x - camera.posX) * camera.scale);
+        const int cy = static_cast<int>((y - camera.posY) * camera.scale);
+        const int halfW = static_cast<int>(w * 0.5f * camera.scale);
+        const int hh = static_cast<int>(h * camera.scale);
+        if (facingRight)
+        {
+            DrawExtendGraph(cx - halfW, cy - hh, cx + halfW, cy, handle, TRUE);
+        }
+        else
+        {
+            DrawExtendGraph(cx + halfW, cy - hh, cx - halfW, cy, handle, TRUE);
+        }
+    }
+
+    void DrawColliderRectDebug(const CameraData& camera, int colliderId, int color)
+    {
+        if (colliderId == -1) return;
+
+        float left = 0.0f;
+        float top = 0.0f;
+        float width = 0.0f;
+        float height = 0.0f;
+        if (!GetColliderRect(colliderId, left, top, width, height)) return;
+
+        const int drawLeft = static_cast<int>((left - camera.posX) * camera.scale);
+        const int drawTop = static_cast<int>((top - camera.posY) * camera.scale);
+        const int drawRight = static_cast<int>((left + width - camera.posX) * camera.scale);
+        const int drawBottom = static_cast<int>((top + height - camera.posY) * camera.scale);
+        DrawBox(drawLeft, drawTop, drawRight, drawBottom, color, FALSE);
+    }
 }
 int GetBigBossHP()
 {
@@ -686,7 +1065,7 @@ bool IsBigBossAlive()
     {
         if (!b.active) continue;
 
-        if (b.state == KetherState::Died) continue;
+        if (b.state == KetherState::Died || b.state == KetherState::TipherethDied) continue;
 
         return true;
     }
@@ -716,12 +1095,31 @@ int SpawnBigBoss(BigBossType type, float x, float y)
         b.hp = b.maxHP;
         b.attackOwner.type = EnemyType::BigQuartist;
         b.attackOwner.attackPower = GetKetherAttackPower();
+        const float left = b.posX - (b.width * KETHER_TUNING.bodyHalfWidthRatio);
+        const float top = b.posY - (b.height * KETHER_TUNING.bodyTopOffsetRatio);
+        const float w = b.width * KETHER_TUNING.bodyWidthRatio;
+        const float h = b.height * KETHER_TUNING.bodyHeightRatio;
+        b.colliderId = CreateCollider(ColliderTag::Enemy, left, top, w, h, nullptr);
     }
-    const float left = b.posX - (b.width * KETHER_TUNING.bodyHalfWidthRatio);
-    const float top = b.posY - (b.height * KETHER_TUNING.bodyTopOffsetRatio);
-    const float w = b.width * KETHER_TUNING.bodyWidthRatio;
-    const float h = b.height * KETHER_TUNING.bodyHeightRatio;
-    b.colliderId = CreateCollider(ColliderTag::Enemy, left, top, w, h, nullptr);
+    else if (type == BigBossType::Tiphereth)
+    {
+        LoadTipherethAssets(b);
+        b.width = 595.0f;
+        b.height = 403.0f;
+        b.maxHP = GetTipherethMaxHP();
+        b.hp = b.maxHP;
+        b.state = KetherState::TipherethIdle;
+        b.attackOwner.type = EnemyType::BigQuartist;
+        b.attackOwner.attackPower = GetTipherethAttackPower();
+        b.tipherethGroundY = y;
+
+        const float bodyW = b.width * TIPHERETH_TUNING.bodyWidthRatio;
+        const float bodyH = b.height * TIPHERETH_TUNING.bodyHeightRatio;
+        const float bodyCenterX = b.posX + (b.isFacingRight ? 1.0f : -1.0f) * b.width * TIPHERETH_TUNING.bodyFacingOffsetRatio;
+        const float left = bodyCenterX - bodyW * 0.5f;
+        const float top = b.posY - (b.height * TIPHERETH_TUNING.bodyTopOffsetRatio);
+        b.colliderId = CreateCollider(ColliderTag::Enemy, left, top, bodyW, bodyH, nullptr);
+    }
 
     g_bigBosses.push_back(b);
     return static_cast<int>(g_bigBosses.size() - 1);
@@ -735,6 +1133,10 @@ void UpdateBigBosses()
         {
             UpdateKether(b);
         }
+        else if (b.type == BigBossType::Tiphereth)
+        {
+            UpdateTiphereth(b);
+        }
     }
 }
 void DrawBigBosses()
@@ -743,12 +1145,66 @@ void DrawBigBosses()
 
     const char* stageName = GetCurrentStageName();
     bool isForest5 = (stageName && strcmp(stageName, "forest_5") == 0);
+    bool isForest14 = (stageName && strcmp(stageName, "forest_14") == 0);
 
     for (const auto& b : g_bigBosses)
     {
         if (!b.active) continue;
-        // ボスが死亡済みかつforest_5以外のステージなら描画しない
-        if (!isForest5 && b.state == KetherState::Died) continue;
+        if (!isForest5 && !isForest14 && (b.state == KetherState::Died || b.state == KetherState::TipherethDied)) continue;
+
+        if (b.type == BigBossType::Tiphereth)
+        {
+            int body = -1;
+            switch (b.state)
+            {
+            case KetherState::TipherethPrepare:
+            case KetherState::TipherethIdle:
+                body = GetAnimHandle(b.tipherethIdle);
+                break;
+            case KetherState::TipherethTentacle:
+                body = GetAnimHandle(b.tipherethTentacle);
+                break;
+            case KetherState::TipherethBite:
+                body = GetAnimHandle(b.tipherethBite);
+                break;
+            case KetherState::TipherethStomp:
+                body = GetAnimHandle(b.tipherethStomp);
+                break;
+            case KetherState::TipherethCharge:
+                body = GetAnimHandle(b.tipherethCharge);
+                break;
+            case KetherState::TipherethDied:
+                body = GetAnimHandle(b.tipherethDied);
+                break;
+            default:
+                body = GetAnimHandle(b.tipherethIdle);
+                break;
+            }
+
+            int srcW = static_cast<int>(b.width);
+            int srcH = static_cast<int>(b.height);
+            if (body != -1)
+            {
+                GetGraphSize(body, &srcW, &srcH);
+            }
+
+            const float drawX = b.posX + TIPHERETH_TUNING.drawOffsetX;
+            const float drawY = b.posY + TIPHERETH_TUNING.drawOffsetY;
+            const bool facingRight = TIPHERETH_TUNING.reverseDrawFacing ? !b.isFacingRight : b.isFacingRight;
+            if (b.state == KetherState::TipherethPrepare)
+            {
+                SetDrawBright(255, 96, 96);
+            }
+            DrawAnimFitFacing(camera, drawX, drawY, static_cast<float>(srcW), static_cast<float>(srcH), body, facingRight);
+            SetDrawBright(255, 255, 255);
+
+            if (TIPHERETH_TUNING.debugDraw)
+            {
+                DrawColliderRectDebug(camera, b.colliderId, GetColor(0, 255, 0));
+                DrawColliderRectDebug(camera, b.attackColliderId, GetColor(255, 64, 64));
+            }
+            continue;
+        }
 
         int body = -1;
         int fx = -1;
@@ -903,6 +1359,12 @@ void DrawBigBosses()
 
             DrawAnimFit(camera, fxX, fxY, fxW, fxH, fx);
         }
+
+        if (KETHER_TUNING.debugDraw)
+        {
+            DrawColliderRectDebug(camera, b.colliderId, GetColor(0, 255, 0));
+            DrawColliderRectDebug(camera, b.attackColliderId, GetColor(255, 64, 64));
+        }
     }
 }
 void ClearBigBosses()
@@ -924,6 +1386,10 @@ void ClearBigBosses()
         {
             UnloadKetherAssets(b);
         }
+        else if (b.type == BigBossType::Tiphereth)
+        {
+            UnloadTipherethAssets(b);
+        }
 
         b.active = false;
     }
@@ -938,35 +1404,38 @@ bool DamageBigBossByColliderId(int colliderId, int damage)
         if (!b.active) continue;
         if (b.colliderId != colliderId) continue;
 
-        if (b.state == KetherState::Died) return true;
-        if (b.state == KetherState::Transform) return true;
+        if (b.state == KetherState::Died || b.state == KetherState::TipherethDied) return true;
+        if (b.type == BigBossType::Kether && b.state == KetherState::Transform) return true;
 
         b.hp -= damage;
         if (b.hp < 0) b.hp = 0;
 
         if (b.hp <= 0)
         {
-            b.state = KetherState::Died;
             b.stateTimer = 0.0f;
             b.velocityX = 0.0f;
             b.velocityY = 0.0f;
-            ResetAnim(b.died);
-
-            if (!b.rewardGranted)
-            {
-                UnlockDoubleJump();
-                b.rewardGranted = true;
-            }
-
-            if (b.attackColliderId != -1)
-            {
-                DestroyCollider(b.attackColliderId);
-                b.attackColliderId = -1;
-            }
+            ClearBigBossAttackCollider(b);
             if (b.colliderId != -1)
             {
                 DestroyCollider(b.colliderId);
                 b.colliderId = -1;
+            }
+
+            if (b.type == BigBossType::Kether)
+            {
+                b.state = KetherState::Died;
+                ResetAnim(b.died);
+                if (!b.rewardGranted)
+                {
+                    UnlockDoubleJump();
+                    b.rewardGranted = true;
+                }
+            }
+            else if (b.type == BigBossType::Tiphereth)
+            {
+                b.state = KetherState::TipherethDied;
+                ResetAnim(b.tipherethDied);
             }
         }
         return true;
