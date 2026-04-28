@@ -118,12 +118,14 @@ namespace
         float tipherethTargetX = 0.0f;
         float tipherethTargetY = 0.0f;
         float tipherethChargeTargetX = 0.0f;
+        bool tipherethLockedFacingRight = true;
         KetherState tipherethQueuedState = KetherState::TipherethIdle;
         float tipherethPrepareDuration = 0.0f;
         bool tipherethHitDone1 = false;
         bool tipherethHitDone2 = false;
         bool tipherethStompResolved = false;
         bool tipherethStompShakeDone = false;
+        bool tipherethStompGroundLock = false;
     };
 
     std::vector<BigBossData> g_bigBosses;
@@ -264,6 +266,27 @@ namespace
         return (mapBottom > 0.0f) ? mapBottom : fallbackY;
     }
 
+    bool IsPlayerTouchingGroundTiles(const PlayerData& p)
+    {
+        const float block = 32.0f;
+        const float footY = p.posY + 2.0f;
+        const float halfW = static_cast<float>(PLAYER_WIDTH) * 0.35f;
+        const float sampleX[3] = { p.posX - halfW, p.posX, p.posX + halfW };
+
+        for (int i = 0; i < 3; ++i)
+        {
+            const int gx = static_cast<int>(std::floor(sampleX[i] / block));
+            const int gy = static_cast<int>(std::floor(footY / block));
+            MapChipData* mc = GetMapChipData(gx, gy);
+            if (mc != nullptr && (mc->mapChip == NORMAL_BLOCK || mc->mapChip == SEMI_SOLID_BLOCK))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void LoadKetherAssets(BigBossData& b)
     {
         LoadFrames(b.idle1, "Data/BigBoss/Kether/Idle/", "WingedMozgus", 1, 6, 6);
@@ -375,9 +398,17 @@ namespace
         b.phase2 = (b.hp <= (b.maxHP / 2));
         b.posY = b.tipherethGroundY;
 
-        if (std::fabs(dx) > 8.0f)
+        if (b.state == KetherState::TipherethIdle)
         {
-            b.isFacingRight = (dx >= 0.0f);
+            if (std::fabs(dx) > 8.0f)
+            {
+                b.isFacingRight = (dx >= 0.0f);
+            }
+            b.tipherethLockedFacingRight = b.isFacingRight;
+        }
+        else
+        {
+            b.isFacingRight = b.tipherethLockedFacingRight;
         }
 
         if (b.state == KetherState::TipherethDied)
@@ -395,13 +426,16 @@ namespace
         {
             b.tipherethQueuedState = queuedState;
             b.tipherethPrepareDuration = duration;
+            b.tipherethLockedFacingRight = (b.tipherethTargetX >= b.posX);
+            b.isFacingRight = b.tipherethLockedFacingRight;
             b.tipherethHitDone1 = false;
             b.tipherethHitDone2 = false;
             b.tipherethStompResolved = false;
             b.tipherethStompShakeDone = false;
+            b.tipherethStompGroundLock = false;
             b.state = KetherState::TipherethPrepare;
             b.stateTimer = 0.0f;
-            ResetAnim(b.tipherethIdle);
+            ResetAnim(b.tipherethPrepare);
             ClearBigBossAttackCollider(b);
         };
 
@@ -543,6 +577,7 @@ namespace
 
             const float hitStart = 1.70f;
             const bool stompActive = (b.stateTimer >= hitStart && b.stateTimer <= totalDuration);
+
             if (stompActive)
             {
                 const float mapWidth = static_cast<float>(GetMapWidth());
@@ -559,9 +594,11 @@ namespace
 
             if (!b.tipherethStompResolved && b.stateTimer >= hitStart)
             {
-                if (IsPlayerGrounded())
+                PlayerData& p = GetPlayerData();
+                const bool onGroundNow = IsPlayerGrounded() || IsPlayerTouchingGroundTiles(p);
+                if (onGroundNow)
                 {
-                    DamagePlayerHP(GetTipherethAttackPower());
+                    DamagePlayerHPIgnoreInvincible(GetTipherethAttackPower());
                 }
                 b.tipherethStompResolved = true;
             }
@@ -700,20 +737,50 @@ namespace
 
         if (b.state != KetherState::Transform)
         {
-            // 低空飛行
-            const float targetY = player.posY - 56.0f;
-            float dy = targetY - b.posY;
-            if (dy > 2.0f) dy = 2.0f;
-            if (dy < -2.0f) dy = -2.0f;
-            b.posY += dy * 0.35f;
+            bool isFireAttack = (b.state == KetherState::Fire1 || b.state == KetherState::Fire2);
 
-            float dx = player.posX - b.posX;
-            b.isFacingRight = (dx >= 0.0f);
-            float hover = b.phase2 ? 84.0f : 96.0f;
-            float speed = b.phase2 ? 2.3f : 1.6f;
-            if (std::fabs(dx) > hover)
+            if (isFireAttack)
             {
-                b.posX += (dx > 0.0f ? speed : -speed);
+                const float targetX = player.posX;
+                const float targetY = KETHER_TUNING.areaMinY + 50.0f;
+
+                float dx = targetX - b.posX;
+                float dy = targetY - b.posY;
+
+                const float moveSpeed = 3.5f;
+                if (std::fabs(dx) > moveSpeed) dx = (dx > 0.0f) ? moveSpeed : -moveSpeed;
+                if (std::fabs(dy) > moveSpeed) dy = (dy > 0.0f) ? moveSpeed : -moveSpeed;
+
+                b.posX += dx;
+                b.posY += dy;
+                b.isFacingRight = (player.posX >= b.posX);
+            }
+            else
+            {
+                static float s_ketherTargetY = KETHER_TUNING.areaMinY;
+                static float s_ketherYChangeTimer = 0.0f;
+
+                s_ketherYChangeTimer += dt;
+                if (s_ketherYChangeTimer >= 3.0f)
+                {
+                    s_ketherYChangeTimer = 0.0f;
+                    const float range = KETHER_TUNING.areaMaxY - KETHER_TUNING.areaMinY;
+                    s_ketherTargetY = KETHER_TUNING.areaMinY + (static_cast<float>(GetRand(1000)) / 1000.0f) * range;
+                }
+
+                float dy = s_ketherTargetY - b.posY;
+                if (dy > 2.0f) dy = 2.0f;
+                if (dy < -2.0f) dy = -2.0f;
+                b.posY += dy * 0.35f;
+
+                float dx = player.posX - b.posX;
+                b.isFacingRight = (dx >= 0.0f);
+                float hover = b.phase2 ? 84.0f : 96.0f;
+                float speed = b.phase2 ? 2.3f : 1.6f;
+                if (std::fabs(dx) > hover)
+                {
+                    b.posX += (dx > 0.0f ? speed : -speed);
+                }
             }
         }
         if (!b.phase2 && b.hp <= (b.maxHP / 2))
@@ -920,7 +987,7 @@ namespace
             bool enableAttack = true;
             if (fireState)
             {
-                atkW = (b.state == KetherState::Fire2) ? 180.0f : 150.0f;
+                atkW = KETHER_TUNING.flameWidth;
                 atkX = b.posX + b.width * KETHER_TUNING.flameOriginXRatio;
 
                 const float breathStart = (b.state == KetherState::Fire2) ? 0.80f : 0.90f;
@@ -928,13 +995,10 @@ namespace
                 enableAttack = (b.stateTimer >= breathStart && b.stateTimer <= breathEnd);
 
                 const float flameTop = b.posY - b.height * KETHER_TUNING.flameOriginYRatio;
-                const float groundY = GetGroundYBelowX(atkX, flameTop, player.posY);
+                const float mapBottom = static_cast<float>(GetMapHeight());
+                const float groundY = (mapBottom > 0.0f) ? mapBottom : (player.posY + 200.0f);
 
-                float fullH = (groundY > flameTop)
-                    ? ((groundY - flameTop) + 24.0f)
-                    : ((b.state == KetherState::Fire2) ? 260.0f : 220.0f);
-
-                atkH = fullH;
+                atkH = groundY - flameTop + 24.0f;
                 atkY = flameTop + atkH * 0.5f;
             }
             else
@@ -946,8 +1010,8 @@ namespace
                     const float t = (b.stateTimer - throwDelay) / flightDuration;
                     const float clampedT = (t < 0.0f) ? 0.0f : ((t > 1.0f) ? 1.0f : t);
 
-                    atkW = 140.0f;
-                    atkH = 120.0f;
+                    atkW = KETHER_TUNING.bookWidth;
+                    atkH = KETHER_TUNING.bookHeight;
                     atkX = b.bookStartX + (b.bookTargetX - b.bookStartX) * clampedT;
                     atkY = b.bookStartY + (b.bookTargetY - b.bookStartY) * clampedT;
                     enableAttack = (b.stateTimer >= throwDelay && b.stateTimer <= (throwDelay + flightDuration));
@@ -1276,7 +1340,7 @@ void DrawBigBosses()
             // DrawCircle(bookX, bookY, 8, GetColor(80, 220, 255), FALSE);
             // DrawFormatString(flameX + 10, flameY - 10, GetColor(255, 120, 0), "FLAME_ORIGIN");
             // DrawFormatString(bookX + 10, bookY - 10, GetColor(80, 220, 255), "BOOK_ORIGIN");
-            // DrawFormatString(cLeft, cTop - 20, GetColor(255, 255, 0), "state=%d t=%.2f", static_cast<int>(b.state), b.stateTimer);
+            // DrawFormatString(cLeft, cTop - 20, GetColor(255,255,0), "state=%d t=%.2f", static_cast<int>(b.state), b.stateTimer);
         }
         if (fx != -1)
         {
@@ -1288,8 +1352,8 @@ void DrawBigBosses()
 
             if (b.state == KetherState::ThrowBook)
             {
-                fxW = 130.0f;
-                fxH = 100.0f;
+                fxW = KETHER_TUNING.bookWidth;
+                fxH = KETHER_TUNING.bookHeight;
 
                 const float throwDelay = 0.80f;
                 const float flightDuration = 0.65f;
@@ -1301,7 +1365,7 @@ void DrawBigBosses()
             }
             else if (b.state == KetherState::Fire1 || b.state == KetherState::Fire2)
             {
-                fxW = (b.state == KetherState::Fire2) ? 112.0f : 94.0f;
+                fxW = KETHER_TUNING.flameWidth;
                 const float breathStart = (b.state == KetherState::Fire2) ? 0.80f : 0.90f;
                 const float breathEnd = (b.state == KetherState::Fire2) ? 3.95f : 3.35f;
                 const float breathProgress = (b.stateTimer - breathStart) / (breathEnd - breathStart);
@@ -1309,13 +1373,10 @@ void DrawBigBosses()
 
                 const float flameTop = (b.posY - b.height * KETHER_TUNING.flameOriginYRatio) + KETHER_TUNING.flameDrawOffsetY;
                 fxX = b.posX + b.width * KETHER_TUNING.flameOriginXRatio;
-                const float groundY = GetGroundYBelowX(fxX, flameTop, GetPlayerData().posY);
+                const float mapBottom = static_cast<float>(GetMapHeight());
+                const float groundY = (mapBottom > 0.0f) ? mapBottom : (GetPlayerData().posY + 200.0f);
 
-                const float fullH = (groundY > flameTop)
-                    ? ((groundY - flameTop) + 24.0f)
-                    : ((b.state == KetherState::Fire2) ? 260.0f : 220.0f);
-
-                fxH = fullH;
+                fxH = groundY - flameTop + 24.0f;
                 fxY = flameTop + fxH;
 
                 const std::vector<int>& flameFrames = (b.state == KetherState::Fire2) ? b.fireFx2.frames : b.fireFx1.frames;

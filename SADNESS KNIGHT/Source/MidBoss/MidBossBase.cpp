@@ -539,7 +539,7 @@ namespace
         p.velocityY = (dy / len) * p.speed;
         p.lifeTimer = 4.0f;
         p.homing = homing;                          // ホーミング有無は引数で指定
-        p.homingTurnRate = homing ? 0.08f : 0.0f;   // ホーミング時のみ回転速度を設定
+        p.homingTurnRate = homing ? STONE_TUNING.homingTurnRate : 0.0f;   // ホーミング時のみ回転速度を設定
         p.facingRight = (p.velocityX >= 0.0f);
 
         // 当たり判定を作成

@@ -19,7 +19,7 @@ namespace
         -42.0f,  // tentacleCenterYOffset
         250.0f,  // biteWidth
         190.0f,  // biteHeight
-        182.0f,  // biteFrontOffset
+        245.0f,  // biteFrontOffset
         -32.0f,  // biteCenterYOffset
         300.0f,  // chargeWidth
         180.0f,  // chargeHeight
@@ -28,7 +28,7 @@ namespace
         500.0f,  // stompRange
         72.0f,   // stompHitboxYOffset
         520.0f,  // chargePriorityRange
-        8.0f,    // chargeSpeed
+        5.0f,    // chargeSpeed
         220.0f,  // chargeThroughDistance
         1.0f,    // prepareDuration
         3.0f,    // stompPrepareDuration

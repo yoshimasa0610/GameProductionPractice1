@@ -10,6 +10,7 @@
 #include "../Scene/Play/Play.h"
 #include "../Collision/Collision.h"
 #include "../BigBoss/BigBossBase.h"
+#include "../MidBoss/MidBossBase.h"
 
 // HPÉoÅ[âÊëú
 static int g_HPBarFrame = -1;
@@ -260,6 +261,33 @@ void DrawUIImage()
     {
         int hp = GetBigBossHP();
         int maxHp = GetBigBossMaxHP();
+
+        float rate = (float)hp / (float)maxHp;
+
+        int barWidth = 400;
+        int barHeight = 20;
+
+        int screenW, screenH;
+        GetScreenState(&screenW, &screenH, NULL);
+
+        int x = screenW - barWidth - 20;
+        int y = screenH - barHeight - 20;
+
+        // îwåi
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(0, 0, 0), TRUE);
+
+        // HP
+        DrawBox(x,y,x + (int)(barWidth * rate),y + barHeight,GetColor(255, 50, 50),TRUE);
+
+        // òg
+        DrawBox(x, y, x + barWidth, y + barHeight, GetColor(255, 255, 255), FALSE);
+    }
+
+    // íÜÉ{ÉXHPÉQÅ[ÉW
+    if (IsMidBossAlive())
+    {
+        int hp = GetMidBossHP();
+        int maxHp = GetMidBossMaxHP();
 
         float rate = (float)hp / (float)maxHp;
 

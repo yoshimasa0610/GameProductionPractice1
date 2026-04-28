@@ -18,6 +18,7 @@ namespace
         6.0f,   // bulletSpeed
         96.0f,  // bulletDrawSize
         60.0f,  // bulletHitboxSize
+        0.018f, // homingTurnRate
         0.0f,   // drawOffsetX
         80.0f,  // drawOffsetY
         100.0f, // beamDrawOffsetX

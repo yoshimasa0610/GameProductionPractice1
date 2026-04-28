@@ -14,6 +14,11 @@ struct KetherTuning
     float phaseShockwaveDuration;
     float transformEndHold;
     float diedDrawOffsetY;
+    float areaMinY;
+    float areaMaxY;
+    float flameWidth;
+    float bookWidth;
+    float bookHeight;
     bool debugDraw;
 };
 

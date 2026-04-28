@@ -30,6 +30,7 @@
 #include "../../MidBoss/MidBossBase.h"
 #include "../../MidBoss/StoneGolem/StoneGolem.h"
 #include "../../MidBoss/Garok/Garok.h"
+#include "../../GameSetting/GameSetting.h"
 
 static ItemField g_ItemField;
 

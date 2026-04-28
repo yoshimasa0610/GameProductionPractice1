@@ -12,6 +12,7 @@ struct StoneGolemTuning
     float bulletSpeed;
     float bulletDrawSize;
     float bulletHitboxSize;
+    float homingTurnRate;
     float drawOffsetX;
     float drawOffsetY;
     float beamDrawOffsetX;

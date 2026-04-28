@@ -566,6 +566,43 @@ void DamagePlayerHP(int damage)
     }
 }
 
+// HPにダメージを与える(無敵を無視するバージョン)
+void DamagePlayerHPIgnoreInvincible(int damage)
+{
+    if (playerData.state == PlayerState::Healing)
+    {
+        playerData.state = PlayerState::Idle;
+        playerData.healExecuted = false;
+    }
+
+    int finalDamage = (int)floor(damage * (1.0f + playerData.damageTakenRate));
+    if (finalDamage < 1) finalDamage = 1;
+
+    playerData.currentHP -= finalDamage;
+    if (playerData.currentHP < 0) playerData.currentHP = 0;
+
+    if (playerData.currentHP > 0)
+    {
+        PlaySE(SE_PLAYER_DAMAGE);
+        playerData.isInvincible = true;
+        playerData.invincibleTimer = 90; // 1.5秒 (60fps)
+
+        if (playerData.state != PlayerState::Dodging && playerData.state != PlayerState::DiveAttack)
+        {
+            playerData.state = PlayerState::Hurt;
+            playerData.velocityX = playerData.isFacingRight ? -HURT_KNOCKBACK_SPEED : HURT_KNOCKBACK_SPEED;
+            if (playerData.isGrounded)
+            {
+                playerData.velocityY = -3.0f;
+            }
+             if (playerAnims.hurt.frames != nullptr)
+             {
+                 ResetAnimation(playerAnims.hurt);
+             }
+        }
+    }
+}
+
 // HPを回復する
 void HealPlayerHP(int healAmount)
 {
