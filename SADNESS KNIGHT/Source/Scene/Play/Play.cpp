@@ -550,7 +550,7 @@ void DrawPlayScene()
 	g_ItemField.Draw();
 	DrawMap();
 	DrawCheckpoint();
-	DrawMoneyDrops();
+	//DrawMoneyDrops();
 	DrawMapOutsideMask();
 	DrawForeground();
 
@@ -559,7 +559,7 @@ void DrawPlayScene()
 	DrawBigBosses();
 	DrawPlayer();
 	DrawUIImage();
-	g_MoneyManager.Draw();
+	//g_MoneyManager.Draw();
 
 	if (IsOptionOpen())
 	{

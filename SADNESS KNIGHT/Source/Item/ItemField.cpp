@@ -75,8 +75,6 @@ void ItemField::LoadCSV(const std::string& path)
     std::ifstream file(path);
     if (!file.is_open())
     {
-        // ì«Ç›çûÇ›é∏îs Å® âΩÇ‡íuÇ©Ç»Ç¢
-        printfDx("ItemField CSV ì«Ç›çûÇ›é∏îs: %s\n", path.c_str());
         return;
     }
 
@@ -104,7 +102,6 @@ void ItemField::LoadCSV(const std::string& path)
         item.fieldItemId = std::stoi(token);
         if (localIdCheck.count(item.fieldItemId))
         {
-            printfDx(" èdï° fieldItemId åüèo: %d\n", item.fieldItemId);
             continue;
         }
         localIdCheck.insert(item.fieldItemId);

@@ -159,6 +159,7 @@ void UpdatePlayer()
     if (playerData.currentHP <= 0 && !g_IsPlayerDead)
     {
         g_IsPlayerDead = true;
+        StopSE(SE_PLAYER_RUN);
         PlaySE(SE_PLAYER_DEAD);
 
         playerData.state = PlayerState::Death;
@@ -214,11 +215,12 @@ void UpdatePlayer()
     // =========================
     if (playerData.state == PlayerState::Death)
     {
+		StopSE(SE_PLAYER_RUN);    // 死亡したら走るSEを止める(保険)
         UpdatePhysics();          // ノックバック・落下
         UpdateState();            // 状態維持
-        UpdatePlayerAnimation();  // ★これが重要（アニメ再生）
+        UpdatePlayerAnimation();  // アニメ再生
 
-        return; // ★他の処理を全部止める
+        return; // 他の処理を全部止める
     }
 
     // =========================
@@ -499,7 +501,7 @@ bool IsPlayerGrounded() { return playerData.isGrounded; }
 void ResetPlayerDeath()
 {
     g_IsPlayerDead = false;
-
+    StopSE(SE_PLAYER_RUN);
     playerData.state = PlayerState::Idle;
     playerData.currentHP = playerData.maxHP;
     playerData.isInvincible = false;
@@ -883,6 +885,17 @@ namespace
                 playerData.velocityY = 0.0f;
 
             return;
+        }
+
+        if (playerData.state == PlayerState::Walk &&
+            playerData.isGrounded &&
+            currentMoveDir != 0)
+        {
+            PlaySE(SE_PLAYER_RUN, true);
+        }
+        else
+        {
+            StopSE(SE_PLAYER_RUN);
         }
 
         if (playerData.state == PlayerState::Hurt)
