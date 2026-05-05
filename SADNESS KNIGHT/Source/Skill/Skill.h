@@ -2,6 +2,7 @@
 #include "SkillData.h"
 #include "../Player/Player.h"
 #include "../Collision/Collision.h"
+#include "../Camera/Camera.h"
 #include <unordered_set>
 #include <functional>
 #include <vector>
@@ -20,7 +21,7 @@ private:
     bool m_hitActive = false;
     bool m_comboQueued = false;
     // Follow用
-	float m_followOffsetX = 60.0f; // プレイヤーからの横距離
+	float m_followOffsetX = 60.0f; // プレイヤー左右の追従位置
 	int m_followAttackInterval = 60; // 攻撃間隔（フレーム）
 	int m_followAttackTimer = 0; // 攻撃タイマー
     ColliderId m_followAttackCollider = -1;
@@ -34,12 +35,20 @@ private:
     float m_followLerpSpeed = 0.15f; // 追従速度
     int m_followAttackDelay = 0;
     int m_followAttackCharge = 15; // 溜め時間
+    float m_followDetectRange = 520.0f;
+    int m_followSpriteHandle = -1;
+    int m_followBulletSpriteHandle = -1;
+    int m_followAnimFrame = 0;
+    int m_followAnimCounter = 0;
+    bool m_followIsShooting = false;
+    bool m_followFacingRight = true;
     struct FollowBullet
     {
         float x, y;
         float vx, vy;
         int life;
         ColliderId collider;
+        int targetColliderId = -1;
         std::unordered_set<void*> hitTargets;
     };
 
@@ -77,6 +86,7 @@ public:
 
     void Update(PlayerData* player);
     void Activate(PlayerData* player);
+    void Draw(const CameraData& camera) const;
 
     bool CanUse() const;
     bool IsActive() const { return m_isActive; }
@@ -102,4 +112,5 @@ public:
     int GetFrame() const { return m_frame; }
     bool IsHitActive() const { return m_hitActive; }
     FollowBullet* FindBulletByCollider(ColliderId id);
+    void ConsumeFollowBullet(ColliderId id);
 };

@@ -49,15 +49,16 @@ void RegisterSkills()
 
 
     // ===============================
-    // Shadow Follower
+    // Stone Golem Familiar
     auto shadow = std::make_unique<SkillData>();
 
     shadow->id = 2;
-    shadow->name = "Shadow Follower";
+    shadow->name = "Stone Golem Familiar";
     shadow->type = SkillType::Follow;
 
     shadow->coolTime = 300;
     shadow->maxUseCount = 50;
+    shadow->attackRate = 0.05f; // ƒvƒŒƒCƒ„[UŒ‚100‘z’è‚Å 5 ƒ_ƒ[ƒW
 
     shadow->duration = 600;
 
@@ -66,8 +67,8 @@ void RegisterSkills()
 
     shadow->systemDesc =
     {
-        "‰e‚Ì‹RŽm‚ð¢Š«‚·‚éB",
-        "ˆê’èŽžŠÔŽ©“®UŒ‚‚ðs‚¤B"
+        "”wŒã‚ÉƒXƒg[ƒ“ƒS[ƒŒƒ€‚ð¢Š«B",
+        "“G‚ðŒ©‚Â‚¯‚é‚Æ’Ç”ö’e‚ð3”­“¯Žž”­ŽËB"
     };
 
     shadow->flavorDesc =

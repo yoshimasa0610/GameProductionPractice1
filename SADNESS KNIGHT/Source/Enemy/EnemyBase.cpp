@@ -10,6 +10,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include "../Map/MapParameter.h"
 #include "Slime/Slime.h"
 #include "cultists/cultists.h"
@@ -40,6 +41,19 @@ namespace
 
     // デバッグ用グローバルバッファ
     char g_enemyDebugInfo[512] = "";
+
+    static const float BIG_QUARTIST_DRAW_SCALE = 1.22f;
+    static const int BIG_QUARTIST_IDLE_OFFSET_X = 14;
+    static const int BIG_QUARTIST_RUN_OFFSET_X[8] = { 14, 14, 14, 14, 14, 15, 15, 13 };
+    static const int BIG_QUARTIST_ATTACK_OFFSET_X[20] =
+    {
+        17, 18, 20, 20, 9, 9, 22, 26, 18, 26,
+        26, 26, 1, 0, 0, 8, 8, 4, 6, 12
+    };
+    static const int BIG_QUARTIST_DEATH_OFFSET_X[12] =
+    {
+        12, 12, 7, 10, 12, 15, 18, 18, 16, 15, 16, -2
+    };
 
     void ApplyEnemyCombatTuningFromEnemyCpp(EnemyType type, int& maxHP, int& attackPower)
     {
@@ -791,6 +805,45 @@ namespace
             }
         }
     }
+
+    int GetBigQuartistFrameOffsetX(const AnimationData* currentAnim, const EnemyAnimations* anims)
+    {
+        if (currentAnim == nullptr || anims == nullptr)
+        {
+            return BIG_QUARTIST_IDLE_OFFSET_X;
+        }
+
+        int frame = currentAnim->currentFrame;
+        if (frame < 0) frame = 0;
+
+        if (currentAnim == &anims->idle)
+        {
+            return BIG_QUARTIST_IDLE_OFFSET_X;
+        }
+
+        if (currentAnim == &anims->move)
+        {
+            const int maxIndex = static_cast<int>(sizeof(BIG_QUARTIST_RUN_OFFSET_X) / sizeof(BIG_QUARTIST_RUN_OFFSET_X[0])) - 1;
+            if (frame > maxIndex) frame = maxIndex;
+            return BIG_QUARTIST_RUN_OFFSET_X[frame];
+        }
+
+        if (currentAnim == &anims->attack)
+        {
+            const int maxIndex = static_cast<int>(sizeof(BIG_QUARTIST_ATTACK_OFFSET_X) / sizeof(BIG_QUARTIST_ATTACK_OFFSET_X[0])) - 1;
+            if (frame > maxIndex) frame = maxIndex;
+            return BIG_QUARTIST_ATTACK_OFFSET_X[frame];
+        }
+
+        if (currentAnim == &anims->die)
+        {
+            const int maxIndex = static_cast<int>(sizeof(BIG_QUARTIST_DEATH_OFFSET_X) / sizeof(BIG_QUARTIST_DEATH_OFFSET_X[0])) - 1;
+            if (frame > maxIndex) frame = maxIndex;
+            return BIG_QUARTIST_DEATH_OFFSET_X[frame];
+        }
+
+        return BIG_QUARTIST_IDLE_OFFSET_X;
+    }
 }
 
 const EnemyConfig& GetEnemyConfig(EnemyType type)
@@ -1027,8 +1080,6 @@ void ClearEnemies()
     }
     g_enemies.clear();
     ClearEnemyProjectiles();
-    ReleaseCultistFireballAssets();
-    ReleaseStoneGolemProjectileAssets();
 }
 
 
@@ -1169,6 +1220,17 @@ void UpdateEnemies()
             e.pendingAttackKind = kind;
             e.velocityX = 0.0f;
 
+            if (kind == 1 || kind == 4)
+            {
+                e.attackDirLocked = true;
+                e.lockedFacingRight = (dx >= 0.0f);
+                e.isFacingRight = e.lockedFacingRight;
+            }
+            else
+            {
+                e.attackDirLocked = false;
+            }
+
             if (e.type == EnemyType::StoneGolem)
             {
                 if (kind == 5)
@@ -1289,8 +1351,10 @@ void UpdateEnemies()
                 e.attackTimer = e.attackDuration;
                 e.cooldownTimer = e.attackCooldown;
 
+                const bool dashRight = e.attackDirLocked ? e.lockedFacingRight : (dx >= 0.0f);
                 const float lungeSpeed = e.moveSpeed * 5.0f;
-                e.velocityX = (dx >= 0.0f) ? lungeSpeed : -lungeSpeed;
+                e.velocityX = dashRight ? lungeSpeed : -lungeSpeed;
+                e.isFacingRight = dashRight;
 
                 const float attackWidth = isTwisted ? (e.width * TWISTED_ATTACK_WIDTH_SCALE) : (e.width * ENEMY_ATTACK_WIDTH_SCALE);
                 const float attackHeight = isTwisted ? (e.height * TWISTED_ATTACK_HEIGHT_SCALE) : (e.height * ENEMY_ATTACK_HEIGHT_SCALE);
@@ -1313,13 +1377,9 @@ void UpdateEnemies()
             e.attackPrepareTimer -= effectiveFrameTime;
             e.velocityX = 0.0f;
 
-            if (e.type == EnemyType::TwistedCaltis)
+            if (e.attackDirLocked)
             {
-                if (!e.attackDirLocked)
-                {
-                    e.attackDirLocked = true;
-                    e.lockedFacingRight = (dx >= 0.0f);
-                }
+                e.isFacingRight = e.lockedFacingRight;
             }
             else
             {
@@ -1333,7 +1393,7 @@ void UpdateEnemies()
             {
                 e.isAttackPreparing = false;
 
-                if (e.type == EnemyType::TwistedCaltis && e.attackDirLocked)
+                if (e.attackDirLocked)
                 {
                     e.isFacingRight = e.lockedFacingRight;
                 }
@@ -1641,7 +1701,6 @@ void DrawEnemies()
 
         int drawX = static_cast<int>((e.posX - camera.posX) * camera.scale);
         int drawY = static_cast<int>((e.posY - camera.posY) * camera.scale);
-        int drawTopY = drawY - static_cast<int>(e.height * camera.scale);
 
         if (e.animations != nullptr)
         {
@@ -1671,6 +1730,25 @@ void DrawEnemies()
                 {
                     int drawW = static_cast<int>(e.width * camera.scale);
                     int drawH = static_cast<int>(e.height * camera.scale);
+                    int drawCenterX = drawX;
+                    int drawCenterY = drawY - (drawH / 2);
+
+                    if (e.type == EnemyType::BigQuartist)
+                    {
+                        int srcW = 0;
+                        int srcH = 0;
+                        GetGraphSize(frameHandle, &srcW, &srcH);
+                        if (srcW > 0 && srcH > 0)
+                        {
+                            // サイズ感は元に戻す（e.width / e.height 基準のまま）
+                            drawCenterY = drawY - (drawH / 2);
+
+                            const int frameOffsetX = GetBigQuartistFrameOffsetX(currentAnim, e.animations);
+                            const float offsetScaleX = static_cast<float>(drawW) / static_cast<float>(srcW);
+                            const int pivotAdjustX = e.isFacingRight ? frameOffsetX : -frameOffsetX;
+                            drawCenterX += static_cast<int>(pivotAdjustX * offsetScaleX * camera.scale);
+                        }
+                    }
 
                     if (e.type == EnemyType::TwistedCaltis && e.isAttacking)
                     {
@@ -1691,12 +1769,11 @@ void DrawEnemies()
                     const int baseHalfW = static_cast<int>(e.width * 0.5f * camera.scale);
                     const int baseLeft = drawX - baseHalfW;
                     const int baseRight = drawX + baseHalfW;
-                    const int h = drawH;
-                    const int top = drawY - h;
-                    const int bottom = drawY;
+                    const int top = drawCenterY - (drawH / 2);
+                    const int bottom = drawCenterY + (drawH / 2);
 
-                    int left = drawX - (drawW / 2);
-                    int right = drawX + (drawW / 2);
+                    int left = drawCenterX - (drawW / 2);
+                    int right = drawCenterX + (drawW / 2);
 
                     if (e.type == EnemyType::TwistedCaltis && e.isAttacking)
                     {

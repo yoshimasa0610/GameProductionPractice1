@@ -57,6 +57,7 @@ static bool g_Forest3MidBossDefeated = false;
 static bool g_Forest7MidBossDefeated = false;
 static bool g_Forest5BigBossDefeated = false;
 static bool g_Forest14BigBossDefeated = false;
+static bool g_StoneGolemSkillGranted = false;
 
 void SetBossDefeatSaveFlags(bool forest3MidBossDefeated, bool forest7MidBossDefeated, bool forest5BigBossDefeated)
 {
@@ -102,6 +103,10 @@ static const float FOREST14_BOSS_X = 1472.0f;
 static const float FOREST14_BOSS_Y = 736.0f;
 
 static bool g_IsBossBGMPlaying = false;
+
+static bool g_FinalClearSequenceActive = false;
+static int g_FinalClearSequenceTimer = 0;
+static const int FINAL_CLEAR_WHITE_FRAMES = 180;
 // --- ボスエリア遷移ロック ---
 static bool g_StageLocked = false;
 void LockStageTransition() { g_StageLocked = true; }
@@ -127,6 +132,9 @@ void InitPlayScene()
 	g_Forest7MidBossDefeated = false;
 	g_Forest5BigBossDefeated = false;
 	g_Forest14BigBossDefeated = false;
+	g_StoneGolemSkillGranted = false;
+	g_FinalClearSequenceActive = false;
+	g_FinalClearSequenceTimer = 0;
 	SetCameraFixed(false);
 }
 
@@ -142,6 +150,7 @@ void LoadPlayScene()
 	);
 	player.hasDoubleJump = g_SaveData.hasDoubleJump;
 	player.hasDiveAttack = g_SaveData.hasDiveAttack;
+	g_StoneGolemSkillGranted = g_SaveData.forest3MidBossDefeated;
 
 	// SaveData からスタート地点を設定
 	if (g_SaveData.stageName[0] == '\0')
@@ -174,9 +183,11 @@ void LoadPlayScene()
 	ItemManager_AddItem(11);
 	ItemManager_AddItem(12);
 	g_SkillManager.AddSkill(GetSkillData(1), &player);
-	//g_SkillManager.AddSkill(GetSkillData(2), &player);
+	if (g_SaveData.forest3MidBossDefeated)
+	{
+		g_SkillManager.AddSkill(GetSkillData(2), &player);
+	}
 	g_SkillManager.EquipSkill(0, 0, 1);
-	//g_SkillManager.EquipSkill(0, 1, 2);
 	// バフ再計算
 	g_ItemManager.ApplyBuffsToPlayer(&player);
 
@@ -200,6 +211,8 @@ void StartPlayScene()
 	g_MidBossCameraLocked = false;
 	g_MidBossStageLockActive = false;
 	g_BigBossStageLockActive = false;
+	g_FinalClearSequenceActive = false;
+	g_FinalClearSequenceTimer = 0;
 	SetCameraFixed(false);
 }
 
@@ -300,6 +313,20 @@ void UpdatePlayScene()
 		return;
 	}
 
+	if (g_FinalClearSequenceActive)
+	{
+		g_FinalClearSequenceTimer++;
+		if (g_FinalClearSequenceTimer >= FINAL_CLEAR_WHITE_FRAMES)
+		{
+			ChangeScene(SCENE_CLEAR);
+			return;
+		}
+
+		UpdateFade();
+		UpdateUIImage();
+		return;
+	}
+
 	if (CheckHitKey(KEY_INPUT_F))
 	{
 		ChangeScene(SCENE_CLEAR);
@@ -371,6 +398,11 @@ void UpdatePlayScene()
 		if (strcmp(currentStage, "forest_3") == 0 && g_MidBossSpawned && !IsMidBossAlive())
 		{
 			g_Forest3MidBossDefeated = true;
+			if (!g_StoneGolemSkillGranted)
+			{
+				g_SkillManager.AddSkill(GetSkillData(2), &player);
+				g_StoneGolemSkillGranted = true;
+			}
 		}
 		else if (strcmp(currentStage, "forest_7") == 0 && g_MidBossSpawned && !IsMidBossAlive())
 		{
@@ -382,7 +414,15 @@ void UpdatePlayScene()
 		}
 		else if (strcmp(currentStage, "forest_14") == 0 && g_EnemySpawned && !IsBigBossAlive())
 		{
-			g_Forest14BigBossDefeated = true;
+			if (!g_Forest14BigBossDefeated)
+			{
+				g_Forest14BigBossDefeated = true;
+				g_FinalClearSequenceActive = true;
+				g_FinalClearSequenceTimer = 0;
+				g_BigBossStageLockActive = false;
+				UnlockStageTransition();
+				SetCameraFixed(false);
+			}
 		}
 	}
 
@@ -581,6 +621,20 @@ void DrawPlayScene()
 	{
 		DrawOverlayMenu();
 	}
+
+	if (g_FinalClearSequenceActive)
+	{
+		int screenW = 0;
+		int screenH = 0;
+		GetDrawScreenSize(&screenW, &screenH);
+
+		int alpha = (255 * g_FinalClearSequenceTimer) / FINAL_CLEAR_WHITE_FRAMES;
+		if (alpha > 255) alpha = 255;
+
+		SetDrawBlendMode(DX_BLENDMODE_ALPHA, alpha);
+		DrawBox(0, 0, screenW, screenH, GetColor(255, 255, 255), TRUE);
+		SetDrawBlendMode(DX_BLENDMODE_NOBLEND, 0);
+	}
 	DrawFade();
 }
 
@@ -610,6 +664,8 @@ static void RespawnFromCheckpoint()
 	g_MidBossStageLockActive = false;
 	g_BigBossStageLockActive = false;
 	g_IsBossBGMPlaying = false;
+	g_FinalClearSequenceActive = false;
+	g_FinalClearSequenceTimer = 0;
 	SetCameraFixed(false);
 	UnlockStageTransition();
 

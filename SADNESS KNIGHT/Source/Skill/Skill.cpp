@@ -1,4 +1,7 @@
 #include "Skill.h"
+#include "SkillManager.h"
+#include "../Enemy/EnemyBase.h"
+#include <cmath>
 
 // スキルの攻撃の判定
 static void CreateAttackCollider(
@@ -29,6 +32,22 @@ Skill::Skill(const SkillData& data)
     m_isActive(false),
     m_activeTimer(0)
 {
+    if (m_data.type == SkillType::Follow)
+    {
+        m_followOffsetX = 46.0f;
+        m_followAttackInterval = 90;
+        m_followAttackCharge = 10;
+        m_followAttackWidth = 20.0f;
+        m_followAttackHeight = 20.0f;
+        m_followLerpSpeed = 0.18f;
+        m_followDetectRange = 560.0f;
+        m_followSpriteHandle = LoadGraph("Data/MidBoss/StoneGolem/Character_sheet.png");
+        m_followBulletSpriteHandle = LoadGraph("Data/MidBoss/StoneGolem/arm_projectile.png");
+        if (m_followBulletSpriteHandle == -1)
+        {
+            m_followBulletSpriteHandle = LoadGraph("Data/MidBoss/StoneGolem/arm_projectile_glowing.png");
+        }
+    }
 }
 // スキルが使用可能か
 bool Skill::CanUse() const
@@ -98,28 +117,39 @@ void Skill::Activate(PlayerData* player)
 
     if (m_data.type == SkillType::Follow)
     {
+        // もう一度押したら解除（手動トグル）
+        if (m_isActive)
+        {
+            ForceEnd();
+            return;
+        }
+
         if (!CanUse()) return;
 
         m_isActive = true;
-        m_activeTimer = m_data.duration;
+        m_activeTimer = 0; // 手動解除まで維持
 
         StartCoolTime();
 
         m_followAttackTimer = 0;
+        m_followAttackDelay = 0;
+        m_followIsShooting = false;
+        m_followAnimFrame = 10;
+        m_followAnimCounter = 0;
+        m_followFacingRight = player->isFacingRight;
 
-        // 初期位置（プレイヤーの横）
-        float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
+        // プレイヤー後ろに追従
+        float offset = player->isFacingRight ? -m_followOffsetX : m_followOffsetX;
 
         m_followPosX = player->posX + offset;
-        m_followPosY = player->posY - PLAYER_HEIGHT;
+        m_followPosY = player->posY - PLAYER_HEIGHT * 0.55f;
 
-        // 本体コライダー生成
         if (m_followCollider == -1)
         {
             m_followCollider = CreateCollider(
                 ColliderTag::Other,
-                m_followPosX,
-                m_followPosY,
+                m_followPosX - 30.0f,
+                m_followPosY - 30.0f,
                 60,
                 60,
                 this
@@ -131,7 +161,6 @@ void Skill::Activate(PlayerData* player)
 
 
     if (!CanUse()) return;
-
     // ...existing code...
     StartCoolTime();
 }
@@ -246,98 +275,171 @@ void Skill::Update(PlayerData* player)
     // 追従型の処理
     if (m_data.type == SkillType::Follow && m_isActive)
     {
-        m_activeTimer--;
+        m_followFacingRight = player->isFacingRight;
 
-        if (m_activeTimer <= 0)
-        {
-            m_isActive = false;
-            if (m_followCollider != -1)
-            {
-                DestroyCollider(m_followCollider);
-                m_followCollider = -1;
-            }
-            return;
-        }
-
-        // ===== 攻撃コライダー寿命 =====
-        if (m_followAttackCollider != -1)
-        {
-            m_followAttackLife--;
-
-            if (m_followAttackLife <= 0)
-            {
-                DestroyCollider(m_followAttackCollider);
-                m_followAttackCollider = -1;
-            }
-        }
-
-        // プレイヤーに追従
-        float offset = player->isFacingRight ? m_followOffsetX : -m_followOffsetX;
-
+        // プレイヤーに追従（後ろ固定）
+        float offset = player->isFacingRight ? -m_followOffsetX : m_followOffsetX;
         float targetX = player->posX + offset;
-        float targetY = player->posY - PLAYER_HEIGHT;
+        float targetY = player->posY - PLAYER_HEIGHT * 0.55f;
 
-        // Lerp
         m_followPosX += (targetX - m_followPosX) * m_followLerpSpeed;
         m_followPosY += (targetY - m_followPosY) * m_followLerpSpeed;
 
-        UpdateCollider(m_followCollider, m_followPosX, m_followPosY, 60, 60);
+        if (m_followCollider != -1)
+        {
+            UpdateCollider(m_followCollider, m_followPosX - 30.0f, m_followPosY - 30.0f, 60, 60);
+        }
 
-        // 攻撃間隔
+        // 射程内の最も近い敵を探す（通常敵/ミッドボス/ビッグボス共通）
+        auto findNearestTargetCollider = [&](float fromX, float fromY, float maxRange) -> int
+        {
+            return FindNearestEnemyCollider(fromX, fromY, maxRange);
+        };
+
         if (m_followAttackTimer > 0)
         {
             m_followAttackTimer--;
         }
         else
         {
-            // 溜め開始
             if (m_followAttackDelay <= 0)
             {
                 m_followAttackDelay = m_followAttackCharge;
             }
-			// 溜め中
+
             m_followAttackDelay--;
-			// 攻撃開始
+
             if (m_followAttackDelay <= 0)
             {
-                // 弾発射
-                float dir = player->isFacingRight ? 1.0f : -1.0f;
+                const int targetColliderId = findNearestTargetCollider(m_followPosX, m_followPosY, m_followDetectRange);
 
-                FollowBullet b;
-                b.x = m_followPosX;
-                b.y = m_followPosY - 20;
-                b.vx = dir * 8.0f;
-                b.vy = 0;
-                b.life = 60;
-				// コライダー生成
-                b.collider = CreateCollider(
-                    ColliderTag::Other,
-                    b.x,
-                    b.y,
-                    20,
-                    20,
-                    this
-                );
-				
-                m_followBullets.push_back(b);
-				// 攻撃コライダー生成
-                m_followAttackTimer = m_followAttackInterval;
-				// 弾薬消費
-                if (m_onConsumeUse)
-                    m_onConsumeUse(m_data.id);
+                if (targetColliderId != -1)
+                {
+                    m_followIsShooting = true;
+                    m_followAnimFrame = 20; // StoneGolem shot row start
+                    m_followAnimCounter = 0;
+
+                    // 3発同時発射（必中ホーミング）
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        if (g_SkillManager.GetRemainingUses(m_data.id) == 0)
+                        {
+                            ForceEnd();
+                            break;
+                        }
+
+                        FollowBullet b{};
+
+                        // 3wayで見えるように、発射位置を少しずらす
+                        const float side = m_followFacingRight ? 1.0f : -1.0f;
+                        const float spawnOffsetX[3] = { -10.0f * side, 0.0f, 10.0f * side };
+                        const float spawnOffsetY[3] = { -12.0f, -8.0f, -4.0f };
+
+                        b.x = m_followPosX + spawnOffsetX[i];
+                        b.y = m_followPosY + spawnOffsetY[i];
+
+                        const float baseSpeed = 8.5f;
+                        const float spreadY[3] = { -2.2f, 0.0f, 2.2f };
+                        b.vx = m_followFacingRight ? baseSpeed : -baseSpeed;
+                        b.vy = spreadY[i];
+                        b.life = 90;
+                        b.targetColliderId = targetColliderId;
+
+                        b.collider = CreateCollider(
+                            ColliderTag::Other,
+                            b.x - 10.0f,
+                            b.y - 10.0f,
+                            m_followAttackWidth,
+                            m_followAttackHeight,
+                            this);
+
+                        m_followBullets.push_back(b);
+
+                        if (m_onConsumeUse)
+                        {
+                            m_onConsumeUse(m_data.id); // 1発ごとに1消費
+                        }
+                    }
+
+                    m_followAttackTimer = m_followAttackInterval;
+                }
             }
         }
 
-        // ===== 弾更新 =====
+        // シュートモーション更新（StoneGolem shot 20?27）
+        if (m_followIsShooting)
+        {
+            m_followAnimCounter++;
+            if (m_followAnimCounter >= 4)
+            {
+                m_followAnimCounter = 0;
+                m_followAnimFrame++;
+                if (m_followAnimFrame > 27)
+                {
+                    m_followIsShooting = false;
+                    m_followAnimFrame = 10; // idle row start
+                }
+            }
+        }
+        else
+        {
+            m_followAnimCounter++;
+            if (m_followAnimCounter >= 8)
+            {
+                m_followAnimCounter = 0;
+                m_followAnimFrame++;
+                if (m_followAnimFrame < 10 || m_followAnimFrame > 17)
+                {
+                    m_followAnimFrame = 10;
+                }
+            }
+        }
+
+        // 弾更新（ホーミング）
         for (int i = (int)m_followBullets.size() - 1; i >= 0; --i)
         {
             auto& b = m_followBullets[i];
+
+            float targetLeft = 0, targetTop = 0, targetW = 0, targetH = 0;
+            const bool hasTarget = (b.targetColliderId != -1) && GetColliderRect(b.targetColliderId, targetLeft, targetTop, targetW, targetH);
+            if (hasTarget)
+            {
+                const float targetX = targetLeft + targetW * 0.5f;
+                const float targetY = targetTop + targetH * 0.5f;
+                float dx = targetX - b.x;
+                float dy = targetY - b.y;
+                float len = std::sqrt(dx * dx + dy * dy);
+                if (len > 0.001f)
+                {
+                    dx /= len;
+                    dy /= len;
+
+                    const float speed = 9.0f;
+                    float curLen = std::sqrt(b.vx * b.vx + b.vy * b.vy);
+                    if (curLen < 0.001f) curLen = 1.0f;
+                    float curX = b.vx / curLen;
+                    float curY = b.vy / curLen;
+
+                    // 急に同じ軌道へ重ならないよう、滑らかに追従
+                    const float turnRate = 0.18f;
+                    float mixX = curX * (1.0f - turnRate) + dx * turnRate;
+                    float mixY = curY * (1.0f - turnRate) + dy * turnRate;
+                    float mixLen = std::sqrt(mixX * mixX + mixY * mixY);
+                    if (mixLen > 0.001f)
+                    {
+                        mixX /= mixLen;
+                        mixY /= mixLen;
+                        b.vx = mixX * speed;
+                        b.vy = mixY * speed;
+                    }
+                }
+            }
 
             b.x += b.vx;
             b.y += b.vy;
             b.life--;
 
-            UpdateCollider(b.collider, b.x, b.y, 20, 20);
+            UpdateCollider(b.collider, b.x - 10.0f, b.y - 10.0f, m_followAttackWidth, m_followAttackHeight);
 
             if (b.life <= 0)
             {
@@ -471,6 +573,13 @@ void Skill::ForceEnd()
         m_followAttackCollider = -1;
     }
 
+    for (auto& b : m_followBullets)
+    {
+        if (b.collider != -1)
+            DestroyCollider(b.collider);
+    }
+    m_followBullets.clear();
+
     if (m_summonCollider != -1)
     {
         DestroyCollider(m_summonCollider);
@@ -487,6 +596,94 @@ void Skill::ForceEnd()
     m_summons.clear();
 }
 
+void Skill::Draw(const CameraData& camera) const
+{
+    if (!m_isActive || m_data.type != SkillType::Follow)
+        return;
+
+    const int fx = static_cast<int>((m_followPosX - camera.posX) * camera.scale);
+    const int fy = static_cast<int>((m_followPosY - camera.posY) * camera.scale);
+
+    if (m_followSpriteHandle != -1)
+    {
+        // StoneGolem Character_sheet 100x100
+        int frame = m_followAnimFrame;
+        if (frame < 10 || frame > 27) frame = 10;
+        const int srcX = (frame % 10) * 100;
+        const int srcY = (frame / 10) * 100;
+        const int srcW = 100;
+        const int srcH = 100;
+
+        // ▼本体（追従ゴーレム）サイズ調整
+        // 値を大きくすると本体が大きく表示されます
+        const int drawW = static_cast<int>(112.0f * camera.scale);
+        const int drawH = static_cast<int>(112.0f * camera.scale);
+
+        if (m_followFacingRight)
+        {
+            DrawRectExtendGraph(
+                fx - drawW / 2,
+                fy - drawH,
+                fx + drawW / 2,
+                fy,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
+                m_followSpriteHandle,
+                TRUE);
+        }
+        else
+        {
+            DrawRectExtendGraph(
+                fx + drawW / 2,
+                fy - drawH,
+                fx - drawW / 2,
+                fy,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
+                m_followSpriteHandle,
+                TRUE);
+        }
+    }
+    else
+    {
+        DrawBox(fx - 32, fy - 64, fx + 32, fy, GetColor(120, 120, 120), TRUE);
+    }
+
+    for (const auto& b : m_followBullets)
+    {
+        const int bx = static_cast<int>((b.x - camera.posX) * camera.scale);
+        const int by = static_cast<int>((b.y - camera.posY) * camera.scale);
+
+        if (m_followBulletSpriteHandle != -1)
+        {
+            // ▼ボス弾と同サイズ（StoneGolem: 96x96）
+            const int half = static_cast<int>(48.0f * camera.scale);
+            const int left = bx - half;
+            const int top = by - half;
+            const int right = bx + half;
+            const int bottom = by + half;
+
+            if (b.vx >= 0.0f)
+            {
+                DrawExtendGraph(left, top, right, bottom, m_followBulletSpriteHandle, TRUE);
+            }
+            else
+            {
+                DrawExtendGraph(right, top, left, bottom, m_followBulletSpriteHandle, TRUE);
+            }
+        }
+        else
+        {
+            const int fallbackBulletRadius = static_cast<int>(48.0f * camera.scale);
+            DrawCircle(bx, by, fallbackBulletRadius, GetColor(120, 220, 255), TRUE);
+        }
+    }
+}
+
 Skill::FollowBullet* Skill::FindBulletByCollider(ColliderId id)
 {
     for (auto& b : m_followBullets)
@@ -495,4 +692,20 @@ Skill::FollowBullet* Skill::FindBulletByCollider(ColliderId id)
             return &b;
     }
     return nullptr;
+}
+
+void Skill::ConsumeFollowBullet(ColliderId id)
+{
+    for (int i = static_cast<int>(m_followBullets.size()) - 1; i >= 0; --i)
+    {
+        if (m_followBullets[i].collider == id)
+        {
+            if (m_followBullets[i].collider != -1)
+            {
+                DestroyCollider(m_followBullets[i].collider);
+            }
+            m_followBullets.erase(m_followBullets.begin() + i);
+            return;
+        }
+    }
 }

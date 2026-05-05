@@ -253,6 +253,14 @@ void DrawPlayer()
     int baseY = static_cast<int>(std::round((playerData.posY - camera.posY) * camera.scale));
     bool flip = playerData.isFacingRight;
 
+    for (auto& s : g_SkillManager.GetSkills())
+    {
+        if (s->IsActive() && s->GetType() == SkillType::Follow)
+        {
+            s->Draw(camera);
+        }
+    }
+
     bool hasAnimation = (playerAnims.idle.frames != nullptr && playerAnims.idle.frameCount > 0);
     Skill* activeSlashSkill = GetActiveSlashSkill();
 
@@ -1128,23 +1136,23 @@ namespace
         // 終わるように書きました。
         if (playerData.state == PlayerState::UsingSkill)
         {
-            bool anySkillActive = false;
+            bool anyAttackSkillActive = false;
 
             for (auto& s : g_SkillManager.GetSkills())
             {
-                if (s->IsActive())
+                if (s->IsActive() && s->GetType() == SkillType::Attack)
                 {
-                    anySkillActive = true;
+                    anyAttackSkillActive = true;
                     break;
                 }
             }
 
-            // スキル終了
-            if (!anySkillActive)
+            if (!anyAttackSkillActive)
             {
                 playerData.state = playerData.isGrounded ? PlayerState::Idle : PlayerState::Fall;
             }
 
+            prevIsGrounded = playerData.isGrounded;
             return;
         }
 

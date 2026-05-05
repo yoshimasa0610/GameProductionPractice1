@@ -83,3 +83,6 @@ bool SnapPlayerToGround(PlayerData* player, float maxDistance);
 
 // 指定コライダーの矩形を取得
 bool GetColliderRect(ColliderId id, float& left, float& top, float& width, float& height);
+
+// 指定座標から最も近い Enemy タグのコライダーIDを取得（見つからない場合 -1）
+ColliderId FindNearestEnemyCollider(float centerX, float centerY, float maxRange);

@@ -163,24 +163,6 @@ void UpdateCollider(ColliderId id, float left, float top, float width, float hei
     }
 }
 
-bool GetColliderRect(ColliderId id, float& left, float& top, float& width, float& height)
-{
-    for (const auto& c : g_colliders)
-    {
-        if (c.id == id && c.active)
-        {
-            left = c.left;
-            top = c.top;
-            width = c.width;
-            height = c.height;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// 破棄（無効化）
 void DestroyCollider(ColliderId id)
 {
     auto it = std::find_if(g_colliders.begin(), g_colliders.end(), [id](const Collider& c) { return c.id == id; });
@@ -206,19 +188,12 @@ bool AABBIntersect(float aLeft, float aTop, float aW, float aH,
     float bRight = bLeft + bW;
     float bBottom = bTop + bH;
 
-    // 辺がちょうど接している場合は「接触あり」として扱う
-    // （接地の1フレーム抜けによる Jump/Fall のちらつきを防ぐ）
     if (aRight < bLeft) return false;
     if (aLeft > bRight) return false;
     if (aBottom < bTop) return false;
     if (aTop > bBottom) return false;
     return true;
 }
-
-// ---------------------------------------
-// プレイヤー向け直接判定 / 補正関数の実装
-// 既存コードの PLAYER_WIDTH / PLAYER_HEIGHT 形式に合わせて動作します。
-// ---------------------------------------
 
 // X 方向の当たり判定と補正
 bool PlayerHitNormalBlockX(PlayerData* player, float newPosX)
@@ -228,7 +203,6 @@ bool PlayerHitNormalBlockX(PlayerData* player, float newPosX)
     const float w = static_cast<float>(PLAYER_WIDTH);
     const float h = static_cast<float>(PLAYER_HEIGHT);
 
-    // 試行位置の矩形（左上基準）
     float pLeft = newPosX - (w * 0.5f);
     float pTop = player->posY - h;
 
@@ -239,16 +213,13 @@ bool PlayerHitNormalBlockX(PlayerData* player, float newPosX)
 
         if (AABBIntersect(pLeft, pTop, w, h, c.left, c.top, c.width, c.height))
         {
-            // 衝突した -> X 方向のみで補正する
             float dx = newPosX - player->posX;
             if (dx > 0.0f)
             {
-                // 右移動時：プレイヤーの右端をブロックの左端に合わせる
                 player->posX = c.left - (w * 0.5f);
             }
             else if (dx < 0.0f)
             {
-                // 左移動時：プレイヤーの左端をブロックの右端に合わせる
                 player->posX = (c.left + c.width) + (w * 0.5f);
             }
             return true;
@@ -266,7 +237,6 @@ bool PlayerHitNormalBlockY(PlayerData* player, float newPosY)
     const float w = static_cast<float>(PLAYER_WIDTH);
     const float h = static_cast<float>(PLAYER_HEIGHT);
 
-    // 試行位置の矩形（左上基準）
     float pLeft = player->posX - (w * 0.5f);
     float pTop = newPosY - h;
 
@@ -277,12 +247,9 @@ bool PlayerHitNormalBlockY(PlayerData* player, float newPosY)
 
         if (AABBIntersect(pLeft, pTop, w, h, c.left, c.top, c.width, c.height))
         {
-            // 衝突した -> Y 方向のみで補正する
             float dy = newPosY - player->posY;
             if (dy > 0.0f)
             {
-                // 下方向に移動 -> 着地
-                // プレイヤーの底面 (posY) をブロックの top に合わせる
                 player->posY = c.top;
                 player->velocityY = 0.0f;
                 player->isGrounded = true;
@@ -290,8 +257,6 @@ bool PlayerHitNormalBlockY(PlayerData* player, float newPosY)
             }
             else if (dy < 0.0f)
             {
-                // 上方向に移動 -> 天井に当たる
-                // プレイヤーの上面 (posY - h) をブロックの bottom に合わせる
                 player->posY = (c.top + c.height) + h;
                 player->velocityY = 0.0f;
             }
@@ -322,14 +287,11 @@ bool SnapPlayerToGround(PlayerData* player, float maxDistance)
         float bRight = c.left + c.width;
 
         if (pRight <= bLeft || pLeft >= bRight) continue;
-
-        // プレイヤーより下にある床だけ対象
         if (c.top < player->posY) continue;
 
         float dist = c.top - player->posY;
         if (dist > maxDistance) continue;
 
-        // もっとも下側（Yが大きい）床を優先
         if (!found || c.top > bestTop)
         {
             found = true;
@@ -344,6 +306,49 @@ bool SnapPlayerToGround(PlayerData* player, float maxDistance)
     player->isGrounded = true;
     player->jumpCount = 0;
     return true;
+}
+
+bool GetColliderRect(ColliderId id, float& left, float& top, float& width, float& height)
+{
+    for (const auto& c : g_colliders)
+    {
+        if (c.id == id && c.active)
+        {
+            left = c.left;
+            top = c.top;
+            width = c.width;
+            height = c.height;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+ColliderId FindNearestEnemyCollider(float centerX, float centerY, float maxRange)
+{
+    const float maxRangeSq = maxRange * maxRange;
+    float bestDistSq = maxRangeSq;
+    ColliderId bestId = -1;
+
+    for (const auto& c : g_colliders)
+    {
+        if (!c.active) continue;
+        if (c.tag != ColliderTag::Enemy) continue;
+
+        const float cx = c.left + c.width * 0.5f;
+        const float cy = c.top + c.height * 0.5f;
+        const float dx = cx - centerX;
+        const float dy = cy - centerY;
+        const float d2 = dx * dx + dy * dy;
+        if (d2 < bestDistSq)
+        {
+            bestDistSq = d2;
+            bestId = c.id;
+        }
+    }
+
+    return bestId;
 }
 
 // 内部：プレイヤーとブロックの押し出し / 着地判定（player の owner は PlayerData* を想定）
@@ -689,8 +694,16 @@ void ResolveCollisions()
 
                     if (canHit)
                     {
-                        int damage = static_cast<int>(GetPlayerAttack() * skill->GetCurrentAttackRate());
-                        if (damage < 1) damage = 1;
+                        int damage = 1;
+                        if (skill->GetType() == SkillType::Follow)
+                        {
+                            damage = 5;
+                        }
+                        else
+                        {
+                            damage = static_cast<int>(GetPlayerAttack() * skill->GetCurrentAttackRate());
+                            if (damage < 1) damage = 1;
+                        }
 
                         if (enemy != nullptr)
                         {
@@ -700,6 +713,11 @@ void ResolveCollisions()
                         else if (!DamageMidBossByColliderId(enemyC->id, damage))
                         {
                             DamageBigBossByColliderId(enemyC->id, damage);
+                        }
+
+                        if (bullet != nullptr)
+                        {
+                            skill->ConsumeFollowBullet(attackC->id);
                         }
                     }
                 }

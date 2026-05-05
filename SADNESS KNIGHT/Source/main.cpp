@@ -39,6 +39,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
     LoadBGM();       // サウンドロード
     LoadSE();
+    GameSetting::Load();
     // アイテムのデータを読み込む
     InitAllItems();
 
@@ -127,6 +128,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 
     // リソース解放
     UnloadPlayer();
+    GameSetting::Save();
     FinBGM();
     FinSE();
     // DXライブラリ終了

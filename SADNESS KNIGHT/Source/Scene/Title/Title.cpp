@@ -14,6 +14,7 @@
 #include "../../Overlay/Option/Option.h"
 #include "../../Animation/Animation.h"
 #include "../../Sound/Sound.h"
+#include "../../GameSetting/GameSetting.h"
 
 #define TITLE_POS_X 280
 #define TITLE_POS_Y 130
@@ -222,6 +223,7 @@ void UpdateTitleScene()
 				OpenOption();
 				break;
 			case 3:
+				GameSetting::Save();
 				DxLib_End();
 				break;
 			}

@@ -14,6 +14,14 @@ SkillManager::SkillManager()
 // スキルの発動回数計算して登録
 void SkillManager::AddSkill(const SkillData& data, PlayerData* player)
 {
+    for (auto& owned : m_ownedSkills)
+    {
+        if (owned->GetID() == data.id)
+        {
+            return;
+        }
+    }
+
     auto skill = std::make_shared<Skill>(data);
 
     // Follow弾薬消費コールバック

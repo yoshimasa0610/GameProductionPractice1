@@ -4,55 +4,49 @@
 #include "../../Input/Input.h"
 #include "../../Fade/Fade.h"
 
-// 背景画像
 static int g_ClearBG = -1;
-
-// 選択
-static int g_Select = 0;
-
-// メニュー数
-static const int MENU_COUNT = 2;
+static int g_ClearText = -1;
 
 static int g_ClearTimer = 0;
-static const int CLEAR_WAIT_TIME = 180;
-
 static bool g_StartFade = false;
 
 void InitClearScene()
 {
-    //顔があかんわ
 }
 
 void LoadClearScene()
 {
     g_ClearBG = LoadGraph("Data/UI/clear_bg.png");
+    if (g_ClearBG == -1) g_ClearBG = LoadGraph("Data/Title/TitleBG.png");
+
+    g_ClearText = LoadGraph("Data/Title/ClearUI.png");
+    if (g_ClearText == -1) g_ClearText = LoadGraph("Data/Clear/ClearText.png");
+    if (g_ClearText == -1) g_ClearText = LoadGraph("Data/Clear/ClearText01.png");
+    if (g_ClearText == -1) g_ClearText = LoadGraph("Data/UI/ClearText.png");
+    if (g_ClearText == -1) g_ClearText = LoadGraph("Data/UI/clear_text.png");
 }
 
 void StartClearScene()
 {
     g_ClearTimer = 0;
     g_StartFade = false;
-
     StartFadeIn(30);
 }
 
 void StepClearScene()
 {
-    // クリア画面は特に処理なしや。次の禪院家当主は俺なんやから
 }
 
 void UpdateClearScene()
 {
     g_ClearTimer++;
 
-    // 3秒後フェードアウト開始
     if (g_ClearTimer > 180 && !g_StartFade)
     {
         StartFadeOut(60);
         g_StartFade = true;
     }
 
-    // フェードアウト完了や。甚一君はな顔があかんわ
     if (g_StartFade && IsFadeOutFinished())
     {
         ChangeScene(SCENE_TITLE);
@@ -63,21 +57,29 @@ void UpdateClearScene()
 
 void DrawClearScene()
 {
-    // 背景
     if (g_ClearBG != -1)
     {
         DrawGraph(0, 0, g_ClearBG, TRUE);
     }
 
-    int centerX = 640;
+    if (g_ClearText != -1)
+    {
+        int screenW = 0;
+        int screenH = 0;
+        GetDrawScreenSize(&screenW, &screenH);
 
-    // GAME CLEAR
-    DrawFormatString(
-        centerX + 100,
-        400,
-        GetColor(255, 255, 0),
-        "GAME CLEAR"
-    );
+        int textW = 0;
+        int textH = 0;
+        GetGraphSize(g_ClearText, &textW, &textH);
+
+        int drawX = (screenW - textW) / 2;
+        int drawY = (screenH - textH) / 2;
+        DrawGraph(drawX, drawY, g_ClearText, TRUE);
+    }
+    else
+    {
+        DrawFormatString(740, 400, GetColor(255, 255, 0), "GAME CLEAR");
+    }
 
     DrawFade();
 }
@@ -88,5 +90,11 @@ void FinClearScene()
     {
         DeleteGraph(g_ClearBG);
         g_ClearBG = -1;
+    }
+
+    if (g_ClearText != -1)
+    {
+        DeleteGraph(g_ClearText);
+        g_ClearText = -1;
     }
 }
