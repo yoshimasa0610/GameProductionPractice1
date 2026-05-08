@@ -84,6 +84,7 @@ namespace
     int g_DiveAttackDrawOffsetX = DIVE_ATTACK_DRAW_OFFSET_X;
     int g_DiveAttackDrawOffsetY = DIVE_ATTACK_DRAW_OFFSET_Y;
     int g_LastSlashComboIndex = -1;
+    bool g_PrevRawHealTabPressed = false;
 }
 
 // 内部関数の宣言
@@ -92,12 +93,24 @@ namespace
     void ProcessInput();
     void ProcessMovement();
     void ProcessSkills();
+    bool IsRawHealTabTriggered();
     void UpdatePhysics();
     void UpdateState();
     void UpdatePlayerAnimation();
     void ExecuteJump();
     bool PlacePlayerAtMapCenter();
     Skill* GetActiveSlashSkill();
+}
+
+namespace
+{
+    bool IsRawHealTabTriggered()
+    {
+        const bool nowPressed = (CheckHitKey(KEY_INPUT_TAB) != 0);
+        const bool triggered = (nowPressed && !g_PrevRawHealTabPressed);
+        g_PrevRawHealTabPressed = nowPressed;
+        return triggered;
+    }
 }
 
 // プレイヤーの初期化
@@ -647,18 +660,31 @@ int GetMaxHealCount()
 // ===== 回避関連 =====
 void TryHeal()
 {
-    if (playerData.healCount > 0 && 
-        playerData.isGrounded && 
-        playerData.state != PlayerState::Healing &&
-        playerData.state != PlayerState::UsingSkill)
+    if (playerData.healCount <= 0 || !playerData.isGrounded)
     {
-        playerData.velocityX = 0.0f;
-        currentMoveDir = 0;
-        runAnimState = RunAnimState::None;
-        playerData.state = PlayerState::Healing;
-        playerData.healExecuted = false;
-        ResetAnimation(playerAnims.healing);
+        return;
     }
+
+    if (playerData.state == PlayerState::Healing ||
+        playerData.state == PlayerState::Dodging ||
+        playerData.state == PlayerState::DiveAttack ||
+        playerData.state == PlayerState::Hurt ||
+        playerData.state == PlayerState::Death)
+    {
+        return;
+    }
+
+    if (GetActiveSlashSkill() != nullptr)
+    {
+        return;
+    }
+
+    playerData.velocityX = 0.0f;
+    currentMoveDir = 0;
+    runAnimState = RunAnimState::None;
+    playerData.state = PlayerState::Healing;
+    playerData.healExecuted = false;
+    ResetAnimation(playerAnims.healing);
 }
 
 // ===== 回避関連 =====
@@ -838,7 +864,7 @@ namespace
         }
 
         if (IsTriggerKey(KEY_CHANGE)) g_SkillManager.ChangeSet();
-        if (IsTriggerKey(KEY_HEAL)) TryHeal();
+        if (IsTriggerKey(KEY_HEAL) || IsRawHealTabTriggered()) TryHeal();
         if (IsTriggerKey(KEY_DODGE)) TryDodge();
     }
 
@@ -1110,23 +1136,29 @@ namespace
                 return;
             }
 
-            if (IsAnimationFinished(playerAnims.healing))
+            const bool hasHealingAnim = (playerAnims.healing.frames != nullptr && playerAnims.healing.frameCount > 0);
+            const int healTriggerFrame = hasHealingAnim ? (playerAnims.healing.frameCount / 2) : 0;
+
+            if (!playerData.healExecuted)
+            {
+                if (!hasHealingAnim || playerAnims.healing.currentFrame >= healTriggerFrame)
+                {
+                    if (playerData.currentHP < playerData.maxHP)
+                    {
+                        HealPlayerHP(playerData.basehealPower);
+                        playerData.healCount--;
+                        PlaySE(SE_PLAYER_HEAL);
+                    }
+                    playerData.healExecuted = true;
+                }
+            }
+
+            if (!hasHealingAnim || IsAnimationFinished(playerAnims.healing))
             {
                 playerData.state = PlayerState::Idle;
                 playerData.healExecuted = false;
                 prevIsGrounded = playerData.isGrounded;
                 return;
-            }
-
-            if (!playerData.healExecuted && playerAnims.healing.currentFrame == 13)
-            {
-                if (playerData.currentHP < playerData.maxHP)
-                {
-                    HealPlayerHP(playerData.basehealPower);
-                    playerData.healCount--;
-                    PlaySE(SE_PLAYER_HEAL);
-                }
-                playerData.healExecuted = true;
             }
 
             prevIsGrounded = playerData.isGrounded;

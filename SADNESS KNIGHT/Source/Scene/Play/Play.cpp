@@ -89,8 +89,8 @@ static const float FOREST5_BOSS_AREA_RIGHT = 1920.0f;
 static const float FOREST5_BOSS_AREA_TOP = 0.0f;
 static const float FOREST5_BOSS_AREA_BOTTOM = 1080.0f;
 
-static const float FOREST7_GAROK_X = 1536.0f;
-static const float FOREST7_GAROK_Y = 608.0f;
+static const float FOREST7_GAROK_X = 180.0f;
+static const float FOREST7_GAROK_Y = 416.0f;
 static const float FOREST7_MIDBOSS_CAMERA_X = 1200.0f;
 static const float FOREST7_MIDBOSS_CAMERA_Y = 400.0f;
 static const float FOREST7_MIDBOSS_AREA_LEFT = 768.0f;
@@ -385,7 +385,7 @@ void UpdatePlayScene()
 			SpawnStoneGolem(FOREST3_STONE_GOLEM_X, FOREST3_STONE_GOLEM_Y);
 			g_MidBossSpawned = true;
 		}
-		else if (stageName && strcmp(stageName, "forest_7") == 0 && !g_Forest7MidBossDefeated)
+		else if (stageName && strcmp(stageName, "forest_10") == 0 && !g_Forest7MidBossDefeated)
 		{
 			SpawnGarok(FOREST7_GAROK_X, FOREST7_GAROK_Y);
 			g_MidBossSpawned = true;
@@ -404,7 +404,7 @@ void UpdatePlayScene()
 				g_StoneGolemSkillGranted = true;
 			}
 		}
-		else if (strcmp(currentStage, "forest_7") == 0 && g_MidBossSpawned && !IsMidBossAlive())
+		else if (strcmp(currentStage, "forest_10") == 0 && g_MidBossSpawned && !IsMidBossAlive())
 		{
 			g_Forest7MidBossDefeated = true;
 		}
@@ -427,7 +427,7 @@ void UpdatePlayScene()
 	}
 
 	const bool isForest3 = (currentStage != nullptr && strcmp(currentStage, "forest_3") == 0);
-    const bool isForest7 = (currentStage != nullptr && strcmp(currentStage, "forest_7") == 0);
+    const bool isForest7 = (currentStage != nullptr && strcmp(currentStage, "forest_10") == 0);
     if (isForest3 || isForest7)
     {
         const float areaLeft = isForest3 ? FOREST3_MIDBOSS_AREA_LEFT : FOREST7_MIDBOSS_AREA_LEFT;

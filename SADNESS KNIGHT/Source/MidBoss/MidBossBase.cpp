@@ -412,10 +412,32 @@ namespace
         }
     }
 
+    void GetGarokArenaBounds(float& left, float& right)
+    {
+        left = GAROK_TUNING.arenaLeft + 32.0f;
+        right = GAROK_TUNING.arenaRight - 32.0f;
+
+        const int mapWidth = GetMapWidth();
+        if (mapWidth > 64)
+        {
+            left = 32.0f;
+            right = static_cast<float>(mapWidth) - 32.0f;
+        }
+
+        if (right < left)
+        {
+            right = left;
+        }
+    }
+
     float RandomGarokLandingX()
     {
-        const int minX = static_cast<int>(GAROK_TUNING.arenaLeft + 128.0f);
-        const int maxX = static_cast<int>(GAROK_TUNING.arenaRight - 128.0f);
+        float arenaLeft = 0.0f;
+        float arenaRight = 0.0f;
+        GetGarokArenaBounds(arenaLeft, arenaRight);
+
+        const int minX = static_cast<int>(arenaLeft + 96.0f);
+        const int maxX = static_cast<int>(arenaRight - 96.0f);
         const int range = maxX - minX;
         if (range <= 0) return static_cast<float>(minX);
 
@@ -434,18 +456,6 @@ namespace
     void MoveGarokXWithCollision(MidBossData& b, float moveX)
     {
         if (std::fabs(moveX) < 0.001f) return;
-
-        const float halfW = b.width * 0.20f;
-        const float topY = b.posY - b.height * 0.92f;
-        const float midY = b.posY - b.height * 0.55f;
-        const float lowY = b.posY - b.height * 0.20f;
-
-        const float sideX = b.posX + moveX + (moveX > 0.0f ? halfW : -halfW);
-        if (IsGarokSolidAt(sideX, topY) || IsGarokSolidAt(sideX, midY) || IsGarokSolidAt(sideX, lowY))
-        {
-            return;
-        }
-
         b.posX += moveX;
     }
 
@@ -787,7 +797,13 @@ void UpdateMidBosses()
         {
             b.garokMoving = false;
             if (b.garokRunAnimHold > 0.0f) b.garokRunAnimHold -= dt;
-            b.posX = (std::max)(GAROK_TUNING.arenaLeft + 32.0f, (std::min)(GAROK_TUNING.arenaRight - 32.0f, b.posX));
+            {
+                float arenaLeft = 0.0f;
+                float arenaRight = 0.0f;
+                GetGarokArenaBounds(arenaLeft, arenaRight);
+                b.posX = (std::max)(arenaLeft, (std::min)(arenaRight, b.posX));
+            }
+            ApplyGarokGravityAndMapCollision(b);
 
             if (b.cooldownTimer > 0.0f) b.cooldownTimer -= dt;
             if (b.garokJumpCooldownTimer > 0.0f) b.garokJumpCooldownTimer -= dt;
@@ -921,8 +937,8 @@ void UpdateMidBosses()
                             {
                                 dashTargetX = b.posX + dashDir * minDashDistance;
                             }
-                            b.garokDashTargetX = (std::max)(GAROK_TUNING.arenaLeft + 32.0f,
-                                (std::min)(GAROK_TUNING.arenaRight - 32.0f, dashTargetX));
+                            b.garokDashTargetX = (std::max)(GAROK_TUNING.arenaLeft,
+                                (std::min)(GAROK_TUNING.arenaRight, dashTargetX));
                             b.attackTimer = GAROK_TUNING.dashDuration;
                             ResetAnimation(b.garokDashAttack);
                         }
@@ -1337,7 +1353,6 @@ void DrawMidBosses()
         {
             if (b.type == MidBossType::Garok)
             {
-                // GarokëfçﬁÇÕèâä˙å¸Ç´Ç™ãtÇ»ÇÃÇ≈îΩì]ÉçÉWÉbÉNÇîΩëŒÇ…Ç∑ÇÈ
                 if (b.facingRight) DrawExtendGraph(right, top, left, bottom, handle, TRUE);
                 else DrawExtendGraph(left, top, right, bottom, handle, TRUE);
             }

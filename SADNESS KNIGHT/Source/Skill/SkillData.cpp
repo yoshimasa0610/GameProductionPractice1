@@ -62,8 +62,8 @@ void RegisterSkills()
 
     shadow->duration = 600;
 
-    shadow->iconSmallPath = "Data/Skill/Icon_Small_Shadow.png";
-    shadow->iconLargePath = "Data/Skill/Icon_Large_Shadow.png";
+    shadow->iconSmallPath = "Data/Skill/Icon_StoneGolem.png";
+    shadow->iconLargePath = "Data/Skill/Icon_StoneGolem.png";
 
     shadow->systemDesc =
     {
