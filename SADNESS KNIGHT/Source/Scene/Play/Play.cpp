@@ -91,10 +91,10 @@ static const float FOREST5_BOSS_AREA_BOTTOM = 1080.0f;
 
 static const float FOREST7_GAROK_X = 180.0f;
 static const float FOREST7_GAROK_Y = 416.0f;
-static const float FOREST7_MIDBOSS_CAMERA_X = 1200.0f;
+static const float FOREST7_MIDBOSS_CAMERA_X = 800.0f;
 static const float FOREST7_MIDBOSS_CAMERA_Y = 400.0f;
-static const float FOREST7_MIDBOSS_AREA_LEFT = 768.0f;
-static const float FOREST7_MIDBOSS_AREA_RIGHT = 3072.0f;
+static const float FOREST7_MIDBOSS_AREA_LEFT = 0.0f;
+static const float FOREST7_MIDBOSS_AREA_RIGHT = 9999.0f;
 static const float FOREST7_MIDBOSS_AREA_TOP = 0.0f;
 static const float FOREST7_MIDBOSS_AREA_BOTTOM = 1080.0f;
 static const float FOREST7_DEBUG_PLAYER_X = 1312.0f;
@@ -427,8 +427,8 @@ void UpdatePlayScene()
 	}
 
 	const bool isForest3 = (currentStage != nullptr && strcmp(currentStage, "forest_3") == 0);
-    const bool isForest7 = (currentStage != nullptr && strcmp(currentStage, "forest_10") == 0);
-    if (isForest3 || isForest7)
+	const bool isForest7 = false;
+	if (isForest3 || isForest7)
     {
         const float areaLeft = isForest3 ? FOREST3_MIDBOSS_AREA_LEFT : FOREST7_MIDBOSS_AREA_LEFT;
         const float areaRight = isForest3 ? FOREST3_MIDBOSS_AREA_RIGHT : FOREST7_MIDBOSS_AREA_RIGHT;

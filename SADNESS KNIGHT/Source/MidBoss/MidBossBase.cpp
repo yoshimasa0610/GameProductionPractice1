@@ -412,32 +412,11 @@ namespace
         }
     }
 
-    void GetGarokArenaBounds(float& left, float& right)
-    {
-        left = GAROK_TUNING.arenaLeft + 32.0f;
-        right = GAROK_TUNING.arenaRight - 32.0f;
-
-        const int mapWidth = GetMapWidth();
-        if (mapWidth > 64)
-        {
-            left = 32.0f;
-            right = static_cast<float>(mapWidth) - 32.0f;
-        }
-
-        if (right < left)
-        {
-            right = left;
-        }
-    }
-
     float RandomGarokLandingX()
     {
-        float arenaLeft = 0.0f;
-        float arenaRight = 0.0f;
-        GetGarokArenaBounds(arenaLeft, arenaRight);
-
-        const int minX = static_cast<int>(arenaLeft + 96.0f);
-        const int maxX = static_cast<int>(arenaRight - 96.0f);
+        const int mapWidth = GetMapWidth();
+        const int minX = 128;
+        const int maxX = (mapWidth > 256) ? (mapWidth - 128) : minX;
         const int range = maxX - minX;
         if (range <= 0) return static_cast<float>(minX);
 
@@ -797,13 +776,14 @@ void UpdateMidBosses()
         {
             b.garokMoving = false;
             if (b.garokRunAnimHold > 0.0f) b.garokRunAnimHold -= dt;
+
+            const int mapWidth = GetMapWidth();
+            if (mapWidth > 64)
             {
-                float arenaLeft = 0.0f;
-                float arenaRight = 0.0f;
-                GetGarokArenaBounds(arenaLeft, arenaRight);
-                b.posX = (std::max)(arenaLeft, (std::min)(arenaRight, b.posX));
+                const float minX = 32.0f;
+                const float maxX = static_cast<float>(mapWidth) - 32.0f;
+                b.posX = (std::max)(minX, (std::min)(maxX, b.posX));
             }
-            ApplyGarokGravityAndMapCollision(b);
 
             if (b.cooldownTimer > 0.0f) b.cooldownTimer -= dt;
             if (b.garokJumpCooldownTimer > 0.0f) b.garokJumpCooldownTimer -= dt;
@@ -937,8 +917,19 @@ void UpdateMidBosses()
                             {
                                 dashTargetX = b.posX + dashDir * minDashDistance;
                             }
-                            b.garokDashTargetX = (std::max)(GAROK_TUNING.arenaLeft,
-                                (std::min)(GAROK_TUNING.arenaRight, dashTargetX));
+
+                            const int mapWidth = GetMapWidth();
+                            if (mapWidth > 64)
+                            {
+                                const float minX = 32.0f;
+                                const float maxX = static_cast<float>(mapWidth) - 32.0f;
+                                b.garokDashTargetX = (std::max)(minX, (std::min)(maxX, dashTargetX));
+                            }
+                            else
+                            {
+                                b.garokDashTargetX = dashTargetX;
+                            }
+
                             b.attackTimer = GAROK_TUNING.dashDuration;
                             ResetAnimation(b.garokDashAttack);
                         }
@@ -1081,7 +1072,13 @@ void UpdateMidBosses()
                 }
             }
 
-            b.posX = (std::max)(GAROK_TUNING.arenaLeft + 32.0f, (std::min)(GAROK_TUNING.arenaRight - 32.0f, b.posX));
+            if (mapWidth > 64)
+            {
+                const float minX = 32.0f;
+                const float maxX = static_cast<float>(mapWidth) - 32.0f;
+                b.posX = (std::max)(minX, (std::min)(maxX, b.posX));
+            }
+
             ApplyGarokGravityAndMapCollision(b);
 
             if (b.colliderId != -1)
@@ -1367,76 +1364,6 @@ void DrawMidBosses()
             DrawBox(left, top, right, bottom, GetColor(160, 160, 160), TRUE);
         }
 
-        if (b.type == MidBossType::Garok && GAROK_TUNING.debugDraw)
-        {
-            int frameW = 0;
-            int frameH = 0;
-            if (handle != -1)
-            {
-                GetGraphSize(handle, &frameW, &frameH);
-            }
-
-            DrawBox(left, top, right, bottom, GetColor(0, 255, 0), FALSE);
-            DrawLine(drawX - 8, drawY, drawX + 8, drawY, GetColor(255, 255, 0));
-            DrawLine(drawX, drawY - 8, drawX, drawY + 8, GetColor(255, 255, 0));
-
-            if (b.garokAttackColliderId != -1)
-            {
-                float colliderLeft = 0.0f;
-                float colliderTop = 0.0f;
-                float colliderWidth = 0.0f;
-                float colliderHeight = 0.0f;
-                if (GetColliderRect(b.garokAttackColliderId, colliderLeft, colliderTop, colliderWidth, colliderHeight))
-                {
-                    const int hitLeft = static_cast<int>((colliderLeft - camera.posX) * camera.scale);
-                    const int hitTop = static_cast<int>((colliderTop - camera.posY) * camera.scale);
-                    const int hitRight = static_cast<int>((colliderLeft + colliderWidth - camera.posX) * camera.scale);
-                    const int hitBottom = static_cast<int>((colliderTop + colliderHeight - camera.posY) * camera.scale);
-                    DrawBox(hitLeft, hitTop, hitRight, hitBottom, GetColor(255, 64, 64), FALSE);
-                    DrawBox(hitLeft + 1, hitTop + 1, hitRight - 1, hitBottom - 1, GetColor(255, 160, 160), FALSE);
-                }
-            }
-
-            DrawFormatString(
-                left,
-                top - 64,
-                GetColor(255, 255, 0),
-                "Garok pos(%.2f,%.2f) draw(%d,%d) vY=%.3f grd=%d",
-                b.posX,
-                b.posY,
-                drawX,
-                drawY,
-                b.garokVelocityY,
-                b.garokGrounded ? 1 : 0);
-
-            DrawFormatString(
-                left,
-                top - 48,
-                GetColor(255, 255, 0),
-                "state agg=%d prep=%d atk=%d move=%d jump=%d face=%d pAtk=%d stage=%d",
-                b.isAggro ? 1 : 0,
-                b.isPreparing ? 1 : 0,
-                b.isAttacking ? 1 : 0,
-                b.garokMoving ? 1 : 0,
-                b.garokJumping ? 1 : 0,
-                b.facingRight ? 1 : 0,
-                b.pendingAttack,
-                b.garokAnimStage);
-
-            DrawFormatString(
-                left,
-                top - 32,
-                GetColor(255, 255, 0),
-                "anim h=%d frame=%d size=%dx%d combo=%d atkT=%.2f prepT=%.2f",
-                handle,
-                (anim != nullptr) ? anim->currentFrame : -1,
-                frameW,
-                frameH,
-                b.garokComboMax,
-                b.attackTimer,
-                b.prepareTimer);
-        }
-
         SetDrawBright(255, 255, 255);
     }
 
@@ -1558,3 +1485,4 @@ int GetMidBossMaxHP()
     }
     return 0;
 }
+

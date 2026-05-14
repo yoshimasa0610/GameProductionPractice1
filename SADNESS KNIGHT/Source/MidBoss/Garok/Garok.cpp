@@ -22,21 +22,21 @@ namespace
         false,       // enableJump
         8.0f,        // jumpInterval
         210.0f,      // jumpHeight
-        1.20f,       // hitboxWidthRatio
-        0.76f,       // hitboxHeightRatio
-        0.78f,       // hitboxFrontRatio
+        1.00f,       // hitboxWidthRatio
+        0.64f,       // hitboxHeightRatio
+        0.70f,       // hitboxFrontRatio
         0.45f,       // contactYRatio
         24.0f,       // facingDeadzone
         768.0f,      // arenaLeft
         3072.0f,     // arenaRight
         32.0f * 8.0f,// attackCheckRange
-        32.0f * 10.0f,// attackRange
+        32.0f * 8.0f,// attackRange
         0.35f,       // gravity
         9.0f,        // maxFallSpeed
         0.0f,        // drawOffsetX
         25.0f,       // drawOffsetY
         4.8f,        // drawWidthScale
-        true         // debugDraw
+        false        // debugDraw
     };
 }
 

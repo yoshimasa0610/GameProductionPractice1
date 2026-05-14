@@ -37,11 +37,6 @@ namespace
     bool g_enemyCSVFailed = false;
 
     std::vector<EnemyData> g_enemies;
-    static int g_EnemyDebugFrame = 0;
-
-    // デバッグ用グローバルバッファ
-    char g_enemyDebugInfo[512] = "";
-
     static const float BIG_QUARTIST_DRAW_SCALE = 1.22f;
     static const int BIG_QUARTIST_IDLE_OFFSET_X = 14;
     static const int BIG_QUARTIST_RUN_OFFSET_X[8] = { 14, 14, 14, 14, 14, 15, 15, 13 };
@@ -1550,9 +1545,6 @@ void UpdateEnemies()
             if (e.velocityY > MAX_FALL_SPEED) e.velocityY = MAX_FALL_SPEED;
         }
 
-        const float debugVelocityXBeforeMove = e.velocityX;
-        const float debugVelocityYBeforeMove = e.velocityY;
-
         const float moveX = e.velocityX * slowMoScale;
         const float moveY = e.velocityY * slowMoScale;
         const float maxMoveAbs = (std::fabs(moveX) > std::fabs(moveY)) ? std::fabs(moveX) : std::fabs(moveY);
@@ -1652,34 +1644,6 @@ void UpdateEnemies()
             {
                 UpdateAnimation(e.animations->idle);
             }
-        }
-
-        // --- デバッグ出力（最初のアクティブな敵のみ） ---
-        static int debugEnemyIdx = -1;
-        if (debugEnemyIdx == -1 && e.active) debugEnemyIdx = &e - &g_enemies[0];
-        if ((&e - &g_enemies[0]) == debugEnemyIdx) {
-            const bool inAttackRangeDebug = (std::fabs(dx) <= e.attackRange) && (std::fabs(dy) <= e.height);
-            const bool canChaseDebug = e.isAggro && !e.isAttacking && !e.isInvisible;
-            snprintf(g_enemyDebugInfo, sizeof(g_enemyDebugInfo),
-                "[EnemyDebug] type=%d pos=(%.1f,%.1f) v=(%.2f,%.2f) preMove=(%.2f,%.2f) aggro=%d atk=%d grd=%d los=%d invis=%d pattern=%d special=%d dx=%.1f dy=%.1f dist=%.1f atkR=%.1f det=%.1f inAtk=%d canChase=%d",
-                (int)e.type,
-                e.posX, e.posY,
-                e.velocityX, e.velocityY,
-                debugVelocityXBeforeMove, debugVelocityYBeforeMove,
-                e.isAggro,
-                e.isAttacking,
-                e.isGrounded,
-                e.hasLineOfSight,
-                e.isInvisible,
-                e.behaviorPattern,
-                specialType,
-                dx,
-                dy,
-                dist,
-                e.attackRange,
-                e.detectRange,
-                inAttackRangeDebug,
-                canChaseDebug);
         }
     }
 
@@ -1824,11 +1788,6 @@ void DrawEnemies()
     }
 
     DrawEnemyProjectiles(camera);
-
-    // デバッグ情報を画面左上に表示
-    if (g_enemyDebugInfo[0] != '\0') {
-        DrawFormatString(16, 16, GetColor(255,255,0), "%s", g_enemyDebugInfo);
-    }
 }
 
 // アクセサ
