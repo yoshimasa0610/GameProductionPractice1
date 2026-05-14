@@ -16,19 +16,19 @@
 #include "../../Sound/Sound.h"
 #include "../../GameSetting/GameSetting.h"
 
-#define TITLE_POS_X 280
-#define TITLE_POS_Y 130
+#define TITLE_POS_X 420
+#define TITLE_POS_Y 195
 
-#define MENU_POS_X 700
-#define MENU_POS_Y 550
-#define MENU_INTERVAL 50
+#define MENU_POS_X 1050
+#define MENU_POS_Y 825
+#define MENU_INTERVAL 75
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 
-#define SLOT_WIDTH 1050
-#define SLOT_HEIGHT 180
-#define SLOT_SPACING 210
+#define SLOT_WIDTH 1575
+#define SLOT_HEIGHT 270
+#define SLOT_SPACING 315
 
 // 状態管理
 static TitleState g_TitleState = TitleState::MainMenu;
@@ -274,10 +274,10 @@ void UpdateTitleScene()
 
 void DrawTitleScene()
 {
-	// 背景
-	DrawGraph(0, 0, g_BGHandle, TRUE);
+	// 背景（画面全体に拡大表示）
+	DrawExtendGraph(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, g_BGHandle, TRUE);
 	DrawGraph(TITLE_POS_X, TITLE_POS_Y, g_TitleHandle, TRUE);
-	DrawGraph(0, -60, g_TitleUIHandle, TRUE);
+	DrawExtendGraph(0, -90, SCREEN_WIDTH, SCREEN_HEIGHT, g_TitleUIHandle, TRUE);
 
 	// スロット画面のときは背景を暗くするんや
 	if (g_TitleState == TitleState::SelectSlot_New ||
@@ -329,11 +329,11 @@ void DrawTitleScene()
 	// スロット選択
 	else if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
 	{
-		int offsetX = 150;
+		int offsetX = 225;
 
 		int titleW = GetDrawStringWidthToHandle("データ選択",strlen("データ選択"),g_DataSelectFont);
 
-		DrawStringToHandle((SCREEN_WIDTH - titleW) / 2 + offsetX,120,"データ選択",GetColor(255, 255, 255),g_DataSelectFont);
+		DrawStringToHandle((SCREEN_WIDTH - titleW) / 2 + offsetX,180,"データ選択",GetColor(255, 255, 255),g_DataSelectFont);
 
 		for (int i = 0; i < SAVE_SLOT_MAX; i++)
 		{
@@ -344,7 +344,7 @@ void DrawTitleScene()
 
 			int x = (SCREEN_WIDTH - width) / 2 + offsetX;
 
-			int y = 200 + i * SLOT_SPACING;
+			int y = 300 + i * SLOT_SPACING;
 
 			int frameColor = selected? GetColor(255, 255, 255): GetColor(80, 80, 80);
 
@@ -352,18 +352,18 @@ void DrawTitleScene()
 
 			int textColor = selected? GetColor(255, 255, 255): GetColor(150, 150, 150);
 
-			DrawFormatString(x + 30, y + 20, textColor,"SLOT %d", i + 1);
+			DrawFormatString(x + 45, y + 30, textColor,"SLOT %d", i + 1);
 
 			SaveData summary;
 			if (LoadSaveSummary(i, &summary))
 			{
-				DrawFormatString(x + 200, y + 25, textColor,"ステージ : %s", summary.stageName);
+				DrawFormatString(x + 300, y + 38, textColor,"ステージ : %s", summary.stageName);
 
-				DrawFormatString(x + 200, y + 60, textColor,"HP : %d / %d",summary.currentHP,summary.maxHP);
+				DrawFormatString(x + 300, y + 90, textColor,"HP : %d / %d",summary.currentHP,summary.maxHP);
 			}
 			else
 			{
-				DrawString(x + 200, y + 45,"新規作成", textColor);
+				DrawString(x + 300, y + 68,"新規作成", textColor);
 			}
 		}
 	}
@@ -371,11 +371,11 @@ void DrawTitleScene()
 	// 上書き確認
 	else if (g_TitleState == TitleState::ConfirmOverwrite)
 	{
-		int offsetX = 150;
-		int offsetY = 80;
+		int offsetX = 225;
+		int offsetY = 120;
 
-		int boxW = 600;
-		int boxH = 200;
+		int boxW = 900;
+		int boxH = 300;
 
 		int x = (SCREEN_WIDTH - boxW) / 2 + offsetX;
 		int y = (SCREEN_HEIGHT - boxH) / 2 + offsetY;
@@ -384,7 +384,7 @@ void DrawTitleScene()
 
 		const char* msg = "セーブデータを上書きしますか？";int msgW = GetDrawStringWidth(msg, strlen(msg));
 
-		DrawString(x + (boxW - msgW) / 2,y + 40,msg,GetColor(255, 255, 255));
+		DrawString(x + (boxW - msgW) / 2,y + 60,msg,GetColor(255, 255, 255));
 
 		int yesColor = (g_ConfirmIndex == 0)? GetColor(255, 255, 0): GetColor(255, 255, 255);
 
@@ -396,13 +396,13 @@ void DrawTitleScene()
 		int yesW = GetDrawStringWidth(yes, strlen(yes));
 		int noW = GetDrawStringWidth(no, strlen(no));
 
-		int buttonSpacing = 100;
+		int buttonSpacing = 150;
 
 		int centerX = x + boxW / 2;
 
-		DrawString(centerX - buttonSpacing - yesW / 2,y + 120,yes,yesColor);
+		DrawString(centerX - buttonSpacing - yesW / 2,y + 180,yes,yesColor);
 
-		DrawString(centerX + buttonSpacing - noW / 2,y + 120,no,noColor);
+		DrawString(centerX + buttonSpacing - noW / 2,y + 180,no,noColor);
 	}
 
 	if (g_TitleState == TitleState::SelectSlot_New ||g_TitleState == TitleState::SelectSlot_Continue)
@@ -417,10 +417,10 @@ void DrawTitleScene()
 		int w1 = GetDrawStringWidth(guide1, strlen(guide1));
 		int w2 = GetDrawStringWidth(guide2, strlen(guide2));
 
-		int x1 = SCREEN_WIDTH - w1 + 300;
-		int x2 = SCREEN_WIDTH - w2 + 300;
+		int x1 = SCREEN_WIDTH - w1 - 50;
+		int x2 = SCREEN_WIDTH - w2 - 50;
 
-		int y2 = SCREEN_HEIGHT + 150;
+		int y2 = SCREEN_HEIGHT - 50;
 		int y1 = y2 - 25;
 
 		// 少し透明にするんやな。どうすんの？真希ちゃん

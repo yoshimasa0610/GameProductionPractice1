@@ -11,6 +11,7 @@
 #include "../Collision/Collision.h"
 #include "../BigBoss/BigBossBase.h"
 #include "../MidBoss/MidBossBase.h"
+#include "../GameSetting/GameSetting.h"
 
 // HPÉoÅ[âÊëú
 static int g_HPBarFrame = -1;
@@ -36,7 +37,7 @@ static const int HEAL_POS_X = 30;
 static const int HEAL_POS_Y = 80;
 
 static const int SKILL_UI_X = 30;
-static const int SKILL_UI_Y = 800;
+static const int SKILL_UI_Y = SCREEN_HEIGHT - 280;
 
 static const int SKILL_ICON_SIZE = 40;
 static const int SKILL_SPACING = 55;

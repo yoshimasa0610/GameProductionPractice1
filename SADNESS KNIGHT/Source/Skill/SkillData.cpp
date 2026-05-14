@@ -57,8 +57,8 @@ void RegisterSkills()
     shadow->type = SkillType::Follow;
 
     shadow->coolTime = 300;
-    shadow->maxUseCount = 50;
-    shadow->attackRate = 0.05f; // プレイヤー攻撃100想定で 5 ダメージ
+    shadow->maxUseCount = 70;
+    shadow->attackRate = 0.233f; // プレイヤー攻撃100想定で 3発で70ダメージ
 
     shadow->duration = 600;
 

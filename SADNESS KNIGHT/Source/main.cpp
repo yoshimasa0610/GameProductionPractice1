@@ -12,8 +12,8 @@
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, INT)
 {
-    // ウィンドウモード設定
-    ChangeWindowMode(TRUE);
+    // ウィンドウモード設定（FALSEでフルスクリーン）
+    ChangeWindowMode(FALSE);
 
     // 画面サイズ設定
     SetGraphMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_COLOR_DEPTH);

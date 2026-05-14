@@ -322,12 +322,6 @@ void Skill::Update(PlayerData* player)
                     // 3発同時発射（必中ホーミング）
                     for (int i = 0; i < 3; ++i)
                     {
-                        if (g_SkillManager.GetRemainingUses(m_data.id) == 0)
-                        {
-                            ForceEnd();
-                            break;
-                        }
-
                         FollowBullet b{};
 
                         // 3wayで見えるように、発射位置を少しずらす
@@ -354,11 +348,18 @@ void Skill::Update(PlayerData* player)
                             this);
 
                         m_followBullets.push_back(b);
+                    }
 
-                        if (m_onConsumeUse)
-                        {
-                            m_onConsumeUse(m_data.id); // 1発ごとに1消費
-                        }
+                    // 3発撃ち終わった後に使用回数を1減らす
+                    if (m_onConsumeUse)
+                    {
+                        m_onConsumeUse(m_data.id);
+                    }
+
+                    // 使用回数が0になったら終了
+                    if (g_SkillManager.GetRemainingUses(m_data.id) == 0)
+                    {
+                        ForceEnd();
                     }
 
                     m_followAttackTimer = m_followAttackInterval;

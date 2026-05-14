@@ -650,7 +650,7 @@ bool LoadPlayerAnimations(PlayerAnimations& anims)
     if (FileExists("Data/Player/healing_merged.png"))
     {
         LoadAnimationAuto(anims.healing, "Data/Player/healing_merged.png",
-            97, 81, 8, AnimationMode::Once);
+            97, 81, 7, AnimationMode::Once);
     }
     else
     {
