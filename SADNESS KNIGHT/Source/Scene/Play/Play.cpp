@@ -174,20 +174,22 @@ void LoadPlayScene()
 	// セーブ復帰後にバフ再計算
 	g_ItemManager.ApplyBuffsToPlayer(&player);
 
-	// =========================
-//  デバッグ：Equipアイテムを追加
-// =========================
-#ifdef _DEBUG
-
-	ItemManager_AddItem(10);
-	ItemManager_AddItem(11);
-	ItemManager_AddItem(12);
+	// 基本攻撃スキルは常に所持・装備
 	g_SkillManager.AddSkill(GetSkillData(1), &player);
 	if (g_SaveData.forest3MidBossDefeated)
 	{
 		g_SkillManager.AddSkill(GetSkillData(2), &player);
 	}
 	g_SkillManager.EquipSkill(0, 0, 1);
+
+	// =========================
+	//  デバッグ：Equipアイテムを追加
+	// =========================
+#ifdef _DEBUG
+
+	ItemManager_AddItem(10);
+	ItemManager_AddItem(11);
+	ItemManager_AddItem(12);
 	// バフ再計算
 	g_ItemManager.ApplyBuffsToPlayer(&player);
 

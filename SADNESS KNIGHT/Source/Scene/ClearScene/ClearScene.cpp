@@ -3,6 +3,7 @@
 #include "../SceneManager.h"
 #include "../../Input/Input.h"
 #include "../../Fade/Fade.h"
+#include "../../GameSetting/GameSetting.h"
 
 static int g_ClearBG = -1;
 static int g_ClearText = -1;
@@ -78,7 +79,11 @@ void DrawClearScene()
     }
     else
     {
-        DrawFormatString(740, 400, GetColor(255, 255, 0), "GAME CLEAR");
+        const char* clearText = "GAME CLEAR";
+        int textW = GetDrawStringWidth(clearText, sizeof("GAME CLEAR") - 1);
+        int drawX = (SCREEN_WIDTH - textW) / 2;
+        int drawY = SCREEN_HEIGHT / 2;
+        DrawFormatString(drawX, drawY, GetColor(255, 255, 0), "%s", clearText);
     }
 
     DrawFade();
